@@ -1,7 +1,8 @@
 {
-  "name": "gym-tracker",
+  "name": "replog",
+  "version": "0.0.1",
+  "homepage": "https://marc-dietrich.github.io/replog/",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -21,6 +22,7 @@
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
+    "gh-pages": "^6.3.0",
     "globals": "^16.5.0",
     "vite": "^7.2.4"
   }
