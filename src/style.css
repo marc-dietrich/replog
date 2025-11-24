@@ -1,0 +1,9 @@
+input {
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus {
+  border-color: #D4AA2A !important;    /* your primary gold color */
+  box-shadow: 0 0 0 3px rgba(212,170,42,0.3); /* subtle glow */
+  outline: none;
+}
