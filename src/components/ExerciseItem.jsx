@@ -1,11 +1,13 @@
 import { useState } from "react";
+import { colors } from "../theme";
+
 
 function getLastEntry(exercise) {
   if (!exercise.entries.length) return null;
   return exercise.entries[exercise.entries.length - 1];
 }
 
-export function ExerciseItem({ exercise, isOpen, onToggle, onAddEntry }) {
+export function ExerciseItem({ exercise, isOpen, onToggle, onAddEntry, onDeleteEntry}) {
   const lastEntry = getLastEntry(exercise);
 
   // state to show/hide weight input
@@ -29,6 +31,12 @@ export function ExerciseItem({ exercise, isOpen, onToggle, onAddEntry }) {
     setReps("");
     setShowWeightInput(false);
   };
+
+
+  const handleDeleteEntry = (entryToDelete) => {
+  onDeleteEntry(exercise.id, entryToDelete);
+};
+
 
   // ---- Daten für den Graphen vorbereiten ----
   const sortedEntries = [...exercise.entries].sort(
@@ -114,6 +122,7 @@ export function ExerciseItem({ exercise, isOpen, onToggle, onAddEntry }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            color: colors.text
           }}
         >
           +
@@ -157,19 +166,42 @@ export function ExerciseItem({ exercise, isOpen, onToggle, onAddEntry }) {
             }}
           />
 
-          <button
-            onClick={handleAdd}
+          <div
             style={{
-              padding: "0.5rem 0.75rem",
-              borderRadius: "0.5rem",
-              background: "#222",
-              color: "white",
-              border: "none",
-              cursor: "pointer",
+              display: "flex",
+              gap: "0.5rem",
+              marginTop: "0.5rem",
             }}
           >
-            ✓
-          </button>
+            <button
+              onClick={() => setShowWeightInput(false)}
+              style={{
+                flex: 1, // ← also 50%
+                padding: "0.5rem 0.75rem",
+                borderRadius: "0.5rem",
+                background: "#ccc",
+                color: "#000",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              X
+            </button>
+            <button
+              onClick={handleAdd}
+              style={{
+                flex: 1, // ← makes it 50%
+                padding: "0.5rem 0.75rem",
+                borderRadius: "0.5rem",
+                background: "#222",
+                color: "white",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              ✓
+            </button>
+          </div>
         </div>
       )}
 
@@ -210,7 +242,7 @@ export function ExerciseItem({ exercise, isOpen, onToggle, onAddEntry }) {
                 <polyline
                   points={points}
                   fill="none"
-                  stroke="#d4aa2a"
+                  stroke={colors.primary}
                   strokeWidth="3"
                   strokeLinejoin="round"
                   strokeLinecap="round"
@@ -221,28 +253,50 @@ export function ExerciseItem({ exercise, isOpen, onToggle, onAddEntry }) {
                   points.split(" ").map((p, idx) => {
                     const [x, y] = p.split(",").map(Number);
                     return (
-                      <circle key={idx} cx={x} cy={y} r="3" fill="#d4aa2a" />
+                      <circle key={idx} cx={x} cy={y} r="3" fill={colors.primary} />
                     );
                   })}
               </svg>
 
               {/* sortierte Liste darunter (optional, aber praktisch) */}
               {sortedEntries.slice(-5).map((entry, index) => (
-                <div
-                  key={index}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "0.25rem",
-                    fontSize: "0.9rem",
-                  }}
-                >
-                  <span>{entry.date}</span>
-                  <span>
-                    {entry.weight} kg × {entry.reps}
-                  </span>
-                </div>
-              ))}
+  <div
+    key={index}
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: "0.5rem",
+      marginBottom: "0.25rem",
+      fontSize: "0.9rem",
+    }}
+  >
+    <span style={{ flex: 1 }}>{entry.date}</span>
+    <span style={{ flex: 1, textAlign: "right" }}>
+      {entry.weight} kg × {entry.reps}
+    </span>
+
+    <button
+      onClick={(e) => {
+        e.stopPropagation();               // prevent toggling item
+        handleDeleteEntry(entry);
+      }}
+      style={{
+        marginLeft: "2rem",
+        color: "black",
+        border: "none",
+        borderRadius: "4px",
+        width: "1.6rem",
+        height: "1.6rem",
+        cursor: "pointer",
+        fontWeight: "bold",
+      }}
+    >
+      ×
+    </button>
+  </div>
+))}
+
             </>
           )}
         </div>

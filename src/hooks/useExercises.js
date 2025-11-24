@@ -62,5 +62,26 @@ export function useExercises() {
   );
 };
 
-  return { exercises, addExercise, addEntry };
+const deleteEntry = (exerciseId, entryToDelete) => {
+  setExercises((prev) =>
+    prev.map((ex) => {
+      if (ex.id !== exerciseId) return ex;
+
+      return {
+        ...ex,
+        entries: ex.entries.filter(
+          (entry) =>
+            !(
+              entry.date === entryToDelete.date &&
+              entry.weight === entryToDelete.weight &&
+              entry.reps === entryToDelete.reps
+            )
+        ),
+      };
+    })
+  );
+};
+
+return { exercises, addExercise, addEntry, deleteEntry };
+
 }

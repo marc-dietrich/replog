@@ -3,55 +3,34 @@ import { ExerciseList } from "./components/ExerciseList";
 import { useExercises } from "./hooks/useExercises";
 import { colors } from "./theme";
 
-
 function App() {
-  const { exercises, addExercise, addEntry } = useExercises();
+  const { exercises, addExercise, addEntry, deleteEntry} = useExercises();
 
   return (
     <div
       style={{
-        fontFamily: "system-ui, sans-serif",
-        width: "90%",
-        margin: "0 auto",
-        padding: "1rem",
-        alignItems: "flex-start",
-        background: colors.background,     // ← theme applied
-        color: colors.text,                // ← theme applied
+        textAlign: "center",
+        marginBottom: "1rem",
+        padding: "0.5rem 0",
       }}
     >
-      {/* Header Section */}
-      <div
+      <h1
         style={{
-          width: "100%",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          background: colors.card,          // ← card background
-          border: `1px solid ${colors.border}`, 
-          borderRadius: "0.5rem",
-          padding: "0.75rem",
-          marginBottom: "1rem",
-          boxSizing: "border-box",
+          fontSize: "1.75rem",
+          margin: 0,
+          fontWeight: 700,
+          color: colors.text, // Apply your theme color
+          border: `3px solid ${colors.border}`,
         }}
       >
-        <h1
-          style={{
-            fontSize: "1.5rem",
-            margin: 0,
-            color: colors.text,             // ← ensure color consistency
-          }}
-        >
-          RepLog
-        </h1>
+        RepLog
+      </h1>
 
-        {/* Force top alignment for AddExerciseForm */}
-        <div style={{ display: "flex", alignItems: "flex-start" }}>
-          <AddExerciseForm onAdd={addExercise} />
-        </div>
+      <div style={{ marginTop: "0.75rem" }}>
+        <AddExerciseForm onAdd={addExercise} />
       </div>
 
-      {/* Exercise List */}
-      <ExerciseList exercises={exercises} onAddEntry={addEntry} />
+      <ExerciseList exercises={exercises} onAddEntry={addEntry} onDeleteEntry={deleteEntry} />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ExerciseItem } from "./ExerciseItem";
 
-export function ExerciseList({ exercises, onAddEntry }) {
+export function ExerciseList({ exercises, onAddEntry, onDeleteEntry}) {
   const [openExerciseId, setOpenExerciseId] = useState(null);
 
   return (
@@ -25,6 +25,7 @@ export function ExerciseList({ exercises, onAddEntry }) {
             )
           }
           onAddEntry={onAddEntry}
+          onDeleteEntry={onDeleteEntry}
         />
       ))}
     </div>
