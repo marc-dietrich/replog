@@ -17,7 +17,7 @@ function App() {
           boxSizing: "border-box",
           textAlign: "center",
           color: colors.text,
-          padding: "0.5rem",
+          //padding: "0.5rem",
         }}
       >
         RepLog
