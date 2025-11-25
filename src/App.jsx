@@ -26,7 +26,7 @@ function App() {
       <div
         style={{
           width: "90%",
-          margin: "5%"
+          margin: "5%",
         }}
       >
         <AddExerciseForm onAdd={addExercise} />
