@@ -12,12 +12,12 @@ function App() {
         style={{
           width: "100%",
           background: "#D4AA2A",
-          //padding: "1rem",
           borderBottomLeftRadius: "1.25rem",
           borderBottomRightRadius: "1.25rem",
           boxSizing: "border-box",
           textAlign: "center",
-          color: colors.text
+          color: colors.text,
+          padding: "0.5rem",
         }}
       >
         RepLog
