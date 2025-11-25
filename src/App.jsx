@@ -4,33 +4,38 @@ import { useExercises } from "./hooks/useExercises";
 import { colors } from "./theme";
 
 function App() {
-  const { exercises, addExercise, addEntry, deleteEntry} = useExercises();
+  const { exercises, addExercise, addEntry, deleteEntry } = useExercises();
 
   return (
-    <div
-      style={{
-        textAlign: "center",
-        marginBottom: "1rem",
-        padding: "0.5rem 0",
-      }}
-    >
+    <div>
       <h1
         style={{
-          fontSize: "1.75rem",
-          margin: 0,
-          fontWeight: 700,
-          color: colors.text, // Apply your theme color
-          border: `3px solid ${colors.border}`,
+          width: "100%",
+          background: "#D4AA2A",
+          //padding: "1rem",
+          borderBottomLeftRadius: "1.25rem",
+          borderBottomRightRadius: "1.25rem",
+          boxSizing: "border-box",
+          textAlign: "center",
+          color: colors.text
         }}
       >
         RepLog
       </h1>
 
-      <div style={{ marginTop: "0.75rem" }}>
+      <div
+        style={{
+          width: "90%",
+          margin: "5%"
+        }}
+      >
         <AddExerciseForm onAdd={addExercise} />
+        <ExerciseList
+          exercises={exercises}
+          onAddEntry={addEntry}
+          onDeleteEntry={deleteEntry}
+        />
       </div>
-
-      <ExerciseList exercises={exercises} onAddEntry={addEntry} onDeleteEntry={deleteEntry} />
     </div>
   );
 }
