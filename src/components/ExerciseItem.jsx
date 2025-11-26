@@ -86,6 +86,7 @@ export function ExerciseItem({ exercise, isOpen, onToggle, onAddEntry, onDeleteE
         padding: "0.75rem",
         cursor: "pointer",
         userSelect: "none",
+        background: colors.card
       }}
     >
       {/* HEADER */}
