@@ -84,11 +84,11 @@ function App() {
             marginBottom: "1rem",
           }}
         >
-          <div style={{ flex: "1 1 90%" }}>
+          <div style={{ flex: "1 1 97%" }}>
             <AddExerciseForm onAdd={addExercise} />
           </div>
 
-          <div style={{ flex: "1 1 10%" }}>
+          <div style={{ flex: "1 1 3%" }}>
             <button
               onClick={() => setIsMenuOpen((prev) => !prev)}
               style={{
@@ -98,9 +98,9 @@ function App() {
                 color: "white",
                 cursor: "pointer",
                 fontSize: "1.4rem",
-                display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
+                justifyContent: "right",
+                width: "100%"
               }}
             >
               ⋮
