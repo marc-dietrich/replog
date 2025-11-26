@@ -82,6 +82,6 @@ const deleteEntry = (exerciseId, entryToDelete) => {
   );
 };
 
-return { exercises, addExercise, addEntry, deleteEntry };
+return { exercises, addExercise, addEntry, deleteEntry, setExercises };
 
 }
