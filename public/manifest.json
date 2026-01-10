@@ -1,19 +1,20 @@
 {
   "name": "RepLog",
   "short_name": "RepLog",
-  "start_url": "/replog/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#D4AA2A",
   "theme_color": "#D4AA2A",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/replog/icon-192.png",
+      "src": "icon-192.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "/replog/icon-512.png",
+      "src": "icon-512.png",
       "type": "image/png",
       "sizes": "512x512"
     }

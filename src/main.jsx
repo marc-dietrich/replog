@@ -14,7 +14,10 @@ createRoot(document.getElementById("root")).render(
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js")
+    const swUrl = `${import.meta.env.BASE_URL}sw.js`;
+
+    navigator.serviceWorker
+      .register(swUrl, { scope: import.meta.env.BASE_URL })
       .then((reg) => console.log("Service Worker registriert:", reg))
       .catch((err) => console.error("Service Worker Registrierung fehlgeschlagen:", err));
   });
