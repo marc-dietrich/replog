@@ -54,11 +54,17 @@ function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <div>
+    <div
+      style={{
+        minHeight: "100vh",
+        paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.5rem)",
+        background: "#f7f7f7",
+      }}
+    >
       <h1
         style={{
           width: "98%",
-          margin: "1%",
+          margin: "0 1% 1% 1%",
           background: "#D4AA2A",
           borderRadius: "1.25rem",
           boxSizing: "border-box",
@@ -67,7 +73,7 @@ function App() {
           //padding: "0.5rem",
         }}
       >
-        RepLog v1.0.2
+        RepLog v1.0.3
       </h1>
 
       <div
