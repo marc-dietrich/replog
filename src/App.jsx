@@ -67,7 +67,7 @@ function App() {
           //padding: "0.5rem",
         }}
       >
-        RepLog
+        RepLog v1.0.0
       </h1>
 
       <div
