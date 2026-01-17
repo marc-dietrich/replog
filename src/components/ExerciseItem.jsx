@@ -14,6 +14,7 @@ export function ExerciseItem({ exercise, isOpen, onToggle, onAddEntry, onDeleteE
   const [showWeightInput, setShowWeightInput] = useState(false);
   const [weight, setWeight] = useState("");
   const [reps, setReps] = useState("");
+  const [note, setNote] = useState("");
 
   const handlePlusClick = (e) => {
     e.stopPropagation(); // prevent toggling item
@@ -25,10 +26,11 @@ export function ExerciseItem({ exercise, isOpen, onToggle, onAddEntry, onDeleteE
     if (!weight.trim() || !reps.trim()) return;
 
     const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-    onAddEntry(exercise.id, today, weight, reps);
+    onAddEntry(exercise.id, today, weight, reps, note);
 
     setWeight("");
     setReps("");
+    setNote("");
     setShowWeightInput(false);
   };
 
@@ -167,6 +169,19 @@ export function ExerciseItem({ exercise, isOpen, onToggle, onAddEntry, onDeleteE
             }}
           />
 
+          <input
+            type="text"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Notiz (optional)"
+            style={{
+              flex: 1,
+              padding: "0.5rem",
+              borderRadius: "0.5rem",
+              border: "1px solid #ccc",
+            }}
+          />
+
           <div
             style={{
               display: "flex",
@@ -276,6 +291,14 @@ export function ExerciseItem({ exercise, isOpen, onToggle, onAddEntry, onDeleteE
     <span style={{ flex: 1, textAlign: "right" }}>
       {entry.weight} kg × {entry.reps}
     </span>
+
+    {entry.note ? (
+      <span style={{ flex: 1, textAlign: "right", color: "#444", fontStyle: "italic" }}>
+        {entry.note}
+      </span>
+    ) : (
+      <span style={{ flex: 1 }} />
+    )}
 
     <button
       onClick={(e) => {

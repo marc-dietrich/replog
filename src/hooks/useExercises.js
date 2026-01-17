@@ -40,48 +40,54 @@ export function useExercises() {
     setExercises((prev) => [...prev, newExercise]);
   };
 
-  const addEntry = (exerciseId, date, weight, reps) => {
-  if (!date || !weight || !reps) return;
+  const addEntry = (exerciseId, date, weight, reps, note = "") => {
+    if (!date || !weight || !reps) return;
 
-  setExercises((prev) =>
-    prev.map((ex) =>
-      ex.id === exerciseId
-        ? {
-            ...ex,
-            entries: [
-              ...ex.entries,
-              {
-                date,
-                weight: Number(weight),
-                reps: Number(reps),
-              },
-            ],
-          }
-        : ex
-    )
-  );
-};
+    const trimmedNote = note?.trim() ?? "";
 
-const deleteEntry = (exerciseId, entryToDelete) => {
-  setExercises((prev) =>
-    prev.map((ex) => {
-      if (ex.id !== exerciseId) return ex;
+    setExercises((prev) =>
+      prev.map((ex) =>
+        ex.id === exerciseId
+          ? {
+              ...ex,
+              entries: [
+                ...ex.entries,
+                {
+                  date,
+                  weight: Number(weight),
+                  reps: Number(reps),
+                  note: trimmedNote,
+                },
+              ],
+            }
+          : ex
+      )
+    );
+  };
 
-      return {
-        ...ex,
-        entries: ex.entries.filter(
-          (entry) =>
-            !(
-              entry.date === entryToDelete.date &&
-              entry.weight === entryToDelete.weight &&
-              entry.reps === entryToDelete.reps
-            )
-        ),
-      };
-    })
-  );
-};
+  const deleteEntry = (exerciseId, entryToDelete) => {
+    setExercises((prev) =>
+      prev.map((ex) => {
+        if (ex.id !== exerciseId) return ex;
 
-return { exercises, addExercise, addEntry, deleteEntry, setExercises };
+        const normalize = (value) => (value ?? "");
+
+        return {
+          ...ex,
+          entries: ex.entries.filter(
+            (entry) =>
+              !(
+                entry.date === entryToDelete.date &&
+                entry.weight === entryToDelete.weight &&
+                entry.reps === entryToDelete.reps &&
+                normalize(entry.note) === normalize(entryToDelete.note)
+              )
+          ),
+        };
+      })
+    );
+  };
+
+  return { exercises, addExercise, addEntry, deleteEntry, setExercises };
 
 }
