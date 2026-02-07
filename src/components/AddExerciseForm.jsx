@@ -1,103 +1,14 @@
-import { useState } from "react";
+import { AddNameForm } from "./AddNameForm";
 
-export function AddExerciseForm({ onAdd }) {
-  const [name, setName] = useState("");
-  const [isAdding, setIsAdding] = useState(false);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-
-    onAdd(name.trim());
-    setName("");
-    setIsAdding(false); // close input again
-  };
-
+export function AddExerciseForm({ onAdd, onSuccess, onCancel }) {
   return (
-    <div style={{ marginBottom: "0rem" }}>
-      {!isAdding && (
-        <button style={{
-            padding: "0.5rem 0.75rem",
-            borderRadius: "0.5rem",
-            border: "none",
-            background: "#222",
-            color: "white",
-            cursor: "pointer",
-            width: "98%",
-          }}
-          type="button"
-          onClick={() => setIsAdding(true)}
-        >
-          Add Exercise
-        </button>
-      )}
-
-      {isAdding && (
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "0.5rem",
-          }}
-        >
-          <input
-            type="text"
-            placeholder="Exercise name"
-            value={name}
-            autoFocus
-            onChange={(e) => setName(e.target.value)}
-            style={{
-              padding: "0.5rem",
-              borderRadius: "0.5rem",
-              border: "1px solid #ccc",
-            }}
-          />
-
-          <div
-            style={{
-              display: "flex",
-              gap: "0.5rem",
-              marginTop: "0.5rem",
-            }}
-          >
-            
-
-            <button
-              type="button"
-              onClick={() => {
-                setIsAdding(false);
-                setName("");
-              }}
-              style={{
-                flex: 1, // ← 50%
-                padding: "0.5rem 0.75rem",
-                borderRadius: "0.5rem",
-                border: "none",
-                background: "#ccc",
-                color: "#000",
-                cursor: "pointer",
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              style={{
-                flex: 1, // ← 50%
-                padding: "0.5rem 0.75rem",
-                borderRadius: "0.5rem",
-                border: "none",
-                background: "#222",
-                color: "white",
-                cursor: "pointer",
-              }}
-            >
-              Save
-            </button>
-          </div>
-        </form>
-      )}
-    </div>
+    <AddNameForm
+      inputName="exercise"
+      placeholder="Exercise name"
+      autoFocus
+      onAdd={onAdd}
+      onSuccess={onSuccess}
+      onCancel={onCancel}
+    />
   );
 }
