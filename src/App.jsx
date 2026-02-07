@@ -142,7 +142,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background-light font-sans text-slate-900 dark:bg-background-dark dark:text-slate-100">
-      <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-background-light/90 backdrop-blur-md dark:border-slate-800 dark:bg-background-dark/80">
+      <header className="sticky top-[var(--app-top-offset,0px)] z-40 border-b border-slate-200/70 bg-background-light/90 backdrop-blur-md dark:border-slate-800 dark:bg-background-dark/80">
         <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-4">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white p-1 shadow-inner">

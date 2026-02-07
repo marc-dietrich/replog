@@ -3,11 +3,16 @@
 @tailwind utilities;
 
 @layer base {
+	:root {
+		--app-top-offset: max(env(safe-area-inset-top, 0px), 12px);
+	}
+
 	html {
 		font-family: theme("fontFamily.sans"), system-ui;
 	}
 
 	body {
 		@apply bg-background-light text-slate-900 min-h-screen;
+		padding-top: var(--app-top-offset);
 	}
 }
