@@ -4,41 +4,38 @@ import { AddGroupForm } from "./components/AddGroupForm";
 import { AddPanel } from "./components/AddPanel";
 import { ExerciseList } from "./components/ExerciseList";
 import { useExercises } from "./hooks/useExercises";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
 const IMPRESSUM_TEXT = `Marc Dietrich
 c/o DE Office Solutions
 Erfweiler Straße 12
 66994 Dahn`;
-const GROUPS_STORAGE_KEY = "gym-tracker-groups";
 
 function App() {
-  const { exercises, addExercise, addEntry, deleteEntry, deleteExercise, setExercises } = useExercises();
+  const {
+    exercises,
+    groups,
+    addExercise,
+    addGroup,
+    addEntry,
+    deleteEntry,
+    deleteExercise,
+    moveExercise,
+    reorderGroups,
+    replaceState,
+  } = useExercises();
   const [isAddPanelOpen, setIsAddPanelOpen] = useState(false);
   const [isGroupPanelOpen, setIsGroupPanelOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
-  const [groups, setGroups] = useState(() => {
-    const stored = localStorage.getItem(GROUPS_STORAGE_KEY);
-    if (!stored) return [];
-    try {
-      return JSON.parse(stored);
-    } catch (error) {
-      console.error("Failed to parse group storage", error);
-      return [];
-    }
-  });
   const fileInputRef = useRef(null);
   const impressumButtonRef = useRef(null);
   const impressumTooltipRef = useRef(null);
 
-  useEffect(() => {
-    localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(groups));
-  }, [groups]);
-
   const handleExport = () => {
-    const json = JSON.stringify(exercises, null, 2);
+    const payload = { exercises, groups };
+    const json = JSON.stringify(payload, null, 2);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
 
@@ -59,12 +56,16 @@ function App() {
       try {
         const imported = JSON.parse(e.target.result);
 
-        if (!Array.isArray(imported)) {
+        const nextState = Array.isArray(imported)
+          ? { exercises: imported, groups: [] }
+          : imported;
+
+        if (!nextState || !Array.isArray(nextState.exercises) || !Array.isArray(nextState.groups)) {
           alert("Invalid JSON format.");
           return;
         }
 
-        setExercises(imported);
+        replaceState(nextState);
         alert("Data imported successfully!");
       } catch (err) {
         alert("Failed to parse JSON file.");
@@ -113,12 +114,7 @@ function App() {
       return;
     }
 
-    const newGroup = { id: Date.now().toString(), name: trimmed };
-    setGroups((prev) => [...prev, newGroup]);
-  };
-
-  const handleDeleteGroup = (groupId) => {
-    setGroups((prev) => prev.filter((group) => group.id !== groupId));
+    addGroup(trimmed);
   };
 
   useEffect(() => {
@@ -138,6 +134,11 @@ function App() {
     window.addEventListener("pointerdown", handlePointerDown, true);
     return () => window.removeEventListener("pointerdown", handlePointerDown, true);
   }, [isImpressumOpen]);
+
+  const orderedGroups = useMemo(
+    () => [...groups].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [groups]
+  );
 
   return (
     <div className="min-h-screen bg-background-light font-sans text-slate-900 dark:bg-background-dark dark:text-slate-100">
@@ -298,9 +299,12 @@ function App() {
           )}
           <ExerciseList
             exercises={exercises}
+            groups={orderedGroups}
             onAddEntry={addEntry}
             onDeleteEntry={deleteEntry}
             onDeleteExercise={deleteExercise}
+            onMoveExercise={moveExercise}
+            onReorderGroups={(ids) => reorderGroups(ids)}
           />
         </section>
 

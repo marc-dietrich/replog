@@ -2,42 +2,212 @@
 import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "gym-tracker-exercises";
+const DEFAULT_STATE = Object.freeze({ exercises: [], groups: [] });
+
+const normalizeGroupId = (groupId) => (groupId == null ? null : groupId);
+
+const isLegacyState = (raw) => {
+  if (!raw) return true;
+  if (Array.isArray(raw)) return true;
+  if (!Array.isArray(raw.groups)) return true;
+  if (!Array.isArray(raw.exercises)) return true;
+  return raw.exercises.some((exercise) => typeof exercise.order !== "number");
+};
+
+const normalizeState = (raw) => {
+  if (!raw) return DEFAULT_STATE;
+
+  if (Array.isArray(raw)) {
+    return {
+      exercises: raw.map((exercise, index) => ({
+        ...exercise,
+        groupId: normalizeGroupId(exercise.groupId),
+        order: typeof exercise.order === "number" ? exercise.order : index,
+        entries: Array.isArray(exercise.entries) ? exercise.entries : [],
+      })),
+      groups: [],
+    };
+  }
+
+  const exercises = Array.isArray(raw.exercises)
+    ? raw.exercises.map((exercise, index) => ({
+        ...exercise,
+        groupId: normalizeGroupId(exercise.groupId),
+        order: typeof exercise.order === "number" ? exercise.order : index,
+        entries: Array.isArray(exercise.entries) ? exercise.entries : [],
+      }))
+    : [];
+
+  const groups = Array.isArray(raw.groups)
+    ? raw.groups.map((group, index) => ({
+        id: group.id ?? `group-${index}`,
+        name: group.name ?? `Group ${index + 1}`,
+        order: typeof group.order === "number" ? group.order : index,
+      }))
+    : [];
+
+  return { exercises, groups };
+};
+
+const ensureSequentialExerciseOrder = (exercises) => {
+  const grouped = new Map();
+  exercises.forEach((exercise) => {
+    const key = normalizeGroupId(exercise.groupId);
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(exercise);
+  });
+
+  const orderLookup = new Map();
+  grouped.forEach((list) => {
+    list
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .forEach((exercise, index) => orderLookup.set(exercise.id, index));
+  });
+
+  return exercises.map((exercise) => ({
+    ...exercise,
+    order: orderLookup.get(exercise.id) ?? 0,
+  }));
+};
+
+const ensureSequentialGroupOrder = (groups) =>
+  groups
+    .slice()
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((group, index) => ({ ...group, order: index }));
+
+const hydrateState = (raw) => {
+  const normalized = normalizeState(raw);
+  return {
+    exercises: ensureSequentialExerciseOrder(normalized.exercises),
+    groups: ensureSequentialGroupOrder(normalized.groups),
+  };
+};
+
+const getOrderedExerciseIds = (exercises, groupId) =>
+  exercises
+    .filter((exercise) => normalizeGroupId(exercise.groupId) === normalizeGroupId(groupId))
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((exercise) => exercise.id);
+
+const applyExerciseOrder = (exercises, groupId, orderedIds) => {
+  const lookup = new Map(orderedIds.map((id, index) => [id, index]));
+  return exercises.map((exercise) => {
+    if (normalizeGroupId(exercise.groupId) !== normalizeGroupId(groupId)) {
+      return exercise;
+    }
+    const nextOrder = lookup.get(exercise.id);
+    return typeof nextOrder === "number" ? { ...exercise, order: nextOrder } : exercise;
+  });
+};
+
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 export function useExercises() {
-  // Load ONCE from localStorage when the hook is created
-  const [exercises, setExercises] = useState(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      console.log("INIT from localStorage: none");
-      return [];
-    }
+  const [state, setState] = useState(() => {
     try {
-      const parsed = JSON.parse(stored);
-      console.log("INIT from localStorage:", parsed);
-      return parsed;
-    } catch (e) {
-      console.error("Error parsing localStorage:", e);
-      return [];
+      const stored = localStorage.getItem(STORAGE_KEY);
+      const parsed = stored ? JSON.parse(stored) : DEFAULT_STATE;
+      const normalized = hydrateState(parsed);
+
+      if (stored && isLegacyState(parsed)) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+      }
+
+      return normalized;
+    } catch (error) {
+      console.error("Failed to parse stored exercises", error);
+      return hydrateState(DEFAULT_STATE);
     }
   });
 
-  // Save whenever exercises change
   useEffect(() => {
-    console.log("SAVE to localStorage:", exercises);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(exercises));
-  }, [exercises]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [state]);
 
-  const addExercise = (name) => {
+  const addExercise = (name, groupId = null) => {
     const trimmed = name.trim();
     if (!trimmed) return;
 
-    const newExercise = {
-      id: Date.now().toString(),
-      name: trimmed,
-      entries: [],
-    };
+    setState((prev) => {
+      const normalizedGroupId = normalizeGroupId(groupId);
+      const siblings = getOrderedExerciseIds(prev.exercises, normalizedGroupId);
+      const newExercise = {
+        id: Date.now().toString(),
+        name: trimmed,
+        entries: [],
+        groupId: normalizedGroupId,
+        order: siblings.length,
+      };
 
-    setExercises((prev) => [...prev, newExercise]);
+      return {
+        ...prev,
+        exercises: [...prev.exercises, newExercise],
+      };
+    });
+  };
+
+  const addGroup = (name) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+
+    setState((prev) => {
+      const newGroup = {
+        id: Date.now().toString(),
+        name: trimmed,
+        order: prev.groups.length,
+      };
+
+      return {
+        ...prev,
+        groups: [...prev.groups, newGroup],
+      };
+    });
+  };
+
+  const reorderGroups = (orderedIds) => {
+    setState((prev) => {
+      const lookup = new Map(prev.groups.map((group) => [group.id, group]));
+      const ordered = orderedIds
+        .map((id) => lookup.get(id))
+        .filter(Boolean)
+        .map((group, index) => ({ ...group, order: index }));
+
+      const missing = prev.groups.filter((group) => !orderedIds.includes(group.id));
+      const complete = [...ordered, ...missing.map((group, index) => ({ ...group, order: ordered.length + index }))];
+
+      return {
+        ...prev,
+        groups: complete,
+      };
+    });
+  };
+
+  const moveExercise = (exerciseId, targetGroupId, targetIndex) => {
+    setState((prev) => {
+      const targetGroup = normalizeGroupId(targetGroupId);
+      const exercise = prev.exercises.find((ex) => ex.id === exerciseId);
+      if (!exercise) return prev;
+
+      const sourceGroup = normalizeGroupId(exercise.groupId);
+      const sourceIds = getOrderedExerciseIds(prev.exercises, sourceGroup).filter((id) => id !== exerciseId);
+      const baseTargetIds = sourceGroup === targetGroup ? sourceIds : getOrderedExerciseIds(prev.exercises, targetGroup);
+      const insertionIndex = clamp(targetIndex, 0, baseTargetIds.length);
+      const targetIds = [...baseTargetIds];
+      targetIds.splice(insertionIndex, 0, exerciseId);
+
+      let updatedExercises = prev.exercises.map((ex) =>
+        ex.id === exerciseId ? { ...ex, groupId: targetGroup } : ex
+      );
+
+      if (sourceGroup !== targetGroup) {
+        updatedExercises = applyExerciseOrder(updatedExercises, sourceGroup, sourceIds);
+      }
+
+      updatedExercises = applyExerciseOrder(updatedExercises, targetGroup, targetIds);
+
+      return { ...prev, exercises: updatedExercises };
+    });
   };
 
   const addEntry = (exerciseId, date, weight, reps, note = "") => {
@@ -45,13 +215,14 @@ export function useExercises() {
 
     const trimmedNote = note?.trim() ?? "";
 
-    setExercises((prev) =>
-      prev.map((ex) =>
-        ex.id === exerciseId
+    setState((prev) => ({
+      ...prev,
+      exercises: prev.exercises.map((exercise) =>
+        exercise.id === exerciseId
           ? {
-              ...ex,
+              ...exercise,
               entries: [
-                ...ex.entries,
+                ...exercise.entries,
                 {
                   date,
                   weight: Number(weight),
@@ -60,38 +231,55 @@ export function useExercises() {
                 },
               ],
             }
-          : ex
-      )
-    );
+          : exercise
+      ),
+    }));
   };
 
   const deleteEntry = (exerciseId, entryToDelete) => {
-    setExercises((prev) =>
-      prev.map((ex) => {
-        if (ex.id !== exerciseId) return ex;
+    setState((prev) => ({
+      ...prev,
+      exercises: prev.exercises.map((exercise) => {
+        if (exercise.id !== exerciseId) return exercise;
 
-        const normalize = (value) => (value ?? "");
-
+        const normalizeValue = (value) => (value ?? "");
         return {
-          ...ex,
-          entries: ex.entries.filter(
+          ...exercise,
+          entries: exercise.entries.filter(
             (entry) =>
               !(
                 entry.date === entryToDelete.date &&
                 entry.weight === entryToDelete.weight &&
                 entry.reps === entryToDelete.reps &&
-                normalize(entry.note) === normalize(entryToDelete.note)
+                normalizeValue(entry.note) === normalizeValue(entryToDelete.note)
               )
           ),
         };
-      })
-    );
+      }),
+    }));
   };
 
   const deleteExercise = (exerciseId) => {
-    setExercises((prev) => prev.filter((ex) => ex.id !== exerciseId));
+    setState((prev) => ({
+      ...prev,
+      exercises: ensureSequentialExerciseOrder(prev.exercises.filter((exercise) => exercise.id !== exerciseId)),
+    }));
   };
 
-  return { exercises, addExercise, addEntry, deleteEntry, deleteExercise, setExercises };
+  const replaceState = (nextState) => {
+    setState(hydrateState(nextState));
+  };
 
+  return {
+    exercises: state.exercises,
+    groups: state.groups,
+    addExercise,
+    addGroup,
+    addEntry,
+    deleteEntry,
+    deleteExercise,
+    moveExercise,
+    reorderGroups,
+    replaceState,
+  };
 }
