@@ -2,15 +2,23 @@
 import { AddExerciseForm } from "./components/AddExerciseForm";
 import { ExerciseList } from "./components/ExerciseList";
 import { useExercises } from "./hooks/useExercises";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
+const IMPRESSUM_TEXT = 
+`Marc Dietrich
+c/o DE Office Solutions
+Erfweiler Straße 12
+66994 Dahn`;
 
 function App() {
   const { exercises, addExercise, addEntry, deleteEntry, deleteExercise, setExercises } = useExercises();
   const [isAddPanelOpen, setIsAddPanelOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isImpressumOpen, setIsImpressumOpen] = useState(false);
   const fileInputRef = useRef(null);
+  const impressumButtonRef = useRef(null);
+  const impressumTooltipRef = useRef(null);
 
   const handleExport = () => {
     const json = JSON.stringify(exercises, null, 2);
@@ -50,8 +58,42 @@ function App() {
 
   const triggerImport = () => fileInputRef.current?.click();
   const closeAddPanel = () => setIsAddPanelOpen(false);
-  const toggleMenu = () => setIsMenuOpen((prev) => !prev);
+  const closeImpressum = () => setIsImpressumOpen(false);
   const closeMenu = () => setIsMenuOpen(false);
+  const toggleMenu = () =>
+    setIsMenuOpen((prev) => {
+      const next = !prev;
+      if (!prev) {
+        closeImpressum();
+      }
+      return next;
+    });
+  const toggleImpressum = () =>
+    setIsImpressumOpen((prev) => {
+      const next = !prev;
+      if (!prev) {
+        closeMenu();
+      }
+      return next;
+    });
+
+  useEffect(() => {
+    if (!isImpressumOpen) return;
+
+    const handlePointerDown = (event) => {
+      const isInsideButton = impressumButtonRef.current?.contains(event.target);
+      const isInsideTooltip = impressumTooltipRef.current?.contains(event.target);
+
+      if (isInsideButton || isInsideTooltip) {
+        return;
+      }
+
+      setIsImpressumOpen(false);
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown, true);
+    return () => window.removeEventListener("pointerdown", handlePointerDown, true);
+  }, [isImpressumOpen]);
 
   return (
     <div className="min-h-screen bg-background-light font-sans text-slate-900 dark:bg-background-dark dark:text-slate-100">
@@ -61,9 +103,40 @@ function App() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white p-1 shadow-inner">
               <img src="/replog/icon-192.png" alt="RepLog mark" className="h-full w-full rounded-lg object-contain" />
             </div>
-            <div>
-              <p className="font-display text-lg font-semibold">RepLog</p>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.4em] text-primary">{VERSION}</p>
+            <div className="flex flex-col">
+              <p className="font-display text-lg font-semibold leading-none">RepLog</p>
+              <div className="mt-1 flex items-center gap-2">
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-[8px] font-black uppercase text-slate-500 transition hover:border-slate-500 hover:text-slate-700 dark:border-slate-600 dark:text-slate-300 dark:hover:border-slate-400 dark:hover:text-slate-100"
+                    aria-label="Show impressum"
+                    aria-expanded={isImpressumOpen}
+                    aria-controls="impressum-tooltip"
+                    aria-haspopup="dialog"
+                    onClick={toggleImpressum}
+                    ref={impressumButtonRef}
+                  >
+                    i
+                  </button>
+                  {isImpressumOpen && (
+                    <div
+                      id="impressum-tooltip"
+                      role="dialog"
+                      aria-label="RepLog impressum"
+                      className="absolute right-0 top-6 z-40 w-64 rounded-3xl border border-slate-200/70 bg-white/95 p-5 text-left text-xs leading-relaxed text-slate-600 shadow-[0_18px_45px_rgba(15,23,42,0.25)] ring-1 ring-white/30 backdrop-blur-lg dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-200"
+                      ref={impressumTooltipRef}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="material-icons-round text-base text-slate-400 dark:text-slate-300">info</span>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.4em] text-slate-500 dark:text-slate-300">Impressum</p>
+                      </div>
+                      <p className="mt-3 whitespace-pre-line rounded-2xl bg-slate-100/80 p-3 font-medium text-slate-700 shadow-inner dark:bg-slate-800/60 dark:text-slate-100">{IMPRESSUM_TEXT}</p>
+                    </div>
+                  )}
+                </div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-primary">{"v" + VERSION}</p>
+              </div>
             </div>
           </div>
           <div className="flex flex-1 justify-center">

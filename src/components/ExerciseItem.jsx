@@ -1,8 +1,6 @@
 import { useMemo, useState } from "react";
+import { ExerciseTrendChart } from "./ExerciseTrendChart";
 
-const chartWidth = 200;
-const chartHeight = 60;
-const padding = 8;
 const DELETE_CONFIRM_MESSAGE = "Delete this exercise and all entries?";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -28,33 +26,6 @@ export function ExerciseItem({ exercise, isOpen, onToggle, onAddEntry, onDeleteE
     () => [...sortedEntries].reverse().slice(0, 3),
     [sortedEntries]
   );
-
-  const sparklinePoints = useMemo(() => {
-    if (sortedEntries.length === 0) return "";
-
-    const weights = sortedEntries.map((entry) => entry.weight);
-    let min = Math.min(...weights);
-    let max = Math.max(...weights);
-
-    if (min === max) {
-      min -= 1;
-      max += 1;
-    }
-
-    const innerWidth = chartWidth - padding * 2;
-    const innerHeight = chartHeight - padding * 2;
-
-    return sortedEntries
-      .map((entry, index) => {
-        const ratio =
-          sortedEntries.length === 1 ? 0.5 : index / (sortedEntries.length - 1);
-        const x = padding + innerWidth * ratio;
-        const normalized = (entry.weight - min) / (max - min || 1);
-        const y = padding + innerHeight * (1 - normalized);
-        return `${x},${y}`;
-      })
-      .join(" ");
-  }, [sortedEntries]);
 
   const resetQuickEntry = () => {
     setShowQuickEntry(false);
@@ -85,6 +56,8 @@ export function ExerciseItem({ exercise, isOpen, onToggle, onAddEntry, onDeleteE
       setShowQuickEntry(true);
     }
   };
+
+  const stopPropagation = (event) => event.stopPropagation();
 
   return (
     <article
@@ -123,30 +96,18 @@ export function ExerciseItem({ exercise, isOpen, onToggle, onAddEntry, onDeleteE
         )}
       </div>
 
-      <div className="mt-4 rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-900/40" aria-hidden={sortedEntries.length === 0}>
-        {sparklinePoints ? (
-          <svg
-            className="h-16 w-full text-primary"
-            viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-            role="presentation"
-          >
-            <polyline
-              points={sparklinePoints}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            {sparklinePoints.split(" ").map((point, index) => {
-              const [x, y] = point.split(",").map(Number);
-              return <circle key={index} cx={x} cy={y} r={3} fill="currentColor" />;
-            })}
-          </svg>
-        ) : (
-          <p className="text-center text-sm text-slate-400">No data yet</p>
-        )}
-      </div>
+      {isOpen && (
+        <div
+          className="mt-4"
+          onClick={stopPropagation}
+          onMouseDown={stopPropagation}
+          onTouchStart={stopPropagation}
+          onPointerDown={stopPropagation}
+          onKeyDown={stopPropagation}
+        >
+          <ExerciseTrendChart entries={sortedEntries} />
+        </div>
+      )}
 
       {showQuickEntry && (
         <div
