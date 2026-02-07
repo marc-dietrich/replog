@@ -43,7 +43,7 @@ export function AddEntryForm({ onAdd }) {
           type="number"
           step="0.5"
           min="0"
-          placeholder="Gewicht (kg)"
+          placeholder="Weight (kg)"
           value={weight}
           onChange={(e) => setWeight(e.target.value)}
           style={{
@@ -70,7 +70,7 @@ export function AddEntryForm({ onAdd }) {
           fontSize: "0.9rem",
         }}
       >
-        Eintrag hinzufügen
+        Add Entry
       </button>
     </form>
   );

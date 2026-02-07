@@ -88,6 +88,10 @@ export function useExercises() {
     );
   };
 
-  return { exercises, addExercise, addEntry, deleteEntry, setExercises };
+  const deleteExercise = (exerciseId) => {
+    setExercises((prev) => prev.filter((ex) => ex.id !== exerciseId));
+  };
+
+  return { exercises, addExercise, addEntry, deleteEntry, deleteExercise, setExercises };
 
 }

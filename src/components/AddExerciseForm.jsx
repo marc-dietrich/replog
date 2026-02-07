@@ -1,103 +1,66 @@
 import { useState } from "react";
 
-export function AddExerciseForm({ onAdd }) {
+export function AddExerciseForm({ onAdd, onSuccess, onCancel }) {
   const [name, setName] = useState("");
-  const [isAdding, setIsAdding] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-
-    onAdd(name.trim());
+  const resetForm = () => {
     setName("");
-    setIsAdding(false); // close input again
+    setError("");
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    const trimmed = name.trim();
+
+    if (!trimmed) {
+      setError("Please enter a name");
+      return;
+    }
+
+    onAdd(trimmed);
+    resetForm();
+    onSuccess?.();
+  };
+
+  const handleCancel = () => {
+    resetForm();
+    onCancel?.();
   };
 
   return (
-    <div style={{ marginBottom: "0rem" }}>
-      {!isAdding && (
-        <button style={{
-            padding: "0.5rem 0.75rem",
-            borderRadius: "0.5rem",
-            border: "none",
-            background: "#222",
-            color: "white",
-            cursor: "pointer",
-            width: "98%",
+    <form className="space-y-4" onSubmit={handleSubmit}>
+      <div>
+        <input
+          type="text"
+          name="exercise"
+          placeholder="Exercise name"
+          value={name}
+          autoFocus
+          onChange={(event) => {
+            setName(event.target.value);
+            if (error) setError("");
           }}
+          className="w-full rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-base text-white placeholder:text-white/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+        />
+        {error && <p className="mt-2 text-xs text-red-300">{error}</p>}
+      </div>
+
+      <div className="flex gap-3">
+        <button
           type="button"
-          onClick={() => setIsAdding(true)}
+          className="flex-1 rounded-2xl border border-white/30 bg-transparent py-3 text-base font-semibold text-white transition hover:bg-white/10"
+          onClick={handleCancel}
         >
-          Add Exercise
+          Cancel
         </button>
-      )}
-
-      {isAdding && (
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "0.5rem",
-          }}
+        <button
+          type="submit"
+          className="flex-1 rounded-2xl bg-white py-3 text-base font-semibold text-slate-900 transition hover:bg-primary-muted"
         >
-          <input
-            type="text"
-            placeholder="Exercise name"
-            value={name}
-            autoFocus
-            onChange={(e) => setName(e.target.value)}
-            style={{
-              padding: "0.5rem",
-              borderRadius: "0.5rem",
-              border: "1px solid #ccc",
-            }}
-          />
-
-          <div
-            style={{
-              display: "flex",
-              gap: "0.5rem",
-              marginTop: "0.5rem",
-            }}
-          >
-            
-
-            <button
-              type="button"
-              onClick={() => {
-                setIsAdding(false);
-                setName("");
-              }}
-              style={{
-                flex: 1, // ← 50%
-                padding: "0.5rem 0.75rem",
-                borderRadius: "0.5rem",
-                border: "none",
-                background: "#ccc",
-                color: "#000",
-                cursor: "pointer",
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              style={{
-                flex: 1, // ← 50%
-                padding: "0.5rem 0.75rem",
-                borderRadius: "0.5rem",
-                border: "none",
-                background: "#222",
-                color: "white",
-                cursor: "pointer",
-              }}
-            >
-              Save
-            </button>
-          </div>
-        </form>
-      )}
-    </div>
+          Confirm
+        </button>
+      </div>
+    </form>
   );
 }
