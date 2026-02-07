@@ -1,24 +1,41 @@
 /* global __APP_VERSION__ */
 import { AddExerciseForm } from "./components/AddExerciseForm";
+import { AddGroupForm } from "./components/AddGroupForm";
+import { AddPanel } from "./components/AddPanel";
 import { ExerciseList } from "./components/ExerciseList";
 import { useExercises } from "./hooks/useExercises";
 import { useEffect, useRef, useState } from "react";
 
 const VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
-const IMPRESSUM_TEXT = 
-`Marc Dietrich
+const IMPRESSUM_TEXT = `Marc Dietrich
 c/o DE Office Solutions
 Erfweiler Straße 12
 66994 Dahn`;
+const GROUPS_STORAGE_KEY = "gym-tracker-groups";
 
 function App() {
   const { exercises, addExercise, addEntry, deleteEntry, deleteExercise, setExercises } = useExercises();
   const [isAddPanelOpen, setIsAddPanelOpen] = useState(false);
+  const [isGroupPanelOpen, setIsGroupPanelOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
+  const [groups, setGroups] = useState(() => {
+    const stored = localStorage.getItem(GROUPS_STORAGE_KEY);
+    if (!stored) return [];
+    try {
+      return JSON.parse(stored);
+    } catch (error) {
+      console.error("Failed to parse group storage", error);
+      return [];
+    }
+  });
   const fileInputRef = useRef(null);
   const impressumButtonRef = useRef(null);
   const impressumTooltipRef = useRef(null);
+
+  useEffect(() => {
+    localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(groups));
+  }, [groups]);
 
   const handleExport = () => {
     const json = JSON.stringify(exercises, null, 2);
@@ -58,8 +75,17 @@ function App() {
 
   const triggerImport = () => fileInputRef.current?.click();
   const closeAddPanel = () => setIsAddPanelOpen(false);
+  const closeGroupPanel = () => setIsGroupPanelOpen(false);
   const closeImpressum = () => setIsImpressumOpen(false);
   const closeMenu = () => setIsMenuOpen(false);
+  const openExercisePanel = () => {
+    setIsAddPanelOpen(true);
+    setIsGroupPanelOpen(false);
+  };
+  const openGroupPanel = () => {
+    setIsGroupPanelOpen(true);
+    setIsAddPanelOpen(false);
+  };
   const toggleMenu = () =>
     setIsMenuOpen((prev) => {
       const next = !prev;
@@ -76,6 +102,24 @@ function App() {
       }
       return next;
     });
+
+  const handleAddGroup = (name) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+
+    const exists = groups.some((group) => group.name.toLowerCase() === trimmed.toLowerCase());
+    if (exists) {
+      alert("This group already exists.");
+      return;
+    }
+
+    const newGroup = { id: Date.now().toString(), name: trimmed };
+    setGroups((prev) => [...prev, newGroup]);
+  };
+
+  const handleDeleteGroup = (groupId) => {
+    setGroups((prev) => prev.filter((group) => group.id !== groupId));
+  };
 
   useEffect(() => {
     if (!isImpressumOpen) return;
@@ -140,14 +184,43 @@ function App() {
             </div>
           </div>
           <div className="flex flex-1 justify-center">
-            <button
-              type="button"
-              className="flex w-36 items-center justify-center gap-1 rounded-xl border border-primary bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-primary-muted"
-              onClick={() => setIsAddPanelOpen(true)}
+            <div
+              className="inline-flex items-center gap-1.5 rounded-3xl border border-slate-200 bg-white px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-600 shadow-sm backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-200"
+              aria-label="Add new"
             >
-              <span className="material-icons-round text-base text-primary">add</span>
-              <span className="uppercase tracking-[0.35em] text-xs">Exercise</span>
-            </button>
+              <span
+                className="flex h-7 w-7 items-center justify-center rounded-2xl bg-slate-100 text-sm font-black text-slate-500 dark:bg-slate-800 dark:text-slate-300"
+                aria-hidden="true"
+              >
+                +
+              </span>
+              <div className="flex w-28 flex-col" role="group">
+                <button
+                  type="button"
+                  className={`flex items-center justify-center rounded-2xl px-2.5 py-0.75 transition ${
+                    isAddPanelOpen ? "bg-orange-500 text-white" : "text-slate-700 hover:bg-orange-100"
+                  }`}
+                  aria-pressed={isAddPanelOpen}
+                  onClick={openExercisePanel}
+                >
+                  Exercise
+                </button>
+                <span
+                  className="my-1 h-px w-full border-t border-dashed border-slate-300/80 dark:border-slate-700/60"
+                  aria-hidden="true"
+                ></span>
+                <button
+                  type="button"
+                  className={`flex items-center justify-center rounded-2xl px-2.5 py-0.75 transition ${
+                    isGroupPanelOpen ? "bg-orange-500 text-white" : "text-slate-700 hover:bg-orange-100"
+                  }`}
+                  aria-pressed={isGroupPanelOpen}
+                  onClick={openGroupPanel}
+                >
+                  Group
+                </button>
+              </div>
+            </div>
           </div>
           <div className="relative flex-shrink-0">
             <button
@@ -214,14 +287,14 @@ function App() {
             </span>
           </div>
           {isAddPanelOpen && (
-            <div className="rounded-2xl border border-slate-900 bg-slate-900 p-5 text-white shadow-lg">
-              <p className="mb-3 text-xs uppercase tracking-[0.3em] text-white/60">Add exercise</p>
-              <AddExerciseForm
-                onAdd={addExercise}
-                onSuccess={closeAddPanel}
-                onCancel={closeAddPanel}
-              />
-            </div>
+            <AddPanel title="Add exercise">
+              <AddExerciseForm onAdd={addExercise} onSuccess={closeAddPanel} onCancel={closeAddPanel} />
+            </AddPanel>
+          )}
+          {isGroupPanelOpen && (
+            <AddPanel title="Add group">
+              <AddGroupForm onAdd={handleAddGroup} onSuccess={closeGroupPanel} onCancel={closeGroupPanel} />
+            </AddPanel>
           )}
           <ExerciseList
             exercises={exercises}

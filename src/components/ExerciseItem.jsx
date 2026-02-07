@@ -5,6 +5,10 @@ const DELETE_CONFIRM_MESSAGE = "Delete this exercise and all entries?";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+const SPARKLINE_WIDTH = 48;
+const SPARKLINE_HEIGHT = 18;
+const FALLBACK_SPARKLINE_PATH = "M2 14 L10 11 L18 13 L26 8 L34 12 L42 7";
+
 function getLastEntry(exercise) {
   if (!exercise.entries.length) return null;
   return exercise.entries[exercise.entries.length - 1];
@@ -26,6 +30,41 @@ export function ExerciseItem({ exercise, isOpen, onToggle, onAddEntry, onDeleteE
     () => [...sortedEntries].reverse().slice(0, 3),
     [sortedEntries]
   );
+
+  const previewEntries = useMemo(() => sortedEntries.slice(-6), [sortedEntries]);
+
+  const sparklinePath = useMemo(() => {
+    if (previewEntries.length === 0) return null;
+
+    const values = previewEntries.map((entry) => {
+      const numericWeight = parseFloat(entry.weight);
+      return Number.isFinite(numericWeight) ? numericWeight : 0;
+    });
+
+    const max = Math.max(...values);
+    const min = Math.min(...values);
+    const range = max - min || 1;
+    const graphWidth = SPARKLINE_WIDTH - 4;
+    const graphHeight = SPARKLINE_HEIGHT - 4;
+    const denominator = values.length > 1 ? values.length - 1 : 1;
+
+    const points = values.map((value, index) => {
+      const x = 2 + (index / denominator) * graphWidth;
+      const normalized = (value - min) / range;
+      const y = SPARKLINE_HEIGHT - 2 - normalized * graphHeight;
+      return { x, y };
+    });
+
+    if (values.length === 1) {
+      points.push({ x: SPARKLINE_WIDTH - 2, y: points[0].y });
+    }
+
+    return points
+      .map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+      .join(" ");
+  }, [previewEntries]);
+
+  const sparklineDisplayPath = sparklinePath ?? FALLBACK_SPARKLINE_PATH;
 
   const resetQuickEntry = () => {
     setShowQuickEntry(false);
@@ -88,12 +127,35 @@ export function ExerciseItem({ exercise, isOpen, onToggle, onAddEntry, onDeleteE
         </button>
       </div>
       <div className="pr-4">
-        <h3 className="font-display text-lg font-semibold">{exercise.name}</h3>
-        {lastEntry && (
-          <p className="mt-1 text-sm text-slate-500">
-            Last: {lastEntry.weight} kg × {lastEntry.reps} • {lastEntry.date}
-          </p>
-        )}
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-16 items-center justify-center rounded-full bg-amber-50/80 ring-1 ring-amber-100 dark:bg-amber-500/10 dark:ring-amber-500/30">
+            <svg
+              viewBox={`0 0 ${SPARKLINE_WIDTH} ${SPARKLINE_HEIGHT}`}
+              className="h-4 w-12 text-amber-500 dark:text-amber-400"
+              aria-hidden="true"
+            >
+              <path
+                d={sparklineDisplayPath}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="opacity-90"
+              />
+            </svg>
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="font-display text-lg font-semibold">{exercise.name}</h3>
+            {lastEntry ? (
+              <p className="mt-1 text-sm text-slate-500">
+                Last: {lastEntry.weight} kg × {lastEntry.reps} • {lastEntry.date}
+              </p>
+            ) : (
+              <p className="mt-1 text-sm text-slate-400">No entries yet.</p>
+            )}
+          </div>
+        </div>
       </div>
 
       {isOpen && (
