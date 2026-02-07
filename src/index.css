@@ -13,6 +13,5 @@
 
 	body {
 		@apply bg-background-light text-slate-900 min-h-screen;
-		padding-top: var(--app-top-offset);
 	}
 }
