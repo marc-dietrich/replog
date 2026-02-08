@@ -1,26 +1,7 @@
 import { useMemo, useState } from "react";
 import { ExerciseItem } from "./ExerciseItem";
-import {
-  DndContext,
-  PointerSensor,
-  KeyboardSensor,
-  closestCorners,
-  useDroppable,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 
 const UNGROUPED_ID = null;
-
-const toContainerId = (groupId) => (groupId == null ? "ungrouped" : `group-${groupId}`);
 
 export function ExerciseList({
   exercises,
@@ -29,13 +10,10 @@ export function ExerciseList({
   onDeleteEntry,
   onDeleteExercise,
   onMoveExercise,
-  onReorderGroups,
 }) {
   const [openExerciseId, setOpenExerciseId] = useState(null);
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
+  const [collapsedGroupIds, setCollapsedGroupIds] = useState(() => new Set());
+  const safeExercises = Array.isArray(exercises) ? exercises : [];
 
   const orderedGroups = useMemo(() => {
     const list = Array.isArray(groups) ? [...groups] : [];
@@ -47,7 +25,7 @@ export function ExerciseList({
     bucket.set(UNGROUPED_ID, []);
     orderedGroups.forEach((group) => bucket.set(group.id, []));
 
-    (exercises ?? []).forEach((exercise) => {
+    safeExercises.forEach((exercise) => {
       const key = exercise.groupId ?? UNGROUPED_ID;
       if (!bucket.has(key)) bucket.set(key, []);
       bucket.get(key).push(exercise);
@@ -57,11 +35,33 @@ export function ExerciseList({
     return bucket;
   }, [exercises, orderedGroups]);
 
+  const groupOrderMaps = useMemo(() => {
+    const maps = new Map();
+    groupedExercises.forEach((list, groupId) => {
+      const orderById = new Map();
+      list.forEach((exercise, index) => orderById.set(exercise.id, index));
+      maps.set(groupId, orderById);
+    });
+    return maps;
+  }, [groupedExercises]);
+
   const getExerciseIds = (groupId) => (groupedExercises.get(groupId) ?? []).map((exercise) => exercise.id);
-  const totalExercises = exercises?.length ?? 0;
+  const totalExercises = safeExercises.length;
 
   const toggleExercise = (exerciseId) => {
     setOpenExerciseId((current) => (current === exerciseId ? null : exerciseId));
+  };
+
+  const toggleGroup = (groupId) => {
+    setCollapsedGroupIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
   };
 
   if (totalExercises === 0 && orderedGroups.length === 0) {
@@ -72,167 +72,132 @@ export function ExerciseList({
     );
   }
 
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
-    if (!over) return;
+  const moveExercise = (exerciseId, direction) => {
+    const exercise = safeExercises.find((item) => item.id === exerciseId);
+    if (!exercise) return;
 
-    const activeType = active.data.current?.type;
-    const overType = over.data.current?.type;
+    const currentGroupId = exercise.groupId ?? UNGROUPED_ID;
+    const orderMap = groupOrderMaps.get(currentGroupId);
+    if (!orderMap) return;
 
-    if (activeType === "group" && overType === "group") {
-      const ids = orderedGroups.map((group) => group.id);
-      const activeIndex = ids.indexOf(active.id);
-      const overIndex = ids.indexOf(over.id);
-      if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
-        const reordered = arrayMove(ids, activeIndex, overIndex);
-        onReorderGroups?.(reordered);
-      }
+    const currentIndex = orderMap.get(exerciseId);
+    if (typeof currentIndex !== "number") return;
+
+    const ids = getExerciseIds(currentGroupId);
+    const targetIndex = currentIndex + direction;
+
+    if (targetIndex < 0) {
+      // move to previous group if exists
+      const groupIds = [UNGROUPED_ID, ...orderedGroups.map((g) => g.id)];
+      const currentGroupIndex = groupIds.indexOf(currentGroupId);
+      if (currentGroupIndex <= 0) return;
+      const previousGroupId = groupIds[currentGroupIndex - 1];
+      const previousIds = getExerciseIds(previousGroupId);
+      onMoveExercise?.(
+        exerciseId,
+        previousGroupId === UNGROUPED_ID ? null : previousGroupId,
+        Math.max(previousIds.length, 0)
+      );
       return;
     }
 
-    if (activeType === "exercise") {
-      const originGroupId = active.data.current?.groupId ?? UNGROUPED_ID;
-      const originIds = getExerciseIds(originGroupId).filter((id) => id !== active.id);
-
-      let targetGroupId = originGroupId;
-      let targetIndex = originIds.indexOf(active.id);
-
-      if (overType === "group") {
-        return;
-      } else if (overType === "exercise") {
-        targetGroupId = over.data.current?.groupId ?? UNGROUPED_ID;
-        const siblings = getExerciseIds(targetGroupId);
-        const overIndex = siblings.indexOf(over.id);
-        targetIndex = overIndex === -1 ? siblings.length : overIndex;
-      } else if (overType === "exercise-container") {
-        targetGroupId = over.data.current?.groupId ?? UNGROUPED_ID;
-        targetIndex = getExerciseIds(targetGroupId).length;
-      } else {
-        return;
-      }
-
+    if (targetIndex > ids.length - 1) {
+      const groupIds = [UNGROUPED_ID, ...orderedGroups.map((g) => g.id)];
+      const currentGroupIndex = groupIds.indexOf(currentGroupId);
+      if (currentGroupIndex === -1 || currentGroupIndex >= groupIds.length - 1) return;
+      const nextGroupId = groupIds[currentGroupIndex + 1];
       onMoveExercise?.(
-        active.id,
-        targetGroupId === UNGROUPED_ID ? null : targetGroupId,
-        targetIndex < 0 ? 0 : targetIndex
+        exerciseId,
+        nextGroupId === UNGROUPED_ID ? null : nextGroupId,
+        0
       );
+      return;
     }
+
+    onMoveExercise?.(
+      exerciseId,
+      currentGroupId === UNGROUPED_ID ? null : currentGroupId,
+      targetIndex
+    );
   };
 
   const renderExerciseList = (groupId) => {
     const exercisesInGroup = groupedExercises.get(groupId) ?? [];
-    const exerciseIds = getExerciseIds(groupId);
+    const isCollapsed = collapsedGroupIds.has(groupId);
 
     return (
-      <ExerciseContainer droppableId={toContainerId(groupId)} groupId={groupId} itemCount={exerciseIds.length}>
-        <SortableContext items={exerciseIds} strategy={verticalListSortingStrategy}>
-          {exercisesInGroup.map((exercise) => (
-            <SortableExerciseCard
-              key={exercise.id}
-              exercise={exercise}
-              groupId={groupId}
-              isOpen={openExerciseId === exercise.id}
-              onToggle={() => toggleExercise(exercise.id)}
-              onAddEntry={onAddEntry}
-              onDeleteEntry={onDeleteEntry}
-              onDeleteExercise={onDeleteExercise}
-            />
-          ))}
-        </SortableContext>
-      </ExerciseContainer>
+      <div className={`space-y-4 ${isCollapsed ? "hidden" : ""}`}>
+        {!isCollapsed &&
+          exercisesInGroup.map((exercise, index) => {
+            const isFirstInGroup = index === 0;
+            const isLastInGroup = index === exercisesInGroup.length - 1;
+            return (
+              <ExerciseItem
+                key={exercise.id}
+                exercise={exercise}
+                isOpen={openExerciseId === exercise.id}
+                onToggle={() => toggleExercise(exercise.id)}
+                onAddEntry={onAddEntry}
+                onDeleteEntry={onDeleteEntry}
+                onDeleteExercise={onDeleteExercise}
+                canMoveUp={!isFirstInGroup || orderedGroups.length > 0}
+                canMoveDown={!isLastInGroup || orderedGroups.length > 0}
+                onMoveUp={() => moveExercise(exercise.id, -1)}
+                onMoveDown={() => moveExercise(exercise.id, 1)}
+              />
+            );
+          })}
+      </div>
     );
   };
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
-      <div className="space-y-6" aria-live="polite">
-        {renderExerciseList(UNGROUPED_ID)}
+    <div className="space-y-6" aria-live="polite">
+      {renderExerciseList(UNGROUPED_ID)}
 
-        {orderedGroups.length > 0 && (
-          <SortableContext items={orderedGroups.map((group) => group.id)} strategy={verticalListSortingStrategy}>
-            {orderedGroups.map((group) => (
+      {orderedGroups.length > 0 && (
+        <div className="space-y-6">
+          {orderedGroups.map((group) => {
+            const isCollapsed = collapsedGroupIds.has(group.id);
+            return (
               <div key={group.id} className="space-y-3">
-                <SortableGroupLabel group={group} />
+                <GroupLabel
+                  group={group}
+                  isCollapsed={isCollapsed}
+                  onToggle={() => toggleGroup(group.id)}
+                />
                 {renderExerciseList(group.id)}
               </div>
-            ))}
-          </SortableContext>
-        )}
-      </div>
-    </DndContext>
-  );
-}
-
-function ExerciseContainer({ droppableId, groupId, itemCount, children }) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: droppableId,
-    data: { type: "exercise-container", groupId, length: itemCount },
-  });
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`min-h-[12px] space-y-4 rounded-2xl border border-transparent p-1 transition ${
-        isOver ? "border-slate-300 bg-slate-50" : ""
-      }`}
-    >
-      {children}
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
-function SortableExerciseCard({ exercise, groupId, ...props }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: exercise.id,
-    data: { type: "exercise", groupId },
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
+function GroupLabel({ group, isCollapsed, onToggle }) {
   return (
-    <div ref={setNodeRef} style={style} className={isDragging ? "opacity-80" : undefined}>
-      <ExerciseItem
-        exercise={exercise}
-        dragHandleProps={{ ...attributes, ...listeners }}
-        isDragging={isDragging}
-        {...props}
-      />
-    </div>
-  );
-}
-
-function SortableGroupLabel({ group }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: group.id,
-    data: { type: "group", groupId: group.id },
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} className={isDragging ? "opacity-75" : undefined}>
-      <div
-        className="flex items-center gap-3"
-        {...attributes}
-        {...listeners}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(event) => {
-          if (event.key === " " || event.key === "Enter") {
-            event.preventDefault();
-          }
-        }}
-      >
-        <div className="flex-1 border-t border-dashed border-slate-300"></div>
+    <div className="flex items-center gap-3 px-1 py-2">
+      <div className="flex-1 border-t border-dashed border-slate-300"></div>
+      <div className="flex items-center gap-2">
         <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">{group.name}</span>
-        <div className="flex-1 border-t border-dashed border-slate-300"></div>
       </div>
+      <button
+        type="button"
+        className="ml-auto inline-flex items-center justify-center rounded-full border border-transparent p-1 text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+        aria-label={isCollapsed ? `Expand ${group.name}` : `Collapse ${group.name}`}
+        onClick={onToggle}
+      >
+        <span
+          className={`material-icons-round text-base transition-transform ${
+            isCollapsed ? "rotate-180" : ""
+          }`}
+        >
+          expand_more
+        </span>
+      </button>
+      <div className="flex-1 border-t border-dashed border-slate-300"></div>
     </div>
   );
 }

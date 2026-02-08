@@ -1,6 +1,5 @@
 /* global __APP_VERSION__ */
 import { AddExerciseForm } from "./components/AddExerciseForm";
-import { AddGroupForm } from "./components/AddGroupForm";
 import { AddPanel } from "./components/AddPanel";
 import { ExerciseList } from "./components/ExerciseList";
 import { useExercises } from "./hooks/useExercises";
@@ -17,21 +16,21 @@ function App() {
     exercises,
     groups,
     addExercise,
-    addGroup,
     addEntry,
     deleteEntry,
     deleteExercise,
     moveExercise,
-    reorderGroups,
     replaceState,
   } = useExercises();
   const [isAddPanelOpen, setIsAddPanelOpen] = useState(false);
-  const [isGroupPanelOpen, setIsGroupPanelOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState("\u2728 Groups are coming soon");
+  const [isToastVisible, setIsToastVisible] = useState(false);
   const fileInputRef = useRef(null);
   const impressumButtonRef = useRef(null);
   const impressumTooltipRef = useRef(null);
+  const toastTimeoutRef = useRef(null);
 
   const handleExport = () => {
     const payload = { exercises, groups };
@@ -76,16 +75,10 @@ function App() {
 
   const triggerImport = () => fileInputRef.current?.click();
   const closeAddPanel = () => setIsAddPanelOpen(false);
-  const closeGroupPanel = () => setIsGroupPanelOpen(false);
   const closeImpressum = () => setIsImpressumOpen(false);
   const closeMenu = () => setIsMenuOpen(false);
   const openExercisePanel = () => {
     setIsAddPanelOpen(true);
-    setIsGroupPanelOpen(false);
-  };
-  const openGroupPanel = () => {
-    setIsGroupPanelOpen(true);
-    setIsAddPanelOpen(false);
   };
   const toggleMenu = () =>
     setIsMenuOpen((prev) => {
@@ -104,17 +97,15 @@ function App() {
       return next;
     });
 
-  const handleAddGroup = (name) => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
+  const showToast = (message) => {
+    setToastMessage(message);
+    setIsToastVisible(true);
+    clearTimeout(toastTimeoutRef.current);
+    toastTimeoutRef.current = setTimeout(() => setIsToastVisible(false), 2600);
+  };
 
-    const exists = groups.some((group) => group.name.toLowerCase() === trimmed.toLowerCase());
-    if (exists) {
-      alert("This group already exists.");
-      return;
-    }
-
-    addGroup(trimmed);
+  const handleGroupComingSoon = () => {
+    showToast("\ud83d\udcc4 Group management is coming soon");
   };
 
   useEffect(() => {
@@ -134,6 +125,10 @@ function App() {
     window.addEventListener("pointerdown", handlePointerDown, true);
     return () => window.removeEventListener("pointerdown", handlePointerDown, true);
   }, [isImpressumOpen]);
+
+  useEffect(() => {
+    return () => clearTimeout(toastTimeoutRef.current);
+  }, []);
 
   const orderedGroups = useMemo(
     () => [...groups].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
@@ -169,7 +164,7 @@ function App() {
                       id="impressum-tooltip"
                       role="dialog"
                       aria-label="RepLog impressum"
-                      className="absolute right-0 top-6 z-40 w-64 rounded-3xl border border-slate-200/70 bg-white/95 p-5 text-left text-xs leading-relaxed text-slate-600 shadow-[0_18px_45px_rgba(15,23,42,0.25)] ring-1 ring-white/30 backdrop-blur-lg dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-200"
+                      className="fixed inset-x-4 top-[calc(var(--app-top-offset,0px)+4.5rem)] z-50 mx-auto max-w-md rounded-3xl border border-slate-200/70 bg-white/95 p-5 text-left text-xs leading-relaxed text-slate-600 shadow-[0_18px_45px_rgba(15,23,42,0.25)] ring-1 ring-white/30 backdrop-blur-lg dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-200 md:absolute md:inset-auto md:right-0 md:top-6 md:z-40 md:mx-0 md:w-64"
                       ref={impressumTooltipRef}
                     >
                       <div className="flex items-center gap-2">
@@ -212,13 +207,15 @@ function App() {
                 ></span>
                 <button
                   type="button"
-                  className={`flex items-center justify-center rounded-2xl px-2.5 py-0.75 transition ${
-                    isGroupPanelOpen ? "bg-orange-500 text-white" : "text-slate-700 hover:bg-orange-100"
-                  }`}
-                  aria-pressed={isGroupPanelOpen}
-                  onClick={openGroupPanel}
+                  className="flex items-center justify-center rounded-2xl px-2.5 py-0.75 text-slate-400"
+                  aria-disabled="true"
+                  onClick={handleGroupComingSoon}
+                  title="Groups are coming soon"
                 >
                   Group
+                  <span className="ml-1 rounded-full border border-slate-200 px-1.5 py-[1px] text-[8px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                    Soon
+                  </span>
                 </button>
               </div>
             </div>
@@ -292,11 +289,6 @@ function App() {
               <AddExerciseForm onAdd={addExercise} onSuccess={closeAddPanel} onCancel={closeAddPanel} />
             </AddPanel>
           )}
-          {isGroupPanelOpen && (
-            <AddPanel title="Add group">
-              <AddGroupForm onAdd={handleAddGroup} onSuccess={closeGroupPanel} onCancel={closeGroupPanel} />
-            </AddPanel>
-          )}
           <ExerciseList
             exercises={exercises}
             groups={orderedGroups}
@@ -304,7 +296,6 @@ function App() {
             onDeleteEntry={deleteEntry}
             onDeleteExercise={deleteExercise}
             onMoveExercise={moveExercise}
-            onReorderGroups={(ids) => reorderGroups(ids)}
           />
         </section>
 
@@ -317,6 +308,18 @@ function App() {
         className="hidden"
         onChange={handleImport}
       />
+
+      {isToastVisible && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--app-safe-area-inset-bottom,0px)+24px)] z-50 flex justify-center px-4">
+          <div
+            className="mx-auto w-full max-w-xs rounded-2xl border border-slate-900/40 bg-slate-900/90 px-4 py-3 text-center text-sm font-semibold text-white shadow-2xl backdrop-blur"
+            role="status"
+            aria-live="polite"
+          >
+            {toastMessage}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

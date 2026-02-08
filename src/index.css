@@ -15,19 +15,4 @@
 		@apply bg-background-light text-slate-900 min-h-screen;
 		-webkit-text-size-adjust: 100%;
 	}
-
-	.dnd-touch-safe {
-		user-select: none;
-		-webkit-user-select: none;
-		-webkit-touch-callout: none;
-		-webkit-user-drag: none;
-	}
-
-	.dnd-touch-safe input,
-	.dnd-touch-safe textarea,
-	.dnd-touch-safe select,
-	.dnd-touch-safe button {
-		user-select: auto;
-		-webkit-user-select: auto;
-	}
 }

@@ -121,6 +121,7 @@ export function ExerciseTrendChart({ entries }) {
           data={data}
           margin={{ top: 10, right: 8, bottom: 4, left: 0 }}
           onMouseMove={handlePointerMove}
+          onTouchStart={handlePointerMove}
           onTouchMove={handlePointerMove}
           onMouseLeave={handlePointerLeave}
           onTouchEnd={handlePointerLeave}
@@ -145,7 +146,7 @@ export function ExerciseTrendChart({ entries }) {
           />
           {activeEntry && (activeIndex || activeIndex === 0) && (
             <ReferenceLine
-              x={activeIndex}
+              x={activeEntry.date}
               stroke="#475569"
               strokeWidth={1}
               strokeDasharray="2 3"

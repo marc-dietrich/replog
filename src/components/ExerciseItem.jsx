@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ExerciseTrendChart } from "./ExerciseTrendChart";
 
 const DELETE_CONFIRM_MESSAGE = "Delete this exercise and all entries?";
@@ -21,14 +21,17 @@ export function ExerciseItem({
   onAddEntry,
   onDeleteEntry,
   onDeleteExercise,
-  dragHandleProps = {},
-  isDragging = false,
+  canMoveUp = false,
+  canMoveDown = false,
+  onMoveUp,
+  onMoveDown,
 }) {
   const lastEntry = getLastEntry(exercise);
   const [showQuickEntry, setShowQuickEntry] = useState(false);
   const [weight, setWeight] = useState("");
   const [reps, setReps] = useState("");
   const [note, setNote] = useState("");
+  const [isReordering, setIsReordering] = useState(false);
 
   const sortedEntries = useMemo(
     () => [...exercise.entries].sort((a, b) => new Date(a.date) - new Date(b.date)),
@@ -107,10 +110,34 @@ export function ExerciseItem({
 
   const stopPropagation = (event) => event.stopPropagation();
 
+  useEffect(() => {
+    if (!isReordering) return;
+    const timer = setTimeout(() => setIsReordering(false), 220);
+    return () => clearTimeout(timer);
+  }, [isReordering]);
+
+  const triggerReorderFeedback = () => {
+    setIsReordering(true);
+  };
+
+  const handleMove = (direction, event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    if (direction === "up" && !canMoveUp) return;
+    if (direction === "down" && !canMoveDown) return;
+
+    triggerReorderFeedback();
+    if (direction === "up") {
+      onMoveUp?.();
+    } else {
+      onMoveDown?.();
+    }
+  };
+
   return (
     <article
-      className={`dnd-touch-safe relative rounded-2xl border border-slate-200 bg-card-light p-5 shadow-sm transition dark:border-slate-800 dark:bg-card-dark ${
-        isDragging ? "border-amber-300 shadow-lg" : "hover:border-primary"
+      className={`relative rounded-2xl border border-slate-200 bg-card-light p-5 shadow-sm transition duration-150 ease-out will-change-transform transform dark:border-slate-800 dark:bg-card-dark ${
+        isReordering ? "scale-[1.01] ring-2 ring-primary/30 shadow-xl" : "hover:border-primary"
       }`}
       onClick={onToggle}
       role="button"
@@ -121,7 +148,6 @@ export function ExerciseItem({
           onToggle();
         }
       }}
-      {...dragHandleProps}
     >
       <div className="absolute right-4 top-4">
         <button
@@ -271,7 +297,35 @@ export function ExerciseItem({
             </ul>
           )}
 
-          <div className="mt-4 flex justify-end">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900/60">
+              <button
+                type="button"
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-black transition ${
+                  canMoveUp ? "text-slate-500 hover:text-primary" : "cursor-not-allowed text-slate-300"
+                }`}
+                onClick={(event) => handleMove("up", event)}
+                disabled={!canMoveUp}
+                title="Move up"
+                aria-label="Move exercise up"
+              >
+                <span className="material-icons-round text-base leading-none">expand_less</span>
+              </button>
+              <span className="h-4 w-px bg-slate-200 dark:bg-slate-700" aria-hidden="true"></span>
+              <button
+                type="button"
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-black transition ${
+                  canMoveDown ? "text-slate-500 hover:text-primary" : "cursor-not-allowed text-slate-300"
+                }`}
+                onClick={(event) => handleMove("down", event)}
+                disabled={!canMoveDown}
+                title="Move down"
+                aria-label="Move exercise down"
+              >
+                <span className="material-icons-round text-base leading-none">expand_more</span>
+              </button>
+            </div>
+
             <button
               type="button"
               className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-red-400 hover:text-red-500"
