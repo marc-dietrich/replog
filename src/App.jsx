@@ -141,7 +141,7 @@ function App() {
   );
 
   return (
-    <div className="app-shell min-h-screen bg-background-light font-sans text-slate-900 dark:bg-background-dark dark:text-slate-100">
+    <div className="min-h-screen bg-background-light font-sans text-slate-900 dark:bg-background-dark dark:text-slate-100">
       <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-background-light/90 pt-[var(--app-top-offset)] backdrop-blur-md dark:border-slate-800 dark:bg-background-dark/80">
         <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-4">
           <div className="flex min-w-0 items-center gap-3">

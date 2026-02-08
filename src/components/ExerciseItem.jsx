@@ -109,7 +109,7 @@ export function ExerciseItem({
 
   return (
     <article
-      className={`relative rounded-2xl border border-slate-200 bg-card-light p-5 shadow-sm transition dark:border-slate-800 dark:bg-card-dark ${
+      className={`dnd-touch-safe relative rounded-2xl border border-slate-200 bg-card-light p-5 shadow-sm transition dark:border-slate-800 dark:bg-card-dark ${
         isDragging ? "border-amber-300 shadow-lg" : "hover:border-primary"
       }`}
       onClick={onToggle}
