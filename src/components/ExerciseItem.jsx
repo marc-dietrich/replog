@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ExerciseTrendChart } from "./ExerciseTrendChart";
 
 const DELETE_CONFIRM_MESSAGE = "Delete this exercise and all entries?";
@@ -32,6 +32,7 @@ export function ExerciseItem({
   const [reps, setReps] = useState("");
   const [note, setNote] = useState("");
   const [isReordering, setIsReordering] = useState(false);
+  const cardRef = useRef(null);
 
   const sortedEntries = useMemo(
     () => [...exercise.entries].sort((a, b) => new Date(a.date) - new Date(b.date)),
@@ -78,11 +79,30 @@ export function ExerciseItem({
 
   const sparklineDisplayPath = sparklinePath ?? FALLBACK_SPARKLINE_PATH;
 
+  const centerCard = useCallback(() => {
+    if (typeof window === "undefined" || !cardRef.current) return;
+    const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    const behavior = prefersReducedMotion ? "auto" : "smooth";
+    requestAnimationFrame(() => {
+      if (!cardRef.current) return;
+      const rect = cardRef.current.getBoundingClientRect();
+      const header = document.querySelector("header");
+      const headerHeight = header?.getBoundingClientRect().height ?? 0;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || rect.height;
+      const availableHeight = Math.max(viewportHeight - headerHeight, 1);
+      const currentScroll = window.scrollY || window.pageYOffset || 0;
+      const elementTop = rect.top + currentScroll;
+      const desiredScroll = elementTop - headerHeight - Math.max((availableHeight - rect.height) / 2, 0);
+      window.scrollTo({ top: Math.max(desiredScroll, 0), behavior, left: 0 });
+    });
+  }, []);
+
   const resetQuickEntry = () => {
     setShowQuickEntry(false);
     setWeight("");
     setReps("");
     setNote("");
+    centerCard();
   };
 
   const handleAddEntry = (event) => {
@@ -110,6 +130,12 @@ export function ExerciseItem({
 
   const stopPropagation = (event) => event.stopPropagation();
 
+  const isInteractiveElement = (node) => {
+    if (!node || node.nodeType !== Node.ELEMENT_NODE) return false;
+    const tagName = node.tagName;
+    return ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(tagName) || node.isContentEditable;
+  };
+
   useEffect(() => {
     if (!isReordering) return;
     const timer = setTimeout(() => setIsReordering(false), 220);
@@ -134,8 +160,14 @@ export function ExerciseItem({
     }
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+    centerCard();
+  }, [centerCard, isOpen]);
+
   return (
     <article
+      ref={cardRef}
       className={`relative rounded-2xl border border-slate-200 bg-card-light p-5 shadow-sm transition duration-150 ease-out will-change-transform transform dark:border-slate-800 dark:bg-card-dark ${
         isReordering ? "scale-[1.01] ring-2 ring-primary/30 shadow-xl" : "hover:border-primary"
       }`}
@@ -143,6 +175,9 @@ export function ExerciseItem({
       role="button"
       tabIndex={0}
       onKeyDown={(event) => {
+        if (isInteractiveElement(event.target)) {
+          return;
+        }
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
           onToggle();

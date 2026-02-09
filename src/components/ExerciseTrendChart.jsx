@@ -2,6 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 const GOLD = "#f7b733";
+const CHART_COLORS = {
+  labelBackground: "var(--chart-label-bg)",
+  labelBorder: "var(--chart-label-border)",
+  labelText: "var(--chart-label-text)",
+  referenceLine: "var(--chart-reference-line)",
+};
 const AXIS_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
 function formatAxisTick(value) {
@@ -34,15 +40,15 @@ function WeightLabel({ viewBox, valueText }) {
         width={boxWidth}
         height={boxHeight}
         rx={boxHeight / 2}
-        fill="rgba(148,163,184,0.35)"
-        stroke="rgba(15,23,42,0.35)"
+        fill={CHART_COLORS.labelBackground}
+        stroke={CHART_COLORS.labelBorder}
         strokeWidth={0.6}
       />
       <text
         x={x}
         y={boxY + boxHeight / 2 - ((lines.length - 1) * lineHeight) / 2 + 4}
         textAnchor="middle"
-        fill="#0f172a"
+        fill={CHART_COLORS.labelText}
         fontSize={10}
         fontWeight={600}
       >
@@ -147,7 +153,7 @@ export function ExerciseTrendChart({ entries }) {
           {activeEntry && (activeIndex || activeIndex === 0) && (
             <ReferenceLine
               x={activeEntry.date}
-              stroke="#475569"
+              stroke={CHART_COLORS.referenceLine}
               strokeWidth={1}
               strokeDasharray="2 3"
               strokeOpacity={0.95}

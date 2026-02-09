@@ -5,14 +5,42 @@
 @layer base {
 	:root {
 		--app-top-offset: max(env(safe-area-inset-top, 0px), 12px);
+		--status-bar-light: theme("colors.background-light");
+		--status-bar-dark: theme("colors.background-dark");
+		--chart-label-bg: rgba(226, 232, 240, 0.85);
+		--chart-label-border: rgba(15, 23, 42, 0.35);
+		--chart-label-text: #0f172a;
+		--chart-reference-line: rgba(71, 85, 105, 0.9);
+		color-scheme: light;
 	}
 
 	html {
 		font-family: theme("fontFamily.sans"), system-ui;
+		background-color: var(--status-bar-light);
+		color: theme("colors.slate.900");
 	}
 
 	body {
-		@apply bg-background-light text-slate-900 min-h-screen;
+		@apply min-h-screen bg-background-light text-slate-900;
 		-webkit-text-size-adjust: 100%;
+	}
+
+	@media (prefers-color-scheme: dark) {
+		:root {
+			color-scheme: dark;
+			--chart-label-bg: rgba(15, 23, 42, 0.85);
+			--chart-label-border: rgba(148, 163, 184, 0.5);
+			--chart-label-text: #f8fafc;
+			--chart-reference-line: rgba(148, 163, 184, 0.9);
+		}
+
+		html {
+			background-color: var(--status-bar-dark);
+			color: theme("colors.slate.100");
+		}
+
+		body {
+			@apply bg-background-dark text-slate-100;
+		}
 	}
 }
