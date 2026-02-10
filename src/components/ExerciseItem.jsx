@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ExerciseTrendChart } from "./ExerciseTrendChart";
+import { EXERCISE_VIEW_MODES, ExerciseTrendChart } from "./ExerciseTrendChart";
+import { buildWorkoutTimeline } from "../utils/workoutMetrics";
 
 const DELETE_CONFIRM_MESSAGE = "Delete this exercise and all entries?";
 
@@ -8,11 +9,13 @@ const today = () => new Date().toISOString().slice(0, 10);
 const SPARKLINE_WIDTH = 48;
 const SPARKLINE_HEIGHT = 18;
 const FALLBACK_SPARKLINE_PATH = "M2 14 L10 11 L18 13 L26 8 L34 12 L42 7";
-
-function getLastEntry(exercise) {
-  if (!exercise.entries.length) return null;
-  return exercise.entries[exercise.entries.length - 1];
-}
+const NUMBER_FORMATTER = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
+const VIEW_SEGMENT_OPTIONS = [
+  { id: EXERCISE_VIEW_MODES.TOP_SET, label: "Top-Set" },
+  { id: EXERCISE_VIEW_MODES.VOLUME, label: "Volume" },
+  { id: EXERCISE_VIEW_MODES.SETS, label: "Sets" },
+];
+const MAX_RECENT_WORKOUTS = 3;
 
 export function ExerciseItem({
   exercise,
@@ -26,12 +29,13 @@ export function ExerciseItem({
   onMoveUp,
   onMoveDown,
 }) {
-  const lastEntry = getLastEntry(exercise);
   const [showQuickEntry, setShowQuickEntry] = useState(false);
   const [weight, setWeight] = useState("");
   const [reps, setReps] = useState("");
   const [note, setNote] = useState("");
   const [isReordering, setIsReordering] = useState(false);
+  const [viewMode, setViewMode] = useState(EXERCISE_VIEW_MODES.TOP_SET);
+  const [expandedWorkouts, setExpandedWorkouts] = useState(() => new Set());
   const cardRef = useRef(null);
 
   const sortedEntries = useMemo(
@@ -39,12 +43,23 @@ export function ExerciseItem({
     [exercise.entries]
   );
 
-  const recentEntries = useMemo(
-    () => [...sortedEntries].reverse().slice(0, 3),
-    [sortedEntries]
+  const previewEntries = useMemo(() => sortedEntries.slice(-6), [sortedEntries]);
+
+  const workoutTimeline = useMemo(() => {
+    if (!sortedEntries.length) return [];
+    const timeline = buildWorkoutTimeline(sortedEntries);
+    return timeline.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [sortedEntries]);
+
+  const visibleWorkouts = useMemo(
+    () => workoutTimeline.slice(0, MAX_RECENT_WORKOUTS),
+    [workoutTimeline]
   );
 
-  const previewEntries = useMemo(() => sortedEntries.slice(-6), [sortedEntries]);
+  const recentEntries = useMemo(
+    () => [...sortedEntries].reverse().slice(0, MAX_RECENT_WORKOUTS),
+    [sortedEntries]
+  );
 
   const sparklinePath = useMemo(() => {
     if (previewEntries.length === 0) return null;
@@ -117,6 +132,31 @@ export function ExerciseItem({
   const handleDeleteEntry = (entryToDelete, event) => {
     event.stopPropagation();
     onDeleteEntry(exercise.id, entryToDelete);
+  };
+
+  const toggleWorkoutDetails = (date) => {
+    setExpandedWorkouts((prev) => {
+      const next = new Set(prev);
+      if (next.has(date)) {
+        next.delete(date);
+      } else {
+        next.add(date);
+      }
+      return next;
+    });
+  };
+
+  const formatWeight = (value) => `${NUMBER_FORMATTER.format(value)} kg`;
+  const formatVolume = (value) => `${NUMBER_FORMATTER.format(value)} kg`;
+
+  const getWorkoutSummaryText = (workout) => {
+    if (viewMode === EXERCISE_VIEW_MODES.VOLUME) {
+      return `Volume · ${formatVolume(workout.volume)}`;
+    }
+    if (!workout.bestSet) {
+      return "No sets yet";
+    }
+    return `Top set · ${formatWeight(workout.bestSet.weight)} × ${workout.bestSet.reps}`;
   };
 
   const toggleQuickEntry = (event) => {
@@ -220,13 +260,32 @@ export function ExerciseItem({
             </svg>
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="font-display text-lg font-semibold">{exercise.name}</h3>
-            {lastEntry ? (
-              <p className="mt-1 text-sm text-slate-500">
-                Last: {lastEntry.weight} kg × {lastEntry.reps} • {lastEntry.date}
-              </p>
-            ) : (
-              <p className="mt-1 text-sm text-slate-400">No entries yet.</p>
+            <h3 className={`font-display font-semibold ${isOpen ? "text-lg" : "text-xl"}`}>
+              {exercise.name}
+            </h3>
+            {isOpen && (
+              <div className="mt-1">
+                <div className="inline-flex rounded-full bg-slate-100/80 p-0.5 text-[11px] font-semibold text-slate-500 shadow-inner dark:bg-slate-800/60">
+                  {VIEW_SEGMENT_OPTIONS.map((option) => {
+                    const isActive = option.id === viewMode;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        className={`rounded-full px-3 py-1 transition ${
+                          isActive ? "bg-white text-slate-900 shadow" : "text-slate-500 hover:text-slate-800"
+                        }`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setViewMode(option.id);
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -241,7 +300,7 @@ export function ExerciseItem({
           onPointerDown={stopPropagation}
           onKeyDown={stopPropagation}
         >
-          <ExerciseTrendChart entries={sortedEntries} />
+          <ExerciseTrendChart entries={sortedEntries} viewMode={viewMode} />
         </div>
       )}
 
@@ -305,30 +364,96 @@ export function ExerciseItem({
           data-dndkit-disable-dnd="true"
           onClick={(event) => event.stopPropagation()}
         >
-          {recentEntries.length === 0 ? (
+          {viewMode === EXERCISE_VIEW_MODES.TOP_SET ? (
+            recentEntries.length === 0 ? (
+              <p className="text-sm text-slate-500">No entries for this exercise yet.</p>
+            ) : (
+              <ul className="space-y-3 text-sm">
+                {recentEntries.map((entry, index) => (
+                  <li key={`${entry.date}-${index}`} className="flex items-center gap-3">
+                    <div className="min-w-[110px]">
+                      <p className="font-semibold text-slate-800 dark:text-slate-100">{entry.date}</p>
+                      {entry.note ? <p className="text-xs italic text-slate-500">{entry.note}</p> : null}
+                    </div>
+                    <div className="flex flex-1 items-center justify-center text-slate-700">
+                      <span className="font-semibold">
+                        {entry.weight} kg × {entry.reps}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:text-red-500"
+                      onClick={(event) => handleDeleteEntry(entry, event)}
+                    >
+                      <span className="material-icons-round text-sm">close</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )
+          ) : visibleWorkouts.length === 0 ? (
             <p className="text-sm text-slate-500">No entries for this exercise yet.</p>
           ) : (
-            <ul className="space-y-3 text-sm">
-              {recentEntries.map((entry, index) => (
-                <li key={`${entry.date}-${index}`} className="flex items-center gap-3">
-                  <div className="min-w-[110px]">
-                    <p className="font-semibold text-slate-800 dark:text-slate-100">{entry.date}</p>
-                    <p className="text-xs italic text-slate-500">{entry.note || "—"}</p>
-                  </div>
-                  <div className="flex flex-1 items-center justify-center text-slate-700">
-                    <span className="font-semibold">
-                      {entry.weight} kg × {entry.reps}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:text-red-500"
-                    onClick={(event) => handleDeleteEntry(entry, event)}
-                  >
-                    <span className="material-icons-round text-sm">close</span>
-                  </button>
-                </li>
-              ))}
+            <ul className="divide-y divide-slate-100 text-sm dark:divide-slate-800/60">
+              {visibleWorkouts.map((workout) => {
+                const isExpanded = expandedWorkouts.has(workout.date);
+                const summaryText = getWorkoutSummaryText(workout);
+                return (
+                  <li key={workout.date} className="py-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="flex flex-1 items-center gap-3 rounded-xl px-2 py-1 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                        onClick={() => toggleWorkoutDetails(workout.date)}
+                      >
+                        <div className="min-w-[96px]">
+                          <p className="font-semibold text-slate-800 dark:text-slate-100">{workout.date}</p>
+                          <p className="text-xs uppercase tracking-[0.25em] text-slate-400">{workout.setsCount} set{workout.setsCount === 1 ? "" : "s"}</p>
+                        </div>
+                        <div className="flex flex-1 items-center text-slate-700 dark:text-slate-200">
+                          <span className="font-semibold">{summaryText}</span>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition ${
+                          isExpanded ? "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200" : "hover:bg-slate-100 dark:hover:bg-slate-800/60"
+                        }`}
+                        onClick={() => toggleWorkoutDetails(workout.date)}
+                        aria-label={isExpanded ? "Collapse workout" : "Expand workout"}
+                      >
+                        <span className={`material-icons-round text-base transition-transform ${isExpanded ? "rotate-180" : ""}`}>
+                          expand_more
+                        </span>
+                      </button>
+                    </div>
+                    {isExpanded && (
+                      <div className="mt-2 space-y-2 text-xs text-slate-600 dark:text-slate-200">
+                        {workout.sets.map((set, idx) => (
+                          <div key={`${workout.date}-${idx}`} className="flex items-center gap-2 px-1">
+                            <div className="flex flex-1 items-center justify-between rounded-lg bg-slate-50 px-3 py-1 dark:bg-slate-800/50">
+                              <span className="font-semibold text-slate-800 dark:text-slate-100">
+                                {formatWeight(set.weight)} × {set.reps}
+                              </span>
+                              {set.note ? (
+                                <span className="text-[11px] italic text-slate-500">{set.note}</span>
+                              ) : null}
+                            </div>
+                            <button
+                              type="button"
+                              className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:text-red-500 dark:bg-slate-800"
+                              onClick={(event) => handleDeleteEntry(set, event)}
+                              aria-label="Delete set"
+                            >
+                              <span className="material-icons-round text-[14px]">close</span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
 
