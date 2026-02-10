@@ -150,17 +150,6 @@ export function ExerciseTrendChart({ entries }) {
             allowDecimals={false}
             padding={{ top: 4, bottom: 4 }}
           />
-          {activeEntry && (activeIndex || activeIndex === 0) && (
-            <ReferenceLine
-              x={activeEntry.date}
-              stroke={CHART_COLORS.referenceLine}
-              strokeWidth={1}
-              strokeDasharray="2 3"
-              strokeOpacity={0.95}
-              isFront
-              label={<WeightLabel valueText={`${activeEntry.date}\n${activeEntry.weight}kg`} />}
-            />
-          )}
           <Area
             type="linear"
             dataKey="weight"
@@ -174,6 +163,17 @@ export function ExerciseTrendChart({ entries }) {
             dot={{ r: 3.5, fill: GOLD, stroke: "#fff", strokeWidth: 1 }}
             activeDot={{ r: 4.5, fill: GOLD, stroke: "#fff", strokeWidth: 1 }}
           />
+          {activeEntry && (activeIndex || activeIndex === 0) && (
+            <ReferenceLine
+              x={activeEntry.date}
+              stroke={CHART_COLORS.referenceLine}
+              strokeWidth={1}
+              strokeDasharray="2 3"
+              strokeOpacity={0.95}
+              isFront
+              label={<WeightLabel valueText={`${activeEntry.date}\n${activeEntry.weight}kg`} />}
+            />
+          )}
         </AreaChart>
       </ResponsiveContainer>
     </div>
