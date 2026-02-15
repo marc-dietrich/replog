@@ -9,7 +9,6 @@ const CHART_COLORS = {
   labelText: "var(--chart-label-text)",
   referenceLine: "var(--chart-reference-line)",
 };
-const AXIS_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 const NUMBER_FORMATTER = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
 export const EXERCISE_VIEW_MODES = Object.freeze({
@@ -17,11 +16,6 @@ export const EXERCISE_VIEW_MODES = Object.freeze({
   VOLUME: "volume",
   SETS: "sets",
 });
-
-function formatAxisTick(value) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : AXIS_DATE_FORMATTER.format(date);
-}
 
 function WeightLabel({ viewBox, valueText }) {
   if (!viewBox) return null;
@@ -149,10 +143,6 @@ export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP
     setActiveEntry(null);
   }, [resolvedViewMode]);
 
-  if (chartData.length === 0) {
-    return <p className="text-center text-sm text-slate-400">No data yet</p>;
-  }
-
   useEffect(() => {
     if (activeIndex == null) {
       setActiveEntry(null);
@@ -161,7 +151,11 @@ export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP
     }
   }, [activeIndex, chartData]);
 
-  const buildLabelText = useCallback(() => {
+  if (chartData.length === 0) {
+    return <p className="text-center text-sm text-slate-400">No data yet</p>;
+  }
+
+  const buildLabelText = () => {
     if (!activeEntry) return "";
     if (resolvedViewMode === EXERCISE_VIEW_MODES.VOLUME) {
       const totalVolume = NUMBER_FORMATTER.format(activeEntry.volume);
@@ -177,7 +171,7 @@ export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP
       return lines.join("\n");
     }
     return `${activeEntry.date}\n${NUMBER_FORMATTER.format(activeEntry.bestWeight)} kg × ${activeEntry.bestReps}`;
-  }, [activeEntry, resolvedViewMode]);
+  };
 
   const currentDataKey = resolvedViewMode === EXERCISE_VIEW_MODES.VOLUME ? "volume" : "bestWeight";
 
