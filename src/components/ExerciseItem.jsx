@@ -13,7 +13,7 @@ const NUMBER_FORMATTER = new Intl.NumberFormat(undefined, { maximumFractionDigit
 const VIEW_SEGMENT_OPTIONS = [
   { id: EXERCISE_VIEW_MODES.TOP_SET, label: "Top-Set" },
   { id: EXERCISE_VIEW_MODES.VOLUME, label: "Volume" },
-  { id: EXERCISE_VIEW_MODES.SETS, label: "Sets" },
+  { id: EXERCISE_VIEW_MODES.SETS, label: "Sets", disabled: true },
 ];
 const MAX_RECENT_WORKOUTS = 3;
 
@@ -43,6 +43,7 @@ export function ExerciseItem({
     [exercise.entries]
   );
 
+  const lastEntry = sortedEntries.length ? sortedEntries[sortedEntries.length - 1] : null;
   const previewEntries = useMemo(() => sortedEntries.slice(-6), [sortedEntries]);
 
   const workoutTimeline = useMemo(() => {
@@ -260,14 +261,20 @@ export function ExerciseItem({
             </svg>
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className={`font-display font-semibold ${isOpen ? "text-lg" : "text-xl"}`}>
+            <h3 className={`font-display font-semibold ${isOpen ? "text-xl" : "text-lg"}`}>
               {exercise.name}
             </h3>
+            {!isOpen && (
+              <p className="mt-1 text-sm text-slate-500">
+                {lastEntry ? `Last: ${lastEntry.weight} kg × ${lastEntry.reps} • ${lastEntry.date}` : "No entries yet."}
+              </p>
+            )}
             {isOpen && (
               <div className="mt-1">
                 <div className="inline-flex rounded-full bg-slate-100/80 p-0.5 text-[11px] font-semibold text-slate-500 shadow-inner dark:bg-slate-800/60">
                   {VIEW_SEGMENT_OPTIONS.map((option) => {
                     const isActive = option.id === viewMode;
+                    const isDisabled = option.disabled;
                     return (
                       <button
                         key={option.id}
@@ -275,12 +282,20 @@ export function ExerciseItem({
                         className={`rounded-full px-3 py-1 transition ${
                           isActive ? "bg-white text-slate-900 shadow" : "text-slate-500 hover:text-slate-800"
                         }`}
+                        disabled={isDisabled}
+                        aria-disabled={isDisabled || undefined}
                         onClick={(event) => {
                           event.stopPropagation();
+                          if (isDisabled) return;
                           setViewMode(option.id);
                         }}
                       >
-                        {option.label}
+                        <span>{option.label}</span>
+                        {isDisabled && (
+                          <span className="ml-2 rounded-full bg-amber-100 px-1.5 py-[1px] text-[9px] font-black uppercase tracking-[0.3em] text-amber-600">
+                            Soon
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -394,51 +409,35 @@ export function ExerciseItem({
           ) : visibleWorkouts.length === 0 ? (
             <p className="text-sm text-slate-500">No entries for this exercise yet.</p>
           ) : (
-            <ul className="divide-y divide-slate-100 text-sm dark:divide-slate-800/60">
+            <ul className="space-y-1 text-sm">
               {visibleWorkouts.map((workout) => {
                 const isExpanded = expandedWorkouts.has(workout.date);
-                const summaryText = getWorkoutSummaryText(workout);
+                const volumeText = `${formatVolume(workout.volume)}`;
                 return (
-                  <li key={workout.date} className="py-2">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        className="flex flex-1 items-center gap-3 rounded-xl px-2 py-1 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                        onClick={() => toggleWorkoutDetails(workout.date)}
-                      >
-                        <div className="min-w-[96px]">
-                          <p className="font-semibold text-slate-800 dark:text-slate-100">{workout.date}</p>
-                          <p className="text-xs uppercase tracking-[0.25em] text-slate-400">{workout.setsCount} set{workout.setsCount === 1 ? "" : "s"}</p>
-                        </div>
-                        <div className="flex flex-1 items-center text-slate-700 dark:text-slate-200">
-                          <span className="font-semibold">{summaryText}</span>
-                        </div>
-                      </button>
-                      <button
-                        type="button"
-                        className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition ${
-                          isExpanded ? "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200" : "hover:bg-slate-100 dark:hover:bg-slate-800/60"
-                        }`}
-                        onClick={() => toggleWorkoutDetails(workout.date)}
-                        aria-label={isExpanded ? "Collapse workout" : "Expand workout"}
-                      >
-                        <span className={`material-icons-round text-base transition-transform ${isExpanded ? "rotate-180" : ""}`}>
-                          expand_more
-                        </span>
-                      </button>
-                    </div>
+                  <li key={workout.date} className="py-1">
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-3 rounded-none px-1 py-1 text-left text-slate-700 hover:bg-transparent dark:text-slate-200"
+                      onClick={() => toggleWorkoutDetails(workout.date)}
+                      aria-expanded={isExpanded}
+                    >
+                      <span className="font-semibold text-slate-800 dark:text-slate-100">{workout.date}</span>
+                      <span className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                        {workout.setsCount} set{workout.setsCount === 1 ? "" : "s"}
+                      </span>
+                      <span className="flex-1 text-right font-semibold text-slate-700 dark:text-slate-100">{volumeText}</span>
+                      <span className={`material-icons-round text-base text-slate-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}>
+                        expand_more
+                      </span>
+                    </button>
                     {isExpanded && (
-                      <div className="mt-2 space-y-2 text-xs text-slate-600 dark:text-slate-200">
+                      <ul className="mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-200">
                         {workout.sets.map((set, idx) => (
-                          <div key={`${workout.date}-${idx}`} className="flex items-center gap-2 px-1">
-                            <div className="flex flex-1 items-center justify-between rounded-lg bg-slate-50 px-3 py-1 dark:bg-slate-800/50">
-                              <span className="font-semibold text-slate-800 dark:text-slate-100">
-                                {formatWeight(set.weight)} × {set.reps}
-                              </span>
-                              {set.note ? (
-                                <span className="text-[11px] italic text-slate-500">{set.note}</span>
-                              ) : null}
-                            </div>
+                          <li key={`${workout.date}-${idx}`} className="flex items-center gap-2">
+                            <span className="flex-1 font-semibold text-slate-800 dark:text-slate-100">
+                              {formatWeight(set.weight)} × {set.reps}
+                            </span>
+                            {set.note ? <span className="text-[11px] italic text-slate-500">{set.note}</span> : null}
                             <button
                               type="button"
                               className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:text-red-500 dark:bg-slate-800"
@@ -447,9 +446,9 @@ export function ExerciseItem({
                             >
                               <span className="material-icons-round text-[14px]">close</span>
                             </button>
-                          </div>
+                          </li>
                         ))}
-                      </div>
+                      </ul>
                     )}
                   </li>
                 );

@@ -71,6 +71,8 @@ function WeightLabel({ viewBox, valueText }) {
 }
 
 export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP_SET }) {
+  const resolvedViewMode = viewMode === EXERCISE_VIEW_MODES.SETS ? EXERCISE_VIEW_MODES.TOP_SET : viewMode;
+  const isSetsTemporarilyDisabled = viewMode === EXERCISE_VIEW_MODES.SETS;
   const workouts = useMemo(() => buildWorkoutTimeline(entries), [entries]);
 
   const chartData = useMemo(() => {
@@ -95,9 +97,9 @@ export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP
   const yBounds = useMemo(() => {
     if (chartData.length === 0) return [0, 1];
     let values = [];
-    if (viewMode === EXERCISE_VIEW_MODES.TOP_SET) {
+    if (resolvedViewMode === EXERCISE_VIEW_MODES.TOP_SET) {
       values = chartData.map((entry) => entry.bestWeight);
-    } else if (viewMode === EXERCISE_VIEW_MODES.VOLUME) {
+    } else if (resolvedViewMode === EXERCISE_VIEW_MODES.VOLUME) {
       values = chartData.map((entry) => entry.volume);
     } else {
       values = chartData.flatMap((entry) =>
@@ -117,7 +119,7 @@ export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP
       upper = maxValue * 1.05 + 1;
     }
     return [Math.max(0, lower), upper];
-  }, [chartData, viewMode]);
+  }, [chartData, resolvedViewMode]);
 
   const [activeIndex, setActiveIndex] = useState(null);
   const [activeEntry, setActiveEntry] = useState(null);
@@ -140,12 +142,12 @@ export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP
     setChartOpacity(0);
     const timer = setTimeout(() => setChartOpacity(1), 20);
     return () => clearTimeout(timer);
-  }, [viewMode]);
+  }, [resolvedViewMode]);
 
   useEffect(() => {
     setActiveIndex(null);
     setActiveEntry(null);
-  }, [viewMode]);
+  }, [resolvedViewMode]);
 
   if (chartData.length === 0) {
     return <p className="text-center text-sm text-slate-400">No data yet</p>;
@@ -161,12 +163,12 @@ export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP
 
   const buildLabelText = useCallback(() => {
     if (!activeEntry) return "";
-    if (viewMode === EXERCISE_VIEW_MODES.VOLUME) {
+    if (resolvedViewMode === EXERCISE_VIEW_MODES.VOLUME) {
       const totalVolume = NUMBER_FORMATTER.format(activeEntry.volume);
       const setLabel = activeEntry.setsCount === 1 ? "set" : "sets";
       return `${activeEntry.date}\n${totalVolume} kg\n${activeEntry.setsCount} ${setLabel}`;
     }
-    if (viewMode === EXERCISE_VIEW_MODES.SETS) {
+    if (resolvedViewMode === EXERCISE_VIEW_MODES.SETS) {
       const lines = [activeEntry.date];
       const labels = ["Best", "2nd", "3rd"];
       activeEntry.rankedSets.slice(0, 3).forEach((set, index) => {
@@ -175,12 +177,17 @@ export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP
       return lines.join("\n");
     }
     return `${activeEntry.date}\n${NUMBER_FORMATTER.format(activeEntry.bestWeight)} kg × ${activeEntry.bestReps}`;
-  }, [activeEntry, viewMode]);
+  }, [activeEntry, resolvedViewMode]);
 
-  const currentDataKey = viewMode === EXERCISE_VIEW_MODES.VOLUME ? "volume" : "bestWeight";
+  const currentDataKey = resolvedViewMode === EXERCISE_VIEW_MODES.VOLUME ? "volume" : "bestWeight";
 
   return (
     <div className="rounded-2xl border border-amber-50 bg-white/90 shadow-inner dark:border-amber-500/20 dark:bg-slate-900/50">
+      {isSetsTemporarilyDisabled && (
+        <p className="px-4 pt-4 text-xs font-semibold uppercase tracking-[0.3em] text-amber-500">
+          Sets view is being refreshed
+        </p>
+      )}
       <div className="px-2 py-4" style={{ transition: "opacity 180ms ease", opacity: chartOpacity }}>
         <ResponsiveContainer width="100%" height={180}>
         <AreaChart
@@ -210,7 +217,7 @@ export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP
             allowDecimals={false}
             padding={{ top: 4, bottom: 4 }}
           />
-          {viewMode === EXERCISE_VIEW_MODES.SETS ? (
+          {resolvedViewMode === EXERCISE_VIEW_MODES.SETS ? (
             <>
               <Area
                 type="linear"
