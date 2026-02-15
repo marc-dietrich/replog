@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { buildWorkoutTimeline } from "../utils/workoutMetrics";
 
 const GOLD = "#f7b733";
 const CHART_COLORS = {
@@ -8,12 +9,13 @@ const CHART_COLORS = {
   labelText: "var(--chart-label-text)",
   referenceLine: "var(--chart-reference-line)",
 };
-const AXIS_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
+const NUMBER_FORMATTER = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
-function formatAxisTick(value) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : AXIS_DATE_FORMATTER.format(date);
-}
+export const EXERCISE_VIEW_MODES = Object.freeze({
+  TOP_SET: "topSet",
+  VOLUME: "volume",
+  SETS: "sets",
+});
 
 function WeightLabel({ viewBox, valueText }) {
   if (!viewBox) return null;
@@ -62,69 +64,128 @@ function WeightLabel({ viewBox, valueText }) {
   );
 }
 
-export function ExerciseTrendChart({ entries }) {
-  const data = useMemo(() => {
-    if (!entries?.length) return [];
-    return [...entries]
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .map((entry) => ({
-        date: entry.date,
-        weight: Number(entry.weight),
-        reps: Number(entry.reps),
-      }));
-  }, [entries]);
+export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP_SET }) {
+  const resolvedViewMode = viewMode === EXERCISE_VIEW_MODES.SETS ? EXERCISE_VIEW_MODES.TOP_SET : viewMode;
+  const isSetsTemporarilyDisabled = viewMode === EXERCISE_VIEW_MODES.SETS;
+  const workouts = useMemo(() => buildWorkoutTimeline(entries), [entries]);
+
+  const chartData = useMemo(() => {
+    if (!workouts.length) return [];
+    return workouts.map((workout) => {
+      const [secondSet, thirdSet] = workout.rankedSets.slice(1, 3);
+      return {
+        date: workout.date,
+        bestWeight: workout.bestSet?.weight ?? 0,
+        bestReps: workout.bestSet?.reps ?? 0,
+        volume: workout.volume,
+        setsCount: workout.setsCount,
+        rankedSets: workout.rankedSets,
+        secondWeight: secondSet?.weight ?? null,
+        thirdWeight: thirdSet?.weight ?? null,
+        secondSet,
+        thirdSet,
+      };
+    });
+  }, [workouts]);
 
   const yBounds = useMemo(() => {
-    if (data.length === 0) return [0, 1];
-    const weights = data.map((entry) => entry.weight);
-    const minWeight = Math.min(...weights);
-    const maxWeight = Math.max(...weights);
-    if (!Number.isFinite(minWeight) || !Number.isFinite(maxWeight)) {
+    if (chartData.length === 0) return [0, 1];
+    let values = [];
+    if (resolvedViewMode === EXERCISE_VIEW_MODES.TOP_SET) {
+      values = chartData.map((entry) => entry.bestWeight);
+    } else if (resolvedViewMode === EXERCISE_VIEW_MODES.VOLUME) {
+      values = chartData.map((entry) => entry.volume);
+    } else {
+      values = chartData.flatMap((entry) =>
+        [entry.bestWeight, entry.secondWeight, entry.thirdWeight].filter((value) => typeof value === "number" && value !== null)
+      );
+    }
+    if (!values.length) return [0, 1];
+    const minValue = Math.min(...values);
+    const maxValue = Math.max(...values);
+    if (!Number.isFinite(minValue) || !Number.isFinite(maxValue)) {
       return [0, 1];
     }
-    let lower = minWeight * 0.99;
-    let upper = maxWeight * 1.01;
-    if (minWeight === maxWeight) {
-      lower = minWeight * 0.99 - 1;
-      upper = maxWeight * 1.01 + 1;
+    let lower = minValue * 0.95;
+    let upper = maxValue * 1.05;
+    if (minValue === maxValue) {
+      lower = minValue * 0.95 - 1;
+      upper = maxValue * 1.05 + 1;
     }
     return [Math.max(0, lower), upper];
-  }, [data]);
+  }, [chartData, resolvedViewMode]);
 
   const [activeIndex, setActiveIndex] = useState(null);
   const [activeEntry, setActiveEntry] = useState(null);
+  const [chartOpacity, setChartOpacity] = useState(1);
 
   const handlePointerMove = useCallback((state) => {
     if (typeof state?.activeTooltipIndex === "number") {
       const nextIndex = state.activeTooltipIndex;
       setActiveIndex(nextIndex);
-      setActiveEntry(data[nextIndex] ?? null);
+      setActiveEntry(chartData[nextIndex] ?? null);
     }
-  }, [data]);
+  }, [chartData]);
 
   const handlePointerLeave = useCallback(() => {
     setActiveIndex(null);
     setActiveEntry(null);
   }, []);
 
-  if (data.length === 0) {
-    return <p className="text-center text-sm text-slate-400">No data yet</p>;
-  }
+  useEffect(() => {
+    setChartOpacity(0);
+    const timer = setTimeout(() => setChartOpacity(1), 20);
+    return () => clearTimeout(timer);
+  }, [resolvedViewMode]);
+
+  useEffect(() => {
+    setActiveIndex(null);
+    setActiveEntry(null);
+  }, [resolvedViewMode]);
 
   useEffect(() => {
     if (activeIndex == null) {
       setActiveEntry(null);
     } else {
-      setActiveEntry(data[activeIndex] ?? null);
+      setActiveEntry(chartData[activeIndex] ?? null);
     }
-  }, [activeIndex, data]);
-  // const activeDate = activeEntry?.date ?? null;
+  }, [activeIndex, chartData]);
+
+  if (chartData.length === 0) {
+    return <p className="text-center text-sm text-slate-400">No data yet</p>;
+  }
+
+  const buildLabelText = () => {
+    if (!activeEntry) return "";
+    if (resolvedViewMode === EXERCISE_VIEW_MODES.VOLUME) {
+      const totalVolume = NUMBER_FORMATTER.format(activeEntry.volume);
+      const setLabel = activeEntry.setsCount === 1 ? "set" : "sets";
+      return `${activeEntry.date}\n${totalVolume} kg\n${activeEntry.setsCount} ${setLabel}`;
+    }
+    if (resolvedViewMode === EXERCISE_VIEW_MODES.SETS) {
+      const lines = [activeEntry.date];
+      const labels = ["Best", "2nd", "3rd"];
+      activeEntry.rankedSets.slice(0, 3).forEach((set, index) => {
+        lines.push(`${labels[index]} · ${NUMBER_FORMATTER.format(set.weight)} kg × ${set.reps}`);
+      });
+      return lines.join("\n");
+    }
+    return `${activeEntry.date}\n${NUMBER_FORMATTER.format(activeEntry.bestWeight)} kg × ${activeEntry.bestReps}`;
+  };
+
+  const currentDataKey = resolvedViewMode === EXERCISE_VIEW_MODES.VOLUME ? "volume" : "bestWeight";
 
   return (
     <div className="rounded-2xl border border-amber-50 bg-white/90 shadow-inner dark:border-amber-500/20 dark:bg-slate-900/50">
-      <ResponsiveContainer width="100%" height={180}>
+      {isSetsTemporarilyDisabled && (
+        <p className="px-4 pt-4 text-xs font-semibold uppercase tracking-[0.3em] text-amber-500">
+          Sets view is being refreshed
+        </p>
+      )}
+      <div className="px-2 py-4" style={{ transition: "opacity 180ms ease", opacity: chartOpacity }}>
+        <ResponsiveContainer width="100%" height={180}>
         <AreaChart
-          data={data}
+            data={chartData}
           margin={{ top: 10, right: 8, bottom: 4, left: 0 }}
           onMouseMove={handlePointerMove}
           onTouchStart={handlePointerMove}
@@ -150,19 +211,61 @@ export function ExerciseTrendChart({ entries }) {
             allowDecimals={false}
             padding={{ top: 4, bottom: 4 }}
           />
-          <Area
-            type="linear"
-            dataKey="weight"
-            stroke={GOLD}
-            strokeWidth={2.5}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-            fill={GOLD}
-            fillOpacity={0.15}
-            isAnimationActive={false}
-            dot={{ r: 3.5, fill: GOLD, stroke: "#fff", strokeWidth: 1 }}
-            activeDot={{ r: 4.5, fill: GOLD, stroke: "#fff", strokeWidth: 1 }}
-          />
+          {resolvedViewMode === EXERCISE_VIEW_MODES.SETS ? (
+            <>
+              <Area
+                type="linear"
+                dataKey="bestWeight"
+                stroke={GOLD}
+                strokeWidth={2.5}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                fill={GOLD}
+                fillOpacity={0.12}
+                isAnimationActive={false}
+                dot={{ r: 3.5, fill: GOLD, stroke: "#fff", strokeWidth: 1 }}
+                activeDot={{ r: 4.5, fill: GOLD, stroke: "#fff", strokeWidth: 1 }}
+              />
+              <Area
+                type="linear"
+                dataKey="secondWeight"
+                stroke="rgba(247, 183, 51, 0.7)"
+                strokeWidth={1.5}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                fill="rgba(247, 183, 51, 0.15)"
+                isAnimationActive={false}
+                dot={false}
+                activeDot={false}
+              />
+              <Area
+                type="linear"
+                dataKey="thirdWeight"
+                stroke="rgba(247, 183, 51, 0.4)"
+                strokeWidth={1.25}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                fill="rgba(247, 183, 51, 0.08)"
+                isAnimationActive={false}
+                dot={false}
+                activeDot={false}
+              />
+            </>
+          ) : (
+            <Area
+              type="linear"
+              dataKey={currentDataKey}
+              stroke={GOLD}
+              strokeWidth={2.5}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              fill={GOLD}
+              fillOpacity={0.15}
+              isAnimationActive={false}
+              dot={{ r: 3.5, fill: GOLD, stroke: "#fff", strokeWidth: 1 }}
+              activeDot={{ r: 4.5, fill: GOLD, stroke: "#fff", strokeWidth: 1 }}
+            />
+          )}
           {activeEntry && (activeIndex || activeIndex === 0) && (
             <ReferenceLine
               x={activeEntry.date}
@@ -171,11 +274,12 @@ export function ExerciseTrendChart({ entries }) {
               strokeDasharray="2 3"
               strokeOpacity={0.95}
               isFront
-              label={<WeightLabel valueText={`${activeEntry.date}\n${activeEntry.weight}kg`} />}
+              label={<WeightLabel valueText={buildLabelText()} />}
             />
           )}
         </AreaChart>
       </ResponsiveContainer>
+      </div>
     </div>
   );
 }
