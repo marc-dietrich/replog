@@ -10,15 +10,11 @@ const SPARKLINE_WIDTH = 48;
 const SPARKLINE_HEIGHT = 18;
 const FALLBACK_SPARKLINE_PATH = "M2 14 L10 11 L18 13 L26 8 L34 12 L42 7";
 const NUMBER_FORMATTER = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
-const VIEW_SEGMENT_OPTIONS = [
-  { id: EXERCISE_VIEW_MODES.TOP_SET, label: "Top-Set" },
-  { id: EXERCISE_VIEW_MODES.VOLUME, label: "Volume" },
-  { id: EXERCISE_VIEW_MODES.SETS, label: "Sets", disabled: true },
-];
 const MAX_RECENT_WORKOUTS = 3;
 
 export function ExerciseItem({
   exercise,
+  viewMode = EXERCISE_VIEW_MODES.TOP_SET,
   isOpen,
   onToggle,
   onAddEntry,
@@ -34,9 +30,15 @@ export function ExerciseItem({
   const [reps, setReps] = useState("");
   const [note, setNote] = useState("");
   const [isReordering, setIsReordering] = useState(false);
-  const [viewMode, setViewMode] = useState(EXERCISE_VIEW_MODES.TOP_SET);
   const [expandedWorkouts, setExpandedWorkouts] = useState(() => new Set());
   const cardRef = useRef(null);
+
+  const viewModeLabel =
+    viewMode === EXERCISE_VIEW_MODES.VOLUME
+      ? "Volume"
+      : viewMode === EXERCISE_VIEW_MODES.SETS
+        ? "Sets"
+        : "Top-Set";
 
   const sortedEntries = useMemo(
     () => [...exercise.entries].sort((a, b) => new Date(a.date) - new Date(b.date)),
@@ -271,35 +273,10 @@ export function ExerciseItem({
             )}
             {isOpen && (
               <div className="mt-1">
-                <div className="inline-flex rounded-full bg-slate-100/80 p-0.5 text-[11px] font-semibold text-slate-500 shadow-inner dark:bg-slate-800/60">
-                  {VIEW_SEGMENT_OPTIONS.map((option) => {
-                    const isActive = option.id === viewMode;
-                    const isDisabled = option.disabled;
-                    return (
-                      <button
-                        key={option.id}
-                        type="button"
-                        className={`rounded-full px-3 py-1 transition ${
-                          isActive ? "bg-white text-slate-900 shadow" : "text-slate-500 hover:text-slate-800"
-                        }`}
-                        disabled={isDisabled}
-                        aria-disabled={isDisabled || undefined}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          if (isDisabled) return;
-                          setViewMode(option.id);
-                        }}
-                      >
-                        <span>{option.label}</span>
-                        {isDisabled && (
-                          <span className="ml-2 rounded-full bg-amber-100 px-1.5 py-[1px] text-[9px] font-black uppercase tracking-[0.3em] text-amber-600">
-                            Soon
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                <p className="inline-flex items-center gap-2 rounded-full bg-slate-100/80 px-3 py-1 text-[11px] font-semibold text-slate-600 shadow-inner dark:bg-slate-800/60 dark:text-slate-200">
+                  <span className="uppercase tracking-[0.2em] text-slate-400">View</span>
+                  <span>{viewModeLabel}</span>
+                </p>
               </div>
             )}
           </div>

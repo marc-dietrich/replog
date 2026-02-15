@@ -6,6 +6,7 @@ const UNGROUPED_ID = null;
 export function ExerciseList({
   exercises,
   groups,
+  activeViewMode,
   onAddEntry,
   onDeleteEntry,
   onDeleteExercise,
@@ -135,6 +136,7 @@ export function ExerciseList({
               <ExerciseItem
                 key={exercise.id}
                 exercise={exercise}
+                viewMode={activeViewMode}
                 isOpen={openExerciseId === exercise.id}
                 onToggle={() => toggleExercise(exercise.id)}
                 onAddEntry={onAddEntry}

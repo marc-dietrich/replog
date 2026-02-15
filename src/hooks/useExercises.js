@@ -2,15 +2,25 @@
 import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "gym-tracker-exercises";
-const DEFAULT_STATE = Object.freeze({ exercises: [], groups: [] });
+const EXERCISE_VIEW_MODES = Object.freeze({
+  TOP_SET: "topSet",
+  VOLUME: "volume",
+  SETS: "sets",
+});
+const DEFAULT_SETTINGS = Object.freeze({
+  exerciseViewMode: EXERCISE_VIEW_MODES.TOP_SET,
+});
+const DEFAULT_STATE = Object.freeze({ exercises: [], groups: [], settings: DEFAULT_SETTINGS });
 
 const normalizeGroupId = (groupId) => (groupId == null ? null : groupId);
+const isValidExerciseViewMode = (value) => Object.values(EXERCISE_VIEW_MODES).includes(value);
 
 const isLegacyState = (raw) => {
   if (!raw) return true;
   if (Array.isArray(raw)) return true;
   if (!Array.isArray(raw.groups)) return true;
   if (!Array.isArray(raw.exercises)) return true;
+  if (!isValidExerciseViewMode(raw?.settings?.exerciseViewMode)) return true;
   return raw.exercises.some((exercise) => typeof exercise.order !== "number");
 };
 
@@ -26,6 +36,7 @@ const normalizeState = (raw) => {
         entries: Array.isArray(exercise.entries) ? exercise.entries : [],
       })),
       groups: [],
+      settings: DEFAULT_SETTINGS,
     };
   }
 
@@ -46,7 +57,13 @@ const normalizeState = (raw) => {
       }))
     : [];
 
-  return { exercises, groups };
+  const settings = {
+    exerciseViewMode: isValidExerciseViewMode(raw?.settings?.exerciseViewMode)
+      ? raw.settings.exerciseViewMode
+      : EXERCISE_VIEW_MODES.TOP_SET,
+  };
+
+  return { exercises, groups, settings };
 };
 
 const ensureSequentialExerciseOrder = (exercises) => {
@@ -81,6 +98,7 @@ const hydrateState = (raw) => {
   return {
     exercises: ensureSequentialExerciseOrder(normalized.exercises),
     groups: ensureSequentialGroupOrder(normalized.groups),
+    settings: normalized.settings,
   };
 };
 
@@ -270,9 +288,21 @@ export function useExercises() {
     setState(hydrateState(nextState));
   };
 
+  const setExerciseViewMode = (viewMode) => {
+    if (!isValidExerciseViewMode(viewMode)) return;
+    setState((prev) => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        exerciseViewMode: viewMode,
+      },
+    }));
+  };
+
   return {
     exercises: state.exercises,
     groups: state.groups,
+    settings: state.settings,
     addExercise,
     addGroup,
     addEntry,
@@ -281,5 +311,6 @@ export function useExercises() {
     moveExercise,
     reorderGroups,
     replaceState,
+    setExerciseViewMode,
   };
 }

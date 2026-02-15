@@ -1,6 +1,7 @@
 /* global __APP_VERSION__ */
 import { AddExerciseForm } from "./components/AddExerciseForm";
 import { AddPanel } from "./components/AddPanel";
+import { EXERCISE_VIEW_MODES } from "./components/ExerciseTrendChart";
 import { ExerciseList } from "./components/ExerciseList";
 import { useExercises } from "./hooks/useExercises";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -10,17 +11,24 @@ const IMPRESSUM_TEXT = `Marc Dietrich
 c/o DE Office Solutions
 Erfweiler Straße 12
 66994 Dahn`;
+const VIEW_MODE_OPTIONS = [
+  { id: EXERCISE_VIEW_MODES.TOP_SET, label: "Top-Set" },
+  { id: EXERCISE_VIEW_MODES.VOLUME, label: "Volume" },
+  { id: EXERCISE_VIEW_MODES.SETS, label: "Sets", disabled: true },
+];
 
 function App() {
   const {
     exercises,
     groups,
+    settings,
     addExercise,
     addEntry,
     deleteEntry,
     deleteExercise,
     moveExercise,
     replaceState,
+    setExerciseViewMode,
   } = useExercises();
   const [isAddPanelOpen, setIsAddPanelOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -33,7 +41,7 @@ function App() {
   const toastTimeoutRef = useRef(null);
 
   const handleExport = () => {
-    const payload = { exercises, groups };
+    const payload = { exercises, groups, settings };
     const json = JSON.stringify(payload, null, 2);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -233,6 +241,41 @@ function App() {
               <>
                 <div className="fixed inset-0 z-40" onClick={closeMenu}></div>
                 <div className="absolute right-0 top-12 z-50 w-72 rounded-3xl border border-slate-200 bg-white/95 p-5 text-left shadow-2xl backdrop-blur-md dark:border-slate-800 dark:bg-slate-900">
+                  <div className="mb-5">
+                    <div className="mb-2 flex items-center gap-2 text-slate-400">
+                      <span className="material-icons-round text-base">insights</span>
+                      <h3 className="font-display text-[10px] font-bold uppercase tracking-[0.4em] text-slate-900 dark:text-slate-100">
+                        Exercise View
+                      </h3>
+                    </div>
+                    <p className="mb-3 text-[11px] text-slate-500">Applies to all exercise cards.</p>
+                    <div className="grid grid-cols-3 gap-1 rounded-2xl bg-slate-100 p-1 dark:bg-slate-800/70" role="group" aria-label="Exercise view mode">
+                      {VIEW_MODE_OPTIONS.map((option) => {
+                        const isActive = option.id === settings.exerciseViewMode;
+                        const isDisabled = option.disabled;
+                        return (
+                          <button
+                            key={option.id}
+                            type="button"
+                            className={`relative rounded-xl px-2 py-2 text-[11px] font-semibold transition ${
+                              isActive
+                                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
+                                : "text-slate-500 hover:text-slate-800 dark:text-slate-300"
+                            } ${isDisabled ? "cursor-not-allowed opacity-60" : ""}`}
+                            disabled={isDisabled}
+                            aria-disabled={isDisabled || undefined}
+                            onClick={() => {
+                              if (isDisabled) return;
+                              setExerciseViewMode(option.id);
+                            }}
+                          >
+                            {option.label}
+                            {isDisabled && <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-amber-400" aria-hidden="true"></span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                   <div className="mb-4 flex items-center gap-2 text-slate-400">
                     <span className="material-icons-round">cloud_done</span>
                     <h3 className="font-display text-xs font-bold uppercase tracking-[0.4em] text-slate-900 dark:text-slate-100">
@@ -292,6 +335,7 @@ function App() {
           <ExerciseList
             exercises={exercises}
             groups={orderedGroups}
+            activeViewMode={settings.exerciseViewMode}
             onAddEntry={addEntry}
             onDeleteEntry={deleteEntry}
             onDeleteExercise={deleteExercise}
