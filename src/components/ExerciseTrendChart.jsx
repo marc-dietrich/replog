@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { buildWorkoutTimeline } from "../utils/workoutMetrics";
+import { SetsTrendChart, SETS_DISPLAY_MODES } from "./SetsTrendChart";
 
 const GOLD = "#f7b733";
 const CHART_COLORS = {
@@ -16,6 +17,8 @@ export const EXERCISE_VIEW_MODES = Object.freeze({
   VOLUME: "volume",
   SETS: "sets",
 });
+
+export { SETS_DISPLAY_MODES };
 
 function WeightLabel({ viewBox, valueText }) {
   if (!viewBox) return null;
@@ -64,9 +67,13 @@ function WeightLabel({ viewBox, valueText }) {
   );
 }
 
-export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP_SET }) {
-  const resolvedViewMode = viewMode === EXERCISE_VIEW_MODES.SETS ? EXERCISE_VIEW_MODES.TOP_SET : viewMode;
-  const isSetsTemporarilyDisabled = viewMode === EXERCISE_VIEW_MODES.SETS;
+export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP_SET, setsDisplayMode = SETS_DISPLAY_MODES.CONTINUOUS }) {
+  /* Delegate to the dedicated SetsTrendChart when in SETS mode */
+  if (viewMode === EXERCISE_VIEW_MODES.SETS) {
+    return <SetsTrendChart entries={entries} displayMode={setsDisplayMode} />;
+  }
+
+  const resolvedViewMode = viewMode;
   const workouts = useMemo(() => buildWorkoutTimeline(entries), [entries]);
 
   const chartData = useMemo(() => {
@@ -93,12 +100,8 @@ export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP
     let values = [];
     if (resolvedViewMode === EXERCISE_VIEW_MODES.TOP_SET) {
       values = chartData.map((entry) => entry.bestWeight);
-    } else if (resolvedViewMode === EXERCISE_VIEW_MODES.VOLUME) {
-      values = chartData.map((entry) => entry.volume);
     } else {
-      values = chartData.flatMap((entry) =>
-        [entry.bestWeight, entry.secondWeight, entry.thirdWeight].filter((value) => typeof value === "number" && value !== null)
-      );
+      values = chartData.map((entry) => entry.volume);
     }
     if (!values.length) return [0, 1];
     const minValue = Math.min(...values);
@@ -162,14 +165,6 @@ export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP
       const setLabel = activeEntry.setsCount === 1 ? "set" : "sets";
       return `${activeEntry.date}\n${totalVolume} kg\n${activeEntry.setsCount} ${setLabel}`;
     }
-    if (resolvedViewMode === EXERCISE_VIEW_MODES.SETS) {
-      const lines = [activeEntry.date];
-      const labels = ["Best", "2nd", "3rd"];
-      activeEntry.rankedSets.slice(0, 3).forEach((set, index) => {
-        lines.push(`${labels[index]} · ${NUMBER_FORMATTER.format(set.weight)} kg × ${set.reps}`);
-      });
-      return lines.join("\n");
-    }
     return `${activeEntry.date}\n${NUMBER_FORMATTER.format(activeEntry.bestWeight)} kg × ${activeEntry.bestReps}`;
   };
 
@@ -177,11 +172,6 @@ export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP
 
   return (
     <div className="rounded-2xl border border-amber-50 bg-white/90 shadow-inner dark:border-amber-500/20 dark:bg-slate-900/50">
-      {isSetsTemporarilyDisabled && (
-        <p className="px-4 pt-4 text-xs font-semibold uppercase tracking-[0.3em] text-amber-500">
-          Sets view is being refreshed
-        </p>
-      )}
       <div className="px-2 py-4" style={{ transition: "opacity 180ms ease", opacity: chartOpacity }}>
         <ResponsiveContainer width="100%" height={180}>
         <AreaChart
@@ -211,48 +201,7 @@ export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP
             allowDecimals={false}
             padding={{ top: 4, bottom: 4 }}
           />
-          {resolvedViewMode === EXERCISE_VIEW_MODES.SETS ? (
-            <>
-              <Area
-                type="linear"
-                dataKey="bestWeight"
-                stroke={GOLD}
-                strokeWidth={2.5}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                fill={GOLD}
-                fillOpacity={0.12}
-                isAnimationActive={false}
-                dot={{ r: 3.5, fill: GOLD, stroke: "#fff", strokeWidth: 1 }}
-                activeDot={{ r: 4.5, fill: GOLD, stroke: "#fff", strokeWidth: 1 }}
-              />
-              <Area
-                type="linear"
-                dataKey="secondWeight"
-                stroke="rgba(247, 183, 51, 0.7)"
-                strokeWidth={1.5}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                fill="rgba(247, 183, 51, 0.15)"
-                isAnimationActive={false}
-                dot={false}
-                activeDot={false}
-              />
-              <Area
-                type="linear"
-                dataKey="thirdWeight"
-                stroke="rgba(247, 183, 51, 0.4)"
-                strokeWidth={1.25}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                fill="rgba(247, 183, 51, 0.08)"
-                isAnimationActive={false}
-                dot={false}
-                activeDot={false}
-              />
-            </>
-          ) : (
-            <Area
+          <Area
               type="linear"
               dataKey={currentDataKey}
               stroke={GOLD}
@@ -265,7 +214,6 @@ export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP
               dot={{ r: 3.5, fill: GOLD, stroke: "#fff", strokeWidth: 1 }}
               activeDot={{ r: 4.5, fill: GOLD, stroke: "#fff", strokeWidth: 1 }}
             />
-          )}
           {activeEntry && (activeIndex || activeIndex === 0) && (
             <ReferenceLine
               x={activeEntry.date}

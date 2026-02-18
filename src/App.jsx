@@ -1,7 +1,7 @@
 /* global __APP_VERSION__ */
 import { AddExerciseForm } from "./components/AddExerciseForm";
 import { AddPanel } from "./components/AddPanel";
-import { EXERCISE_VIEW_MODES } from "./components/ExerciseTrendChart";
+import { EXERCISE_VIEW_MODES, SETS_DISPLAY_MODES } from "./components/ExerciseTrendChart";
 import { ExerciseList } from "./components/ExerciseList";
 import { useExercises } from "./hooks/useExercises";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -14,7 +14,7 @@ Erfweiler Straße 12
 const VIEW_MODE_OPTIONS = [
   { id: EXERCISE_VIEW_MODES.TOP_SET, label: "Top-Set" },
   { id: EXERCISE_VIEW_MODES.VOLUME, label: "Volume" },
-  { id: EXERCISE_VIEW_MODES.SETS, label: "Sets", disabled: true },
+  { id: EXERCISE_VIEW_MODES.SETS, label: "Sets" },
 ];
 
 function App() {
@@ -29,6 +29,7 @@ function App() {
     moveExercise,
     replaceState,
     setExerciseViewMode,
+    setSetsDisplayMode,
   } = useExercises();
   const [isAddPanelOpen, setIsAddPanelOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -276,6 +277,39 @@ function App() {
                       })}
                     </div>
                   </div>
+                  {settings.exerciseViewMode === EXERCISE_VIEW_MODES.SETS && (
+                    <div className="mb-5">
+                      <div className="mb-2 flex items-center gap-2 text-slate-400">
+                        <span className="material-icons-round text-base">stacked_line_chart</span>
+                        <h3 className="font-display text-[10px] font-bold uppercase tracking-[0.4em] text-slate-900 dark:text-slate-100">
+                          Sets Display
+                        </h3>
+                      </div>
+                      <p className="mb-3 text-[11px] text-slate-500">Continuous lines or stacked bars.</p>
+                      <div className="grid grid-cols-2 gap-1 rounded-2xl bg-slate-100 p-1 dark:bg-slate-800/70" role="group" aria-label="Sets display mode">
+                        {[
+                          { id: SETS_DISPLAY_MODES.CONTINUOUS, label: "Continuous" },
+                          { id: SETS_DISPLAY_MODES.DISCRETE, label: "Discrete" },
+                        ].map((option) => {
+                          const isActive = option.id === (settings.setsDisplayMode ?? SETS_DISPLAY_MODES.CONTINUOUS);
+                          return (
+                            <button
+                              key={option.id}
+                              type="button"
+                              className={`rounded-xl px-2 py-2 text-[11px] font-semibold transition ${
+                                isActive
+                                  ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
+                                  : "text-slate-500 hover:text-slate-800 dark:text-slate-300"
+                              }`}
+                              onClick={() => setSetsDisplayMode(option.id)}
+                            >
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   <div className="mb-4 flex items-center gap-2 text-slate-400">
                     <span className="material-icons-round">cloud_done</span>
                     <h3 className="font-display text-xs font-bold uppercase tracking-[0.4em] text-slate-900 dark:text-slate-100">
@@ -336,6 +370,7 @@ function App() {
             exercises={exercises}
             groups={orderedGroups}
             activeViewMode={settings.exerciseViewMode}
+            setsDisplayMode={settings.setsDisplayMode}
             onAddEntry={addEntry}
             onDeleteEntry={deleteEntry}
             onDeleteExercise={deleteExercise}

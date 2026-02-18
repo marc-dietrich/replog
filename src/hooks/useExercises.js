@@ -7,13 +7,19 @@ const EXERCISE_VIEW_MODES = Object.freeze({
   VOLUME: "volume",
   SETS: "sets",
 });
+const SETS_DISPLAY_MODES = Object.freeze({
+  CONTINUOUS: "continuous",
+  DISCRETE: "discrete",
+});
 const DEFAULT_SETTINGS = Object.freeze({
   exerciseViewMode: EXERCISE_VIEW_MODES.TOP_SET,
+  setsDisplayMode: SETS_DISPLAY_MODES.CONTINUOUS,
 });
 const DEFAULT_STATE = Object.freeze({ exercises: [], groups: [], settings: DEFAULT_SETTINGS });
 
 const normalizeGroupId = (groupId) => (groupId == null ? null : groupId);
 const isValidExerciseViewMode = (value) => Object.values(EXERCISE_VIEW_MODES).includes(value);
+const isValidSetsDisplayMode = (value) => Object.values(SETS_DISPLAY_MODES).includes(value);
 
 const isLegacyState = (raw) => {
   if (!raw) return true;
@@ -61,6 +67,9 @@ const normalizeState = (raw) => {
     exerciseViewMode: isValidExerciseViewMode(raw?.settings?.exerciseViewMode)
       ? raw.settings.exerciseViewMode
       : EXERCISE_VIEW_MODES.TOP_SET,
+    setsDisplayMode: isValidSetsDisplayMode(raw?.settings?.setsDisplayMode)
+      ? raw.settings.setsDisplayMode
+      : SETS_DISPLAY_MODES.CONTINUOUS,
   };
 
   return { exercises, groups, settings };
@@ -299,6 +308,17 @@ export function useExercises() {
     }));
   };
 
+  const setSetsDisplayMode = (mode) => {
+    if (!isValidSetsDisplayMode(mode)) return;
+    setState((prev) => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        setsDisplayMode: mode,
+      },
+    }));
+  };
+
   return {
     exercises: state.exercises,
     groups: state.groups,
@@ -312,5 +332,6 @@ export function useExercises() {
     reorderGroups,
     replaceState,
     setExerciseViewMode,
+    setSetsDisplayMode,
   };
 }

@@ -7,6 +7,7 @@ export function ExerciseList({
   exercises,
   groups,
   activeViewMode,
+  setsDisplayMode,
   onAddEntry,
   onDeleteEntry,
   onDeleteExercise,
@@ -137,6 +138,7 @@ export function ExerciseList({
                 key={exercise.id}
                 exercise={exercise}
                 viewMode={activeViewMode}
+                setsDisplayMode={setsDisplayMode}
                 isOpen={openExerciseId === exercise.id}
                 onToggle={() => toggleExercise(exercise.id)}
                 onAddEntry={onAddEntry}

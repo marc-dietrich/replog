@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { EXERCISE_VIEW_MODES, ExerciseTrendChart } from "./ExerciseTrendChart";
+import { EXERCISE_VIEW_MODES, ExerciseTrendChart, SETS_DISPLAY_MODES } from "./ExerciseTrendChart";
 import { buildWorkoutTimeline } from "../utils/workoutMetrics";
 
 const DELETE_CONFIRM_MESSAGE = "Delete this exercise and all entries?";
@@ -15,6 +15,7 @@ const MAX_RECENT_WORKOUTS = 3;
 export function ExerciseItem({
   exercise,
   viewMode = EXERCISE_VIEW_MODES.TOP_SET,
+  setsDisplayMode = SETS_DISPLAY_MODES.CONTINUOUS,
   isOpen,
   onToggle,
   onAddEntry,
@@ -292,7 +293,7 @@ export function ExerciseItem({
           onPointerDown={stopPropagation}
           onKeyDown={stopPropagation}
         >
-          <ExerciseTrendChart entries={sortedEntries} viewMode={viewMode} />
+          <ExerciseTrendChart entries={sortedEntries} viewMode={viewMode} setsDisplayMode={setsDisplayMode} />
         </div>
       )}
 
