@@ -25,6 +25,8 @@ export function ExerciseItem({
   canMoveDown = false,
   onMoveUp,
   onMoveDown,
+  isDragging = false,
+  isDragOverlay = false,
 }) {
   const [showQuickEntry, setShowQuickEntry] = useState(false);
   const [weight, setWeight] = useState("");
@@ -213,7 +215,7 @@ export function ExerciseItem({
     <article
       ref={cardRef}
       className={`relative rounded-2xl border border-slate-200 bg-card-light p-5 shadow-sm transition duration-150 ease-out will-change-transform transform dark:border-slate-800 dark:bg-card-dark ${
-        isReordering ? "scale-[1.01] ring-2 ring-primary/30 shadow-xl" : "hover:border-primary"
+        isDragging ? "ring-2 ring-primary/40 shadow-lg" : isDragOverlay ? "ring-2 ring-primary/30 shadow-xl scale-[1.02]" : isReordering ? "scale-[1.01] ring-2 ring-primary/30 shadow-xl" : "hover:border-primary"
       }`}
       onClick={onToggle}
       role="button"

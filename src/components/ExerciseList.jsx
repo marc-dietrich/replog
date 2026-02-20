@@ -1,5 +1,22 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { ExerciseItem } from "./ExerciseItem";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const UNGROUPED_ID = null;
 
@@ -66,6 +83,52 @@ export function ExerciseList({
     });
   };
 
+  const [activeId, setActiveId] = useState(null);
+  const activeExercise = activeId ? safeExercises.find((ex) => ex.id === activeId) : null;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { delay: 500, tolerance: 10 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 500, tolerance: 10 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragStart = useCallback((event) => {
+    setActiveId(event.active.id);
+  }, []);
+
+  const handleDragEnd = useCallback(
+    (event) => {
+      setActiveId(null);
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      const draggedExercise = safeExercises.find((ex) => ex.id === active.id);
+      const overExercise = safeExercises.find((ex) => ex.id === over.id);
+      if (!draggedExercise || !overExercise) return;
+
+      const targetGroupId = overExercise.groupId ?? UNGROUPED_ID;
+      const targetGroupExercises = groupedExercises.get(targetGroupId) ?? [];
+      const overIndex = targetGroupExercises.findIndex((ex) => ex.id === over.id);
+
+      onMoveExercise?.(
+        active.id,
+        targetGroupId === UNGROUPED_ID ? null : targetGroupId,
+        overIndex >= 0 ? overIndex : 0
+      );
+    },
+    [safeExercises, groupedExercises, onMoveExercise]
+  );
+
+  const handleDragCancel = useCallback(() => {
+    setActiveId(null);
+  }, []);
+
   if (totalExercises === 0 && orderedGroups.length === 0) {
     return (
       <p className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-6 text-center text-sm text-slate-500">
@@ -126,56 +189,221 @@ export function ExerciseList({
   const renderExerciseList = (groupId) => {
     const exercisesInGroup = groupedExercises.get(groupId) ?? [];
     const isCollapsed = collapsedGroupIds.has(groupId);
+    const exerciseIds = exercisesInGroup.map((ex) => ex.id);
 
     return (
-      <div className={`space-y-4 ${isCollapsed ? "hidden" : ""}`}>
-        {!isCollapsed &&
-          exercisesInGroup.map((exercise, index) => {
-            const isFirstInGroup = index === 0;
-            const isLastInGroup = index === exercisesInGroup.length - 1;
-            return (
-              <ExerciseItem
-                key={exercise.id}
-                exercise={exercise}
-                viewMode={activeViewMode}
-                setsDisplayMode={setsDisplayMode}
-                isOpen={openExerciseId === exercise.id}
-                onToggle={() => toggleExercise(exercise.id)}
-                onAddEntry={onAddEntry}
-                onDeleteEntry={onDeleteEntry}
-                onDeleteExercise={onDeleteExercise}
-                canMoveUp={!isFirstInGroup || orderedGroups.length > 0}
-                canMoveDown={!isLastInGroup || orderedGroups.length > 0}
-                onMoveUp={() => moveExercise(exercise.id, -1)}
-                onMoveDown={() => moveExercise(exercise.id, 1)}
-              />
-            );
-          })}
-      </div>
+      <SortableContext items={exerciseIds} strategy={verticalListSortingStrategy}>
+        <div className={`space-y-4 ${isCollapsed ? "hidden" : ""}`}>
+          {!isCollapsed &&
+            exercisesInGroup.map((exercise, index) => {
+              const isFirstInGroup = index === 0;
+              const isLastInGroup = index === exercisesInGroup.length - 1;
+              return (
+                <SortableExerciseItem
+                  key={exercise.id}
+                  exercise={exercise}
+                  viewMode={activeViewMode}
+                  setsDisplayMode={setsDisplayMode}
+                  isOpen={openExerciseId === exercise.id}
+                  onToggle={() => toggleExercise(exercise.id)}
+                  onAddEntry={onAddEntry}
+                  onDeleteEntry={onDeleteEntry}
+                  onDeleteExercise={onDeleteExercise}
+                  canMoveUp={!isFirstInGroup || orderedGroups.length > 0}
+                  canMoveDown={!isLastInGroup || orderedGroups.length > 0}
+                  onMoveUp={() => moveExercise(exercise.id, -1)}
+                  onMoveDown={() => moveExercise(exercise.id, 1)}
+                  isDragOverlay={false}
+                />
+              );
+            })}
+        </div>
+      </SortableContext>
     );
   };
 
   return (
-    <div className="space-y-6" aria-live="polite">
-      {renderExerciseList(UNGROUPED_ID)}
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
+      <div className="space-y-6" aria-live="polite">
+        {renderExerciseList(UNGROUPED_ID)}
 
-      {orderedGroups.length > 0 && (
-        <div className="space-y-6">
-          {orderedGroups.map((group) => {
-            const isCollapsed = collapsedGroupIds.has(group.id);
-            return (
-              <div key={group.id} className="space-y-3">
-                <GroupLabel
-                  group={group}
-                  isCollapsed={isCollapsed}
-                  onToggle={() => toggleGroup(group.id)}
-                />
-                {renderExerciseList(group.id)}
-              </div>
-            );
-          })}
-        </div>
-      )}
+        {orderedGroups.length > 0 && (
+          <div className="space-y-6">
+            {orderedGroups.map((group) => {
+              const isCollapsed = collapsedGroupIds.has(group.id);
+              return (
+                <div key={group.id} className="space-y-3">
+                  <GroupLabel
+                    group={group}
+                    isCollapsed={isCollapsed}
+                    onToggle={() => toggleGroup(group.id)}
+                  />
+                  {renderExerciseList(group.id)}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <DragOverlay dropAnimation={null}>
+        {activeExercise ? (
+          <div className="pointer-events-none opacity-90">
+            <ExerciseItem
+              exercise={activeExercise}
+              viewMode={activeViewMode}
+              setsDisplayMode={setsDisplayMode}
+              isOpen={false}
+              onToggle={() => {}}
+              onAddEntry={() => {}}
+              onDeleteEntry={() => {}}
+              onDeleteExercise={() => {}}
+              canMoveUp={false}
+              canMoveDown={false}
+              isDragOverlay={true}
+            />
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  );
+}
+
+function SortableExerciseItem({ exercise, isDragOverlay, ...props }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: exercise.id });
+
+  const nodeRef = useRef(null);
+  const isDraggingRef = useRef(false);
+
+  useEffect(() => {
+    isDraggingRef.current = isDragging;
+  }, [isDragging]);
+
+  // Manual scroll-through: since touch-action:none blocks native scroll,
+  // we manually scroll the page for quick swipes (before the 500ms drag delay).
+  useEffect(() => {
+    const node = nodeRef.current;
+    if (!node) return;
+
+    let startY = 0;
+    let startScrollY = 0;
+    let startTime = 0;
+    let lastY = 0;
+    let lastTime = 0;
+    let velocityY = 0;
+    let wasScrolling = false;
+    let rafId = null;
+
+    const DRAG_DELAY = 480; // slightly under the 500ms sensor delay
+    const MOMENTUM_FRICTION = 0.95;
+    const MOMENTUM_MIN = 0.5;
+
+    const onTouchStart = (e) => {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      startY = e.touches[0].clientY;
+      lastY = startY;
+      startScrollY = window.scrollY;
+      startTime = Date.now();
+      lastTime = startTime;
+      velocityY = 0;
+      wasScrolling = false;
+    };
+
+    const onTouchMove = (e) => {
+      if (isDraggingRef.current) return;
+
+      const now = Date.now();
+      const elapsed = now - startTime;
+
+      // Only handle manual scroll during the pre-drag delay window
+      if (elapsed < DRAG_DELAY) {
+        const currentY = e.touches[0].clientY;
+        const timeDelta = now - lastTime;
+        if (timeDelta > 0) {
+          velocityY = (lastY - currentY) / timeDelta;
+        }
+        lastY = currentY;
+        lastTime = now;
+
+        const totalDelta = startY - currentY;
+        window.scrollTo(0, startScrollY + totalDelta);
+        wasScrolling = true;
+      }
+    };
+
+    const onTouchEnd = () => {
+      if (isDraggingRef.current) return;
+
+      // Apply momentum scroll for a natural feel
+      if (wasScrolling && Math.abs(velocityY) > 0.3) {
+        let v = velocityY * 16; // px per frame (~16ms)
+        const decelerate = () => {
+          v *= MOMENTUM_FRICTION;
+          if (Math.abs(v) > MOMENTUM_MIN) {
+            window.scrollBy(0, v);
+            rafId = requestAnimationFrame(decelerate);
+          }
+        };
+        rafId = requestAnimationFrame(decelerate);
+      }
+      wasScrolling = false;
+    };
+
+    node.addEventListener("touchstart", onTouchStart, { passive: true });
+    node.addEventListener("touchmove", onTouchMove, { passive: true });
+    node.addEventListener("touchend", onTouchEnd, { passive: true });
+
+    return () => {
+      node.removeEventListener("touchstart", onTouchStart);
+      node.removeEventListener("touchmove", onTouchMove);
+      node.removeEventListener("touchend", onTouchEnd);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, []);
+
+  const combinedRef = useCallback(
+    (node) => {
+      nodeRef.current = node;
+      setNodeRef(node);
+    },
+    [setNodeRef]
+  );
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 50 : "auto",
+    position: "relative",
+    WebkitUserSelect: "none",
+    userSelect: "none",
+    WebkitTouchCallout: "none",
+    touchAction: "none",
+  };
+
+  return (
+    <div ref={combinedRef} style={style} {...attributes} {...listeners}>
+      <ExerciseItem
+        exercise={exercise}
+        {...props}
+        isDragging={isDragging}
+      />
     </div>
   );
 }
