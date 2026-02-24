@@ -34,6 +34,22 @@ const gitTag = resolveGitTag()
 export default defineConfig({
   plugins: [react()],
   base: "/replog/", // <- exakt dein Repo-Name
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+
+          if (id.includes('recharts')) return 'vendor-recharts'
+          if (id.includes('@dnd-kit')) return 'vendor-dnd'
+          if (id.includes('react-dom')) return 'vendor-react-dom'
+          if (id.includes('react')) return 'vendor-react'
+
+          return 'vendor'
+        },
+      },
+    },
+  },
   define: {
     __APP_VERSION__: JSON.stringify(gitTag),
   }

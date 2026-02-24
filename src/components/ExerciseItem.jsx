@@ -317,6 +317,9 @@ export function ExerciseItem({
           className="mt-4 space-y-3 rounded-2xl border border-dashed border-slate-300 bg-white/80 p-4 text-sm dark:bg-slate-900/60"
           data-dndkit-disable-dnd="true"
           data-no-toggle="true"
+          onKeyDownCapture={(event) => {
+            event.stopPropagation();
+          }}
         >
           <div className="grid gap-3 sm:grid-cols-3">
             <input
