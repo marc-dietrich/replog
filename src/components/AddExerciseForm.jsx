@@ -5,7 +5,6 @@ export function AddExerciseForm({ onAdd, onSuccess, onCancel }) {
     <AddNameForm
       inputName="exercise"
       placeholder="Exercise name"
-      autoFocus
       onAdd={onAdd}
       onSuccess={onSuccess}
       onCancel={onCancel}

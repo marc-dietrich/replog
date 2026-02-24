@@ -8,7 +8,7 @@ const SAFE_INT = (value, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-export function normalizeEntry(entry) {
+function normalizeEntry(entry) {
   const weight = SAFE_NUMBER(entry?.weight, 0);
   const reps = Math.max(0, SAFE_INT(entry?.reps, 0));
   const date = entry?.date || entry?.createdAt || "";
@@ -21,7 +21,7 @@ export function normalizeEntry(entry) {
   };
 }
 
-export function groupEntriesByWorkout(entries = []) {
+function groupEntriesByWorkout(entries = []) {
   if (!Array.isArray(entries) || entries.length === 0) return [];
   const sorted = [...entries]
     .map((entry) => normalizeEntry(entry))

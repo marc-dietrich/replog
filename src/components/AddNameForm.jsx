@@ -6,7 +6,6 @@ export function AddNameForm({
   onAdd,
   onSuccess,
   onCancel,
-  autoFocus = false,
   emptyMessage = "Please enter a name",
 }) {
   const [name, setName] = useState("");
@@ -44,7 +43,6 @@ export function AddNameForm({
           name={inputName}
           placeholder={placeholder}
           value={name}
-          autoFocus={autoFocus}
           onChange={(event) => {
             setName(event.target.value);
             if (error) setError("");
