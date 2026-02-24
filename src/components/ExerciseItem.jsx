@@ -25,6 +25,7 @@ export function ExerciseItem({
   canMoveDown = false,
   onMoveUp,
   onMoveDown,
+  compact = false,
   isDragging = false,
   isDragOverlay = false,
 }) {
@@ -214,7 +215,9 @@ export function ExerciseItem({
   return (
     <article
       ref={cardRef}
-      className={`relative rounded-2xl border border-slate-200 bg-card-light p-5 shadow-sm transition duration-150 ease-out will-change-transform transform dark:border-slate-800 dark:bg-card-dark ${
+      className={`relative border border-slate-200 bg-card-light shadow-sm transition duration-150 ease-out will-change-transform transform dark:border-slate-800 dark:bg-card-dark ${
+        compact ? "rounded-xl p-3.5" : "rounded-2xl p-5"
+      } ${
         isDragging ? "ring-2 ring-primary/40 shadow-lg" : isDragOverlay ? "ring-2 ring-primary/30 shadow-xl scale-[1.02]" : isReordering ? "scale-[1.01] ring-2 ring-primary/30 shadow-xl" : "hover:border-primary"
       }`}
       onClick={(event) => {
@@ -235,10 +238,12 @@ export function ExerciseItem({
         }
       }}
     >
-      <div className="absolute right-4 top-4">
+      <div className={`${compact ? "absolute right-3 top-3" : "absolute right-4 top-4"}`}>
         <button
           type="button"
-          className={`flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow transition hover:border-primary ${
+          className={`flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow transition hover:border-primary ${
+            compact ? "h-7 w-7" : "h-8 w-8"
+          } ${
             showQuickEntry ? "border-primary text-primary" : ""
           }`}
           aria-label={showQuickEntry ? "Close quick entry" : "Add entry"}
@@ -251,12 +256,14 @@ export function ExerciseItem({
           <span className="material-icons-round text-sm">add</span>
         </button>
       </div>
-      <div className="pr-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-16 items-center justify-center rounded-full bg-amber-50/80 ring-1 ring-amber-100 dark:bg-amber-500/10 dark:ring-amber-500/30">
+      <div className={compact ? "pr-2" : "pr-4"}>
+        <div className={compact ? "flex items-center gap-2.5" : "flex items-center gap-3"}>
+          <div className={`flex items-center justify-center rounded-full bg-amber-50/80 ring-1 ring-amber-100 dark:bg-amber-500/10 dark:ring-amber-500/30 ${
+            compact ? "h-8 w-12" : "h-10 w-16"
+          }`}>
             <svg
               viewBox={`0 0 ${SPARKLINE_WIDTH} ${SPARKLINE_HEIGHT}`}
-              className="h-4 w-12 text-amber-500 dark:text-amber-400"
+              className={`${compact ? "h-3.5 w-10" : "h-4 w-12"} text-amber-500 dark:text-amber-400`}
               aria-hidden="true"
             >
               <path
@@ -271,11 +278,11 @@ export function ExerciseItem({
             </svg>
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className={`font-display font-semibold ${isOpen ? "text-xl" : "text-lg"}`}>
+            <h3 className={`font-display font-semibold ${isOpen ? (compact ? "text-lg" : "text-xl") : (compact ? "text-base" : "text-lg")}`}>
               {exercise.name}
             </h3>
             {!isOpen && (
-              <p className="mt-1 text-sm text-slate-500">
+              <p className={`${compact ? "mt-0.5 text-xs" : "mt-1 text-sm"} text-slate-500`}>
                 {lastEntry ? `Last: ${lastEntry.weight} kg × ${lastEntry.reps} • ${lastEntry.date}` : "No entries yet."}
               </p>
             )}

@@ -319,6 +319,33 @@ export function useExercises() {
     }));
   };
 
+  const deleteGroup = (groupId) => {
+    setState((prev) => {
+      const normalizedId = normalizeGroupId(groupId);
+      if (normalizedId == null) return prev;
+
+      // Move any remaining exercises in this group to ungrouped
+      const ungroupedIds = getOrderedExerciseIds(prev.exercises, null);
+      const orphanIds = getOrderedExerciseIds(prev.exercises, normalizedId);
+      const updatedExercises = prev.exercises.map((ex) =>
+        normalizeGroupId(ex.groupId) === normalizedId ? { ...ex, groupId: null } : ex
+      );
+      const reordered = applyExerciseOrder(
+        updatedExercises,
+        null,
+        [...ungroupedIds, ...orphanIds]
+      );
+
+      return {
+        ...prev,
+        exercises: reordered,
+        groups: ensureSequentialGroupOrder(
+          prev.groups.filter((g) => g.id !== normalizedId)
+        ),
+      };
+    });
+  };
+
   return {
     exercises: state.exercises,
     groups: state.groups,
@@ -328,6 +355,7 @@ export function useExercises() {
     addEntry,
     deleteEntry,
     deleteExercise,
+    deleteGroup,
     moveExercise,
     reorderGroups,
     replaceState,

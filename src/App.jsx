@@ -1,5 +1,6 @@
 /* global __APP_VERSION__ */
 import { AddExerciseForm } from "./components/AddExerciseForm";
+import { AddGroupForm } from "./components/AddGroupForm";
 import { AddPanel } from "./components/AddPanel";
 import { EXERCISE_VIEW_MODES, SETS_DISPLAY_MODES } from "./components/ExerciseTrendChart";
 import { ExerciseList } from "./components/ExerciseList";
@@ -23,23 +24,23 @@ function App() {
     groups,
     settings,
     addExercise,
+    addGroup,
     addEntry,
     deleteEntry,
     deleteExercise,
+    deleteGroup,
     moveExercise,
+    reorderGroups,
     replaceState,
     setExerciseViewMode,
     setSetsDisplayMode,
   } = useExercises();
-  const [isAddPanelOpen, setIsAddPanelOpen] = useState(false);
+  const [addPanelType, setAddPanelType] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
-  const [toastMessage, setToastMessage] = useState("\u2728 Groups are coming soon");
-  const [isToastVisible, setIsToastVisible] = useState(false);
   const fileInputRef = useRef(null);
   const impressumButtonRef = useRef(null);
   const impressumTooltipRef = useRef(null);
-  const toastTimeoutRef = useRef(null);
 
   const handleExport = () => {
     const payload = { exercises, groups, settings };
@@ -83,12 +84,11 @@ function App() {
   };
 
   const triggerImport = () => fileInputRef.current?.click();
-  const closeAddPanel = () => setIsAddPanelOpen(false);
+  const closeAddPanel = () => setAddPanelType(null);
   const closeImpressum = () => setIsImpressumOpen(false);
   const closeMenu = () => setIsMenuOpen(false);
-  const openExercisePanel = () => {
-    setIsAddPanelOpen(true);
-  };
+  const openExercisePanel = () => setAddPanelType("exercise");
+  const openGroupPanel = () => setAddPanelType("group");
   const toggleMenu = () =>
     setIsMenuOpen((prev) => {
       const next = !prev;
@@ -105,17 +105,6 @@ function App() {
       }
       return next;
     });
-
-  const showToast = (message) => {
-    setToastMessage(message);
-    setIsToastVisible(true);
-    clearTimeout(toastTimeoutRef.current);
-    toastTimeoutRef.current = setTimeout(() => setIsToastVisible(false), 2600);
-  };
-
-  const handleGroupComingSoon = () => {
-    showToast("\ud83d\udcc4 Group management is coming soon");
-  };
 
   useEffect(() => {
     if (!isImpressumOpen) return;
@@ -135,14 +124,12 @@ function App() {
     return () => window.removeEventListener("pointerdown", handlePointerDown, true);
   }, [isImpressumOpen]);
 
-  useEffect(() => {
-    return () => clearTimeout(toastTimeoutRef.current);
-  }, []);
-
   const orderedGroups = useMemo(
     () => [...groups].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
     [groups]
   );
+
+  const isAddPanelOpen = addPanelType !== null;
 
   return (
     <div className="min-h-screen bg-background-light font-sans text-slate-900 dark:bg-background-dark dark:text-slate-100">
@@ -203,9 +190,9 @@ function App() {
                 <button
                   type="button"
                   className={`flex items-center justify-center rounded-2xl px-2.5 py-0.75 transition ${
-                    isAddPanelOpen ? "bg-orange-500 text-white" : "text-slate-700 hover:bg-orange-100"
+                    addPanelType === "exercise" ? "bg-orange-500 text-white" : "text-slate-700 hover:bg-orange-100"
                   }`}
-                  aria-pressed={isAddPanelOpen}
+                  aria-pressed={addPanelType === "exercise"}
                   onClick={openExercisePanel}
                 >
                   Exercise
@@ -216,15 +203,13 @@ function App() {
                 ></span>
                 <button
                   type="button"
-                  className="flex items-center justify-center rounded-2xl px-2.5 py-0.75 text-slate-400"
-                  aria-disabled="true"
-                  onClick={handleGroupComingSoon}
-                  title="Groups are coming soon"
+                  className={`flex items-center justify-center rounded-2xl px-2.5 py-0.75 transition ${
+                    addPanelType === "group" ? "bg-orange-500 text-white" : "text-slate-700 hover:bg-orange-100"
+                  }`}
+                  aria-pressed={addPanelType === "group"}
+                  onClick={openGroupPanel}
                 >
                   Group
-                  <span className="ml-1 rounded-full border border-slate-200 px-1.5 py-[1px] text-[8px] font-semibold uppercase tracking-[0.3em] text-slate-400">
-                    Soon
-                  </span>
                 </button>
               </div>
             </div>
@@ -367,8 +352,12 @@ function App() {
             </span>
           </div>
           {isAddPanelOpen && (
-            <AddPanel title="Add exercise">
-              <AddExerciseForm onAdd={addExercise} onSuccess={closeAddPanel} onCancel={closeAddPanel} />
+            <AddPanel title={addPanelType === "group" ? "Add group" : "Add exercise"}>
+              {addPanelType === "group" ? (
+                <AddGroupForm onAdd={addGroup} onSuccess={closeAddPanel} onCancel={closeAddPanel} />
+              ) : (
+                <AddExerciseForm onAdd={addExercise} onSuccess={closeAddPanel} onCancel={closeAddPanel} />
+              )}
             </AddPanel>
           )}
           <ExerciseList
@@ -379,7 +368,9 @@ function App() {
             onAddEntry={addEntry}
             onDeleteEntry={deleteEntry}
             onDeleteExercise={deleteExercise}
+            onDeleteGroup={deleteGroup}
             onMoveExercise={moveExercise}
+            onReorderGroups={reorderGroups}
           />
         </section>
 
@@ -392,18 +383,6 @@ function App() {
         className="hidden"
         onChange={handleImport}
       />
-
-      {isToastVisible && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--app-safe-area-inset-bottom,0px)+24px)] z-50 flex justify-center px-4">
-          <div
-            className="mx-auto w-full max-w-xs rounded-2xl border border-slate-900/40 bg-slate-900/90 px-4 py-3 text-center text-sm font-semibold text-white shadow-2xl backdrop-blur"
-            role="status"
-            aria-live="polite"
-          >
-            {toastMessage}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

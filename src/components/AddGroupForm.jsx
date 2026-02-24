@@ -4,7 +4,7 @@ export function AddGroupForm({ onAdd, onCancel, onSuccess }) {
   return (
     <AddNameForm
       inputName="group"
-      placeholder="Push Day"
+      placeholder="Group name"
       emptyMessage="Please enter a group name"
       onAdd={onAdd}
       onSuccess={onSuccess}
