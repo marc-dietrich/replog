@@ -42,8 +42,6 @@ export default defineConfig({
 
           if (id.includes('recharts')) return 'vendor-recharts'
           if (id.includes('@dnd-kit')) return 'vendor-dnd'
-          if (id.includes('react-dom')) return 'vendor-react-dom'
-          if (id.includes('react')) return 'vendor-react'
 
           return 'vendor'
         },
