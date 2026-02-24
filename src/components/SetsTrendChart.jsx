@@ -11,6 +11,7 @@ import {
   YAxis,
 } from "recharts";
 import { buildWorkoutTimeline } from "../utils/workoutMetrics";
+import "../styles/componentStyles.css";
 
 const GOLD = "#f7b733";
 const MAX_SETS = 6;
@@ -215,7 +216,7 @@ export function SetsTrendChart({ entries, displayMode = SETS_DISPLAY_MODES.CONTI
   }, []);
 
   if (!chartData.length) {
-    return <p className="text-center text-sm text-slate-400">No data yet</p>;
+    return <p className="trend-chart-empty">No data yet</p>;
   }
 
   /* ── Label builder ── */

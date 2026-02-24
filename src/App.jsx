@@ -6,6 +6,7 @@ import { EXERCISE_VIEW_MODES, SETS_DISPLAY_MODES } from "./components/ExerciseTr
 import { ExerciseList } from "./components/ExerciseList";
 import { useExercises } from "./hooks/useExercises";
 import { useEffect, useMemo, useRef, useState } from "react";
+import "./styles/app.css";
 
 const VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
 const IMPRESSUM_TEXT = `Marc Dietrich
@@ -76,7 +77,7 @@ function App() {
 
         replaceState(nextState);
         alert("Data imported successfully!");
-      } catch (err) {
+      } catch {
         alert("Failed to parse JSON file.");
       }
     };
@@ -132,20 +133,20 @@ function App() {
   const isAddPanelOpen = addPanelType !== null;
 
   return (
-    <div className="min-h-screen bg-background-light font-sans text-slate-900 dark:bg-background-dark dark:text-slate-100">
-      <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-background-light/90 pt-[var(--app-top-offset)] backdrop-blur-md dark:border-slate-800 dark:bg-background-dark/80">
-        <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white p-1 shadow-inner">
-              <img src="/replog/icon-192.png" alt="RepLog mark" className="h-full w-full rounded-lg object-contain" />
+    <div className="app-shell">
+      <header className="app-header">
+        <div className="app-header__inner">
+          <div className="app-brand">
+            <div className="app-brand__icon-wrap">
+              <img src="/replog/icon-192.png" alt="RepLog mark" className="app-brand__icon" />
             </div>
-            <div className="flex flex-col">
-              <p className="font-display text-lg font-semibold leading-none">RepLog</p>
-              <div className="mt-1 flex items-center gap-2">
-                <div className="relative">
+            <div className="app-brand__text">
+              <p className="app-brand__title">RepLog</p>
+              <div className="app-brand__meta-row">
+                <div className="app-brand__impressum-wrap">
                   <button
                     type="button"
-                    className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-[8px] font-black uppercase text-slate-500 transition hover:border-slate-500 hover:text-slate-700 dark:border-slate-600 dark:text-slate-300 dark:hover:border-slate-400 dark:hover:text-slate-100"
+                    className="app-impressum-btn"
                     aria-label="Show impressum"
                     aria-expanded={isImpressumOpen}
                     aria-controls="impressum-tooltip"
@@ -160,37 +161,37 @@ function App() {
                       id="impressum-tooltip"
                       role="dialog"
                       aria-label="RepLog impressum"
-                      className="fixed inset-x-4 top-[calc(var(--app-top-offset,0px)+4.5rem)] z-50 mx-auto max-w-md rounded-3xl border border-slate-200/70 bg-white/95 p-5 text-left text-xs leading-relaxed text-slate-600 shadow-[0_18px_45px_rgba(15,23,42,0.25)] ring-1 ring-white/30 backdrop-blur-lg dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-200 md:absolute md:inset-auto md:right-0 md:top-6 md:z-40 md:mx-0 md:w-64"
+                      className="app-impressum-tooltip"
                       ref={impressumTooltipRef}
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="material-icons-round text-base text-slate-400 dark:text-slate-300">info</span>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.4em] text-slate-500 dark:text-slate-300">Impressum</p>
+                      <div className="app-impressum-tooltip__head">
+                        <span className="material-icons-round app-impressum-tooltip__info-icon">info</span>
+                        <p className="app-impressum-tooltip__title">Impressum</p>
                       </div>
-                      <p className="mt-3 whitespace-pre-line rounded-2xl bg-slate-100/80 p-3 font-medium text-slate-700 shadow-inner dark:bg-slate-800/60 dark:text-slate-100">{IMPRESSUM_TEXT}</p>
+                      <p className="app-impressum-tooltip__body">{IMPRESSUM_TEXT}</p>
                     </div>
                   )}
                 </div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-primary">{"v" + VERSION}</p>
+                <p className="app-version">{"v" + VERSION}</p>
               </div>
             </div>
           </div>
-          <div className="flex flex-1 justify-center">
+          <div className="app-add-wrap">
             <div
-              className="inline-flex items-center gap-1.5 rounded-3xl border border-slate-200 bg-white px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-600 shadow-sm backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-200"
+              className="app-add-switch"
               aria-label="Add new"
             >
               <span
-                className="flex h-7 w-7 items-center justify-center rounded-2xl bg-slate-100 text-sm font-black text-slate-500 dark:bg-slate-800 dark:text-slate-300"
+                className="app-add-switch__plus"
                 aria-hidden="true"
               >
                 +
               </span>
-              <div className="flex w-28 flex-col" role="group">
+              <div className="app-add-switch__buttons" role="group">
                 <button
                   type="button"
-                  className={`flex items-center justify-center rounded-2xl px-2.5 py-0.75 transition ${
-                    addPanelType === "exercise" ? "bg-orange-500 text-white" : "text-slate-700 hover:bg-orange-100"
+                  className={`app-add-switch__btn ${
+                    addPanelType === "exercise" ? "app-add-switch__btn--active" : "app-add-switch__btn--inactive"
                   }`}
                   aria-pressed={addPanelType === "exercise"}
                   onClick={openExercisePanel}
@@ -198,13 +199,13 @@ function App() {
                   Exercise
                 </button>
                 <span
-                  className="my-1 h-px w-full border-t border-dashed border-slate-300/80 dark:border-slate-700/60"
+                  className="app-add-switch__divider"
                   aria-hidden="true"
                 ></span>
                 <button
                   type="button"
-                  className={`flex items-center justify-center rounded-2xl px-2.5 py-0.75 transition ${
-                    addPanelType === "group" ? "bg-orange-500 text-white" : "text-slate-700 hover:bg-orange-100"
+                  className={`app-add-switch__btn ${
+                    addPanelType === "group" ? "app-add-switch__btn--active" : "app-add-switch__btn--inactive"
                   }`}
                   aria-pressed={addPanelType === "group"}
                   onClick={openGroupPanel}
@@ -214,33 +215,33 @@ function App() {
               </div>
             </div>
           </div>
-          <div className="relative flex-shrink-0">
+          <div className="app-settings-wrap">
             <button
               type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-primary"
+              className="app-settings-btn"
               aria-label="Open settings"
               onClick={toggleMenu}
             >
-              <span className="material-icons-round text-base">settings</span>
+              <span className="material-icons-round app-settings-btn__icon">settings</span>
             </button>
             {isMenuOpen && (
               <>
                 <button
                   type="button"
-                  className="fixed inset-0 z-40 cursor-default bg-transparent"
+                  className="app-settings-overlay"
                   aria-label="Close settings"
                   onClick={closeMenu}
                 ></button>
-                <div className="absolute right-0 top-12 z-50 w-72 rounded-3xl border border-slate-200 bg-white/95 p-5 text-left shadow-2xl backdrop-blur-md dark:border-slate-800 dark:bg-slate-900">
-                  <div className="mb-5">
-                    <div className="mb-2 flex items-center gap-2 text-slate-400">
-                      <span className="material-icons-round text-base">insights</span>
-                      <h3 className="font-display text-[10px] font-bold uppercase tracking-[0.4em] text-slate-900 dark:text-slate-100">
+                <div className="app-settings-menu">
+                  <div className="app-settings-block">
+                    <div className="app-settings-block__header">
+                      <span className="material-icons-round app-settings-block__header-icon">insights</span>
+                      <h3 className="app-settings-block__title">
                         Exercise View
                       </h3>
                     </div>
-                    <p className="mb-3 text-[11px] text-slate-500">Applies to all exercise cards.</p>
-                    <div className="grid grid-cols-3 gap-1 rounded-2xl bg-slate-100 p-1 dark:bg-slate-800/70" role="group" aria-label="Exercise view mode">
+                    <p className="app-settings-block__hint">Applies to all exercise cards.</p>
+                    <div className="app-settings-grid app-settings-grid--3" role="group" aria-label="Exercise view mode">
                       {VIEW_MODE_OPTIONS.map((option) => {
                         const isActive = option.id === settings.exerciseViewMode;
                         const isDisabled = option.disabled;
@@ -248,11 +249,11 @@ function App() {
                           <button
                             key={option.id}
                             type="button"
-                            className={`relative rounded-xl px-2 py-2 text-[11px] font-semibold transition ${
+                            className={`app-settings-option ${
                               isActive
-                                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
-                                : "text-slate-500 hover:text-slate-800 dark:text-slate-300"
-                            } ${isDisabled ? "cursor-not-allowed opacity-60" : ""}`}
+                                ? "app-settings-option--active"
+                                : "app-settings-option--inactive"
+                            } ${isDisabled ? "app-settings-option--disabled" : ""}`}
                             disabled={isDisabled}
                             aria-disabled={isDisabled || undefined}
                             onClick={() => {
@@ -261,22 +262,22 @@ function App() {
                             }}
                           >
                             {option.label}
-                            {isDisabled && <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-amber-400" aria-hidden="true"></span>}
+                            {isDisabled && <span className="app-settings-option__disabled-dot" aria-hidden="true"></span>}
                           </button>
                         );
                       })}
                     </div>
                   </div>
                   {settings.exerciseViewMode === EXERCISE_VIEW_MODES.SETS && (
-                    <div className="mb-5">
-                      <div className="mb-2 flex items-center gap-2 text-slate-400">
-                        <span className="material-icons-round text-base">stacked_line_chart</span>
-                        <h3 className="font-display text-[10px] font-bold uppercase tracking-[0.4em] text-slate-900 dark:text-slate-100">
+                    <div className="app-settings-block">
+                      <div className="app-settings-block__header">
+                        <span className="material-icons-round app-settings-block__header-icon">stacked_line_chart</span>
+                        <h3 className="app-settings-block__title">
                           Sets Display
                         </h3>
                       </div>
-                      <p className="mb-3 text-[11px] text-slate-500">Continuous lines or stacked bars.</p>
-                      <div className="grid grid-cols-2 gap-1 rounded-2xl bg-slate-100 p-1 dark:bg-slate-800/70" role="group" aria-label="Sets display mode">
+                      <p className="app-settings-block__hint">Continuous lines or stacked bars.</p>
+                      <div className="app-settings-grid app-settings-grid--2" role="group" aria-label="Sets display mode">
                         {[
                           { id: SETS_DISPLAY_MODES.CONTINUOUS, label: "Continuous" },
                           { id: SETS_DISPLAY_MODES.DISCRETE, label: "Discrete" },
@@ -286,10 +287,10 @@ function App() {
                             <button
                               key={option.id}
                               type="button"
-                              className={`rounded-xl px-2 py-2 text-[11px] font-semibold transition ${
+                              className={`app-settings-option ${
                                 isActive
-                                  ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
-                                  : "text-slate-500 hover:text-slate-800 dark:text-slate-300"
+                                  ? "app-settings-option--active"
+                                  : "app-settings-option--inactive"
                               }`}
                               onClick={() => setSetsDisplayMode(option.id)}
                             >
@@ -300,36 +301,36 @@ function App() {
                       </div>
                     </div>
                   )}
-                  <div className="mb-4 flex items-center gap-2 text-slate-400">
+                  <div className="app-settings-section-head">
                     <span className="material-icons-round">cloud_done</span>
-                    <h3 className="font-display text-xs font-bold uppercase tracking-[0.4em] text-slate-900 dark:text-slate-100">
+                    <h3 className="app-settings-section-head__title">
                       Backup & Data
                     </h3>
                   </div>
-                  <p className="mb-4 text-xs text-justify text-slate-500">
+                  <p className="app-settings-body">
                     Your added data is saved in the browsers cache. If you want to clean you cache anytime, export your progress to keep it safe. You can re-import the file later to restore your data.
                   </p>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="app-settings-actions">
                     <button
                       type="button"
-                      className="flex flex-col items-center gap-2 rounded-2xl border border-transparent bg-slate-50 p-4 text-[11px] font-semibold uppercase tracking-tight text-slate-700 transition hover:border-slate-200 hover:bg-white dark:bg-slate-800/50 dark:text-slate-100"
+                      className="app-settings-action-btn"
                       onClick={() => {
                         handleExport();
                         closeMenu();
                       }}
                     >
-                      <span className="material-icons-round text-primary">download</span>
+                      <span className="material-icons-round app-settings-action-btn__icon">download</span>
                       Export JSON
                     </button>
                     <button
                       type="button"
-                      className="flex flex-col items-center gap-2 rounded-2xl border border-transparent bg-slate-50 p-4 text-[11px] font-semibold uppercase tracking-tight text-slate-700 transition hover:border-slate-200 hover:bg-white dark:bg-slate-800/50 dark:text-slate-100"
+                      className="app-settings-action-btn"
                       onClick={() => {
                         triggerImport();
                         closeMenu();
                       }}
                     >
-                      <span className="material-icons-round text-primary">upload</span>
+                      <span className="material-icons-round app-settings-action-btn__icon">upload</span>
                       Import JSON
                     </button>
                   </div>
@@ -340,14 +341,14 @@ function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-md space-y-6 px-4 py-6 pb-8">
+      <main className="app-main">
 
-        <section className="space-y-4">
-          <div className="flex items-center justify-between px-1">
+        <section className="app-section">
+          <div className="app-section-head">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Your Exercises</p>
+              <p className="app-section-head__label">Your Exercises</p>
             </div>
-            <span className="text-xs font-medium uppercase tracking-[0.3em] text-slate-500">
+            <span className="app-section-head__count">
               {exercises.length} ACTIVE
             </span>
           </div>
@@ -380,7 +381,7 @@ function App() {
         ref={fileInputRef}
         type="file"
         accept="application/json"
-        className="hidden"
+        className="app-hidden-input"
         onChange={handleImport}
       />
     </div>

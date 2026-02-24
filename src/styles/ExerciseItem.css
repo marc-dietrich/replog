@@ -1,0 +1,299 @@
+.exercise-item {
+  @apply relative transform border border-slate-200 bg-card-light shadow-sm transition duration-150 ease-out will-change-transform dark:border-slate-800 dark:bg-card-dark;
+}
+
+.exercise-item--regular {
+  @apply rounded-2xl p-5;
+}
+
+.exercise-item--compact {
+  @apply rounded-xl p-3.5;
+}
+
+.exercise-item--idle {
+  @apply hover:border-primary;
+}
+
+.exercise-item--dragging {
+  @apply ring-2 ring-primary/40 shadow-lg;
+}
+
+.exercise-item--drag-overlay {
+  @apply scale-[1.02] ring-2 ring-primary/30 shadow-xl;
+}
+
+.exercise-item--reordering {
+  @apply scale-[1.01] ring-2 ring-primary/30 shadow-xl;
+}
+
+.exercise-item__quick-add-wrap {
+  @apply absolute right-4 top-4;
+}
+
+.exercise-item__quick-add-wrap--compact {
+  @apply right-3 top-3;
+}
+
+.exercise-item__quick-add-btn {
+  @apply flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow transition hover:border-primary;
+}
+
+.exercise-item__quick-add-btn--compact {
+  @apply h-7 w-7;
+}
+
+.exercise-item__quick-add-btn--active {
+  @apply border-primary text-primary;
+}
+
+.exercise-item__quick-add-icon {
+  @apply text-sm;
+}
+
+.exercise-item__main {
+  @apply pr-4;
+}
+
+.exercise-item__main--compact {
+  @apply pr-2;
+}
+
+.exercise-item__head {
+  @apply flex items-center gap-3;
+}
+
+.exercise-item__head--compact {
+  @apply gap-2.5;
+}
+
+.exercise-item__sparkline-wrap {
+  @apply flex h-10 w-16 items-center justify-center rounded-full bg-amber-50/80 ring-1 ring-amber-100 dark:bg-amber-500/10 dark:ring-amber-500/30;
+}
+
+.exercise-item__sparkline-wrap--compact {
+  @apply h-8 w-12;
+}
+
+.exercise-item__sparkline {
+  @apply h-4 w-12 text-amber-500 dark:text-amber-400;
+}
+
+.exercise-item__sparkline--compact {
+  @apply h-3.5 w-10;
+}
+
+.exercise-item__sparkline-path {
+  @apply opacity-90;
+}
+
+.exercise-item__title-wrap {
+  @apply min-w-0 flex-1;
+}
+
+.exercise-item__title {
+  @apply font-display font-semibold;
+}
+
+.exercise-item__title--open {
+  @apply text-xl;
+}
+
+.exercise-item__title--open-compact {
+  @apply text-lg;
+}
+
+.exercise-item__title--closed {
+  @apply text-lg;
+}
+
+.exercise-item__title--closed-compact {
+  @apply text-base;
+}
+
+.exercise-item__last-entry {
+  @apply mt-1 text-sm text-slate-500;
+}
+
+.exercise-item__last-entry--compact {
+  @apply mt-0.5 text-xs text-slate-500;
+}
+
+.exercise-item__view-pill-wrap {
+  @apply mt-1;
+}
+
+.exercise-item__view-pill {
+  @apply inline-flex items-center gap-2 rounded-full bg-slate-100/80 px-3 py-1 text-[11px] font-semibold text-slate-600 shadow-inner dark:bg-slate-800/60 dark:text-slate-200;
+}
+
+.exercise-item__view-pill-label {
+  @apply uppercase tracking-[0.2em] text-slate-400;
+}
+
+.exercise-item__chart-wrap {
+  @apply mt-4;
+}
+
+.exercise-item__quick-entry {
+  @apply mt-4 space-y-3 rounded-2xl border border-dashed border-slate-300 bg-white/80 p-4 text-sm dark:bg-slate-900/60;
+}
+
+.exercise-item__quick-entry-grid {
+  @apply grid gap-3 sm:grid-cols-3;
+}
+
+.exercise-item__quick-input {
+  @apply rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30;
+}
+
+.exercise-item__quick-input--note {
+  @apply sm:col-span-3;
+}
+
+.exercise-item__quick-actions {
+  @apply flex gap-3 text-base;
+}
+
+.exercise-item__quick-cancel {
+  @apply flex-1 rounded-2xl border border-slate-200 py-2 font-semibold text-slate-600;
+}
+
+.exercise-item__quick-save {
+  @apply flex-1 rounded-2xl bg-slate-900 py-2 font-semibold text-white;
+}
+
+.exercise-item__details {
+  @apply mt-5 border-t border-slate-100 pt-4 dark:border-slate-800;
+}
+
+.exercise-item__empty-text {
+  @apply text-sm text-slate-500;
+}
+
+.exercise-item__entry-list {
+  @apply space-y-3 text-sm;
+}
+
+.exercise-item__entry-row {
+  @apply flex items-center gap-3;
+}
+
+.exercise-item__entry-date-wrap {
+  min-width: 110px;
+}
+
+.exercise-item__entry-date {
+  @apply font-semibold text-slate-800 dark:text-slate-100;
+}
+
+.exercise-item__entry-note {
+  @apply text-xs italic text-slate-500;
+}
+
+.exercise-item__entry-main {
+  @apply flex flex-1 items-center justify-center text-slate-700;
+}
+
+.exercise-item__entry-main-value {
+  @apply font-semibold;
+}
+
+.exercise-item__entry-delete {
+  @apply inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:text-red-500;
+}
+
+.exercise-item__entry-delete-icon {
+  @apply text-sm;
+}
+
+.exercise-item__workout-list {
+  @apply space-y-1 text-sm;
+}
+
+.exercise-item__workout-row {
+  @apply py-1;
+}
+
+.exercise-item__workout-toggle {
+  @apply flex w-full items-center gap-3 rounded-none px-1 py-1 text-left text-slate-700 hover:bg-transparent dark:text-slate-200;
+}
+
+.exercise-item__workout-date {
+  @apply font-semibold text-slate-800 dark:text-slate-100;
+}
+
+.exercise-item__workout-sets {
+  @apply text-xs uppercase tracking-[0.3em] text-slate-400;
+}
+
+.exercise-item__workout-volume {
+  @apply flex-1 text-right font-semibold text-slate-700 dark:text-slate-100;
+}
+
+.exercise-item__workout-chevron {
+  @apply text-base text-slate-400 transition-transform;
+}
+
+.exercise-item__workout-chevron--expanded {
+  @apply rotate-180;
+}
+
+.exercise-item__set-list {
+  @apply mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-200;
+}
+
+.exercise-item__set-row {
+  @apply flex items-center gap-2;
+}
+
+.exercise-item__set-main {
+  @apply flex-1 font-semibold text-slate-800 dark:text-slate-100;
+}
+
+.exercise-item__set-note {
+  @apply text-[11px] italic text-slate-500;
+}
+
+.exercise-item__set-delete {
+  @apply inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:text-red-500 dark:bg-slate-800;
+}
+
+.exercise-item__set-delete-icon {
+  @apply text-[14px];
+}
+
+.exercise-item__footer-actions {
+  @apply mt-4 flex flex-wrap items-center justify-between gap-3;
+}
+
+.exercise-item__reorder-wrap {
+  @apply inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900/60;
+}
+
+.exercise-item__reorder-btn {
+  @apply flex h-7 w-7 items-center justify-center rounded-full text-xs font-black transition;
+}
+
+.exercise-item__reorder-btn--enabled {
+  @apply text-slate-500 hover:text-primary;
+}
+
+.exercise-item__reorder-btn--disabled {
+  @apply cursor-not-allowed text-slate-300;
+}
+
+.exercise-item__reorder-icon {
+  @apply text-base leading-none;
+}
+
+.exercise-item__reorder-divider {
+  @apply h-4 w-px bg-slate-200 dark:bg-slate-700;
+}
+
+.exercise-item__delete-btn {
+  @apply inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-red-400 hover:text-red-500;
+}
+
+.exercise-item__delete-btn-icon {
+  @apply text-sm;
+}

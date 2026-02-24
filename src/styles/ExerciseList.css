@@ -1,0 +1,166 @@
+.exercise-list-empty {
+    @apply rounded-2xl border border-slate-200 bg-white/80 px-4 py-6 text-center text-sm text-slate-500;
+  }
+
+  .exercise-list-root,
+  .exercise-group-stack {
+    @apply space-y-6;
+  }
+
+  .exercise-list-stack {
+    @apply space-y-4;
+  }
+
+  .exercise-list-stack--compact {
+    @apply flex flex-col gap-2.5 space-y-0;
+  }
+
+  .exercise-group-section {
+    @apply space-y-0;
+  }
+
+  .exercise-group-show-more-row {
+    @apply relative pl-8;
+  }
+
+  .exercise-group-show-more-connector-v {
+    @apply pointer-events-none absolute left-[23px] -top-2.5 bottom-1/2 w-px bg-slate-300/90 dark:bg-slate-700/90;
+  }
+
+  .exercise-group-show-more-connector-h {
+    @apply pointer-events-none absolute left-[23px] top-1/2 h-px w-[9px] -translate-y-1/2 bg-slate-300/90 dark:bg-slate-700/90;
+  }
+
+  .exercise-group-show-more-btn {
+    @apply mt-1 flex items-center gap-2 rounded-full border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 transition hover:border-slate-300 hover:text-slate-700 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300;
+  }
+
+  .exercise-group-show-more-icon {
+    @apply text-sm transition-transform;
+  }
+
+  .exercise-group-show-more-icon--expanded {
+    @apply rotate-180;
+  }
+
+  .exercise-list-overlay-exercise {
+    @apply pointer-events-none opacity-90;
+  }
+
+  .exercise-list-overlay-group {
+    @apply pointer-events-none rounded-3xl border border-primary/20 bg-white/95 px-4 py-3 shadow-lg backdrop-blur dark:bg-slate-900/95;
+  }
+
+  .sortable-exercise-item {
+    position: relative;
+  }
+
+  .sortable-exercise-item--scaffold {
+    @apply pl-8;
+  }
+
+  .exercise-scaffold-top {
+    @apply pointer-events-none absolute left-[23px] bottom-1/2 w-px bg-slate-300/90 dark:bg-slate-700/90;
+    top: -0.625rem;
+  }
+
+  .exercise-scaffold-top--first {
+    top: -2rem;
+  }
+
+  .exercise-scaffold-bottom {
+    @apply pointer-events-none absolute left-[23px] top-1/2 -bottom-2.5 w-px bg-slate-300/90 dark:bg-slate-700/90;
+  }
+
+  .exercise-scaffold-branch {
+    @apply pointer-events-none absolute left-[23px] top-1/2 h-px w-[9px] -translate-y-1/2 bg-slate-300/90 dark:bg-slate-700/90;
+  }
+
+  .group-label-root {
+    @apply flex items-center gap-3 px-1;
+  }
+
+  .group-label-drag-area {
+    @apply flex min-w-0 flex-1 items-center gap-3;
+  }
+
+  .group-label-drag-area--draggable {
+    @apply cursor-grab active:cursor-grabbing;
+  }
+
+  .group-label-icon-wrap {
+    @apply relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-sm;
+  }
+
+  .group-label-icon {
+    @apply text-[18px];
+  }
+
+  .group-label-content {
+    @apply min-w-0 flex-1;
+  }
+
+  .group-label-title {
+    @apply truncate text-[1.6rem] font-semibold leading-none text-slate-700 dark:text-slate-100;
+  }
+
+  .group-label-meta {
+    @apply mt-0.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-300;
+  }
+
+  .group-label-dot {
+    @apply inline-flex rounded-full;
+  }
+
+  .group-label-dot--long {
+    @apply h-1.5 w-3 bg-primary/70;
+  }
+
+  .group-label-dot--small {
+    @apply h-1.5 w-1.5 bg-primary/60;
+  }
+
+  .group-label-drag-indicator-wrap {
+    @apply ml-1 inline-flex items-center text-slate-300 dark:text-slate-600;
+  }
+
+  .group-label-drag-indicator {
+    @apply text-[12px];
+  }
+
+  .group-label-delete-btn {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-300 transition hover:bg-red-50 hover:text-red-400 dark:text-slate-600 dark:hover:bg-red-950/30 dark:hover:text-red-400;
+  }
+
+  .group-label-delete-icon {
+    @apply text-[22px];
+  }
+
+  .sortable-group-wrapper {
+    @apply rounded-3xl transition-shadow duration-200;
+    position: relative;
+  }
+
+  .sortable-group-wrapper--drop-target {
+    @apply ring-2 ring-primary/30 ring-offset-2 ring-offset-background-light dark:ring-offset-background-dark;
+  }
+
+  .droppable-group-zone {
+    @apply relative rounded-2xl;
+  }
+
+  .droppable-group-zone__empty {
+    @apply mt-1 flex items-center justify-center rounded-2xl border-2 border-dashed py-6 text-xs font-medium transition-colors duration-200;
+  }
+
+  .droppable-group-zone__empty--highlighted {
+    @apply border-primary/50 bg-primary/10 text-primary/70;
+  }
+
+  .droppable-group-zone__empty--idle {
+    @apply border-slate-200/60 bg-transparent text-slate-300 dark:border-slate-700/60 dark:text-slate-600;
+  }
+
+  .droppable-group-zone__empty-icon {
+    @apply mr-1.5 text-sm;
+  }

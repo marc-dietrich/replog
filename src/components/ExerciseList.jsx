@@ -19,6 +19,7 @@ import {
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import "../styles/ExerciseList.css";
 
 const UNGROUPED_ID = null;
 
@@ -249,7 +250,7 @@ export function ExerciseList({
 
   if (totalExercises === 0 && orderedGroups.length === 0) {
     return (
-      <p className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-6 text-center text-sm text-slate-500">
+      <p className="exercise-list-empty">
         No exercises yet. Use the button above to add your first one.
       </p>
     );
@@ -312,7 +313,7 @@ export function ExerciseList({
 
     return (
       <SortableContext items={exerciseIds} strategy={verticalListSortingStrategy}>
-        <div className={compact ? "flex flex-col gap-2.5" : "space-y-4"}>
+        <div className={compact ? "exercise-list-stack exercise-list-stack--compact" : "exercise-list-stack"}>
           {visibleExercises.map((exercise, index) => {
             const isFirstInGroup = index === 0;
             const isLastInGroup = index === visibleExercises.length - 1;
@@ -359,7 +360,7 @@ export function ExerciseList({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="space-y-6" aria-live="polite">
+      <div className="exercise-list-root" aria-live="polite">
         {/* Ungrouped exercises – also a droppable zone */}
         <DroppableGroupZone
           groupId={UNGROUPED_ID}
@@ -372,7 +373,7 @@ export function ExerciseList({
 
         {orderedGroups.length > 0 && (
           <SortableContext items={groupDragIds} strategy={verticalListSortingStrategy}>
-            <div className="space-y-6">
+            <div className="exercise-group-stack">
               {orderedGroups.map((group) => {
                 const exercisesInGroup = groupedExercises.get(group.id) ?? [];
                 const hasHiddenExercises = exercisesInGroup.length > 2;
@@ -383,7 +384,7 @@ export function ExerciseList({
                 return (
                   <SortableGroupWrapper key={group.id} group={group} isDragOverTarget={isDropTarget}>
                     {(dragHandleProps) => (
-                      <div className="space-y-0">
+                      <div className="exercise-group-section">
                         <GroupLabel
                           group={group}
                           exerciseCount={exercisesInGroup.length}
@@ -405,24 +406,24 @@ export function ExerciseList({
                           </div>
                         </DroppableGroupZone>
                         {hasHiddenExercises && (
-                          <div className="relative pl-8">
+                          <div className="exercise-group-show-more-row">
                             <span
-                              className="pointer-events-none absolute left-[23px] -top-2.5 bottom-1/2 w-px bg-slate-300/90 dark:bg-slate-700/90"
+                              className="exercise-group-show-more-connector-v"
                               aria-hidden="true"
                             ></span>
                             <span
-                              className="pointer-events-none absolute left-[23px] top-1/2 h-px w-[9px] -translate-y-1/2 bg-slate-300/90 dark:bg-slate-700/90"
+                              className="exercise-group-show-more-connector-h"
                               aria-hidden="true"
                             ></span>
                             <button
                               type="button"
-                              className="mt-1 flex items-center gap-2 rounded-full border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 transition hover:border-slate-300 hover:text-slate-700 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300"
+                              className="exercise-group-show-more-btn"
                               onClick={() => toggleGroupExpansion(group.id)}
                             >
                               {isExpanded ? "Show less" : `Show ${exercisesInGroup.length - 2} more`}
                               <span
-                                className={`material-icons-round text-sm transition-transform ${
-                                  isExpanded ? "rotate-180" : ""
+                                className={`material-icons-round exercise-group-show-more-icon ${
+                                  isExpanded ? "exercise-group-show-more-icon--expanded" : ""
                                 }`}
                                 aria-hidden="true"
                               >
@@ -443,7 +444,7 @@ export function ExerciseList({
 
       <DragOverlay dropAnimation={null}>
         {activeType === "exercise" && activeExercise ? (
-          <div className="pointer-events-none opacity-90">
+          <div className="exercise-list-overlay-exercise">
             <ExerciseItem
               exercise={activeExercise}
               viewMode={activeViewMode}
@@ -459,7 +460,7 @@ export function ExerciseList({
             />
           </div>
         ) : activeType === "group" && activeGroup ? (
-          <div className="pointer-events-none rounded-3xl border border-primary/20 bg-white/95 px-4 py-3 shadow-lg backdrop-blur dark:bg-slate-900/95">
+          <div className="exercise-list-overlay-group">
             <GroupLabel
               group={activeGroup}
               exerciseCount={(groupedExercises.get(activeGroup.id) ?? []).length}
@@ -605,25 +606,31 @@ function SortableExerciseItem({
   };
 
   return (
-    <div ref={combinedRef} style={style} {...attributes} {...listeners} className={scaffold ? "relative pl-8" : ""}>
+    <div
+      ref={combinedRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={scaffold ? "sortable-exercise-item sortable-exercise-item--scaffold" : "sortable-exercise-item"}
+    >
       {scaffold && (
         <>
           {scaffoldHasTop && (
             <span
-              className={`pointer-events-none absolute left-[23px] bottom-1/2 w-px bg-slate-300/90 dark:bg-slate-700/90 ${
-                scaffoldIsFirstItem ? "-top-8" : "-top-2.5"
+              className={`exercise-scaffold-top ${
+                scaffoldIsFirstItem ? "exercise-scaffold-top--first" : ""
               }`}
               aria-hidden="true"
             ></span>
           )}
           {scaffoldHasBottom && (
             <span
-              className="pointer-events-none absolute left-[23px] top-1/2 -bottom-2.5 w-px bg-slate-300/90 dark:bg-slate-700/90"
+              className="exercise-scaffold-bottom"
               aria-hidden="true"
             ></span>
           )}
           <span
-            className="pointer-events-none absolute left-[23px] top-1/2 h-px w-[9px] -translate-y-1/2 bg-slate-300/90 dark:bg-slate-700/90"
+            className="exercise-scaffold-branch"
             aria-hidden="true"
           ></span>
         </>
@@ -723,11 +730,11 @@ function GroupLabel({ group, exerciseCount, dragHandleProps, onDelete }) {
   }, [dragHandleProps]);
 
   return (
-    <div className="flex items-center gap-3 px-1">
+    <div className="group-label-root">
       <div
         ref={dragAreaRef}
-        className={`flex min-w-0 flex-1 items-center gap-3${
-          dragHandleProps ? " cursor-grab active:cursor-grabbing" : ""
+        className={`group-label-drag-area${
+          dragHandleProps ? " group-label-drag-area--draggable" : ""
         }`}
         style={
           dragHandleProps
@@ -741,21 +748,21 @@ function GroupLabel({ group, exerciseCount, dragHandleProps, onDelete }) {
         }
         {...(dragHandleProps ?? {})}
       >
-        <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-sm">
-          <span className="material-icons-round text-[18px]">fitness_center</span>
+        <div className="group-label-icon-wrap">
+          <span className="material-icons-round group-label-icon">fitness_center</span>
         </div>
 
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[1.6rem] font-semibold leading-none text-slate-700 dark:text-slate-100">{group.name}</p>
-          <div className="mt-0.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-300">
-            <span className="inline-flex h-1.5 w-3 rounded-full bg-primary/70"></span>
-            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-primary/60"></span>
+        <div className="group-label-content">
+          <p className="group-label-title">{group.name}</p>
+          <div className="group-label-meta">
+            <span className="group-label-dot group-label-dot--long"></span>
+            <span className="group-label-dot group-label-dot--small"></span>
             <span>
               {exerciseCount} {exerciseCount === 1 ? "exercise" : "exercises"}
             </span>
             {dragHandleProps && (
-              <span className="ml-1 inline-flex items-center text-slate-300 dark:text-slate-600">
-                <span className="material-icons-round text-[12px]">drag_indicator</span>
+              <span className="group-label-drag-indicator-wrap">
+                <span className="material-icons-round group-label-drag-indicator">drag_indicator</span>
               </span>
             )}
           </div>
@@ -765,11 +772,11 @@ function GroupLabel({ group, exerciseCount, dragHandleProps, onDelete }) {
       {onDelete && (
         <button
           type="button"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-300 transition hover:bg-red-50 hover:text-red-400 dark:text-slate-600 dark:hover:bg-red-950/30 dark:hover:text-red-400"
+          className="group-label-delete-btn"
           aria-label={`Delete group ${group.name}`}
           onClick={handleDelete}
         >
-          <span className="material-icons-round text-[22px]">delete_outline</span>
+          <span className="material-icons-round group-label-delete-icon">delete_outline</span>
         </button>
       )}
     </div>
@@ -802,9 +809,9 @@ function SortableGroupWrapper({ group, children, isDragOverTarget }) {
     <div
       ref={setNodeRef}
       style={style}
-      className={`rounded-3xl transition-shadow duration-200 ${
+      className={`sortable-group-wrapper ${
         isDragOverTarget
-          ? "ring-2 ring-primary/30 ring-offset-2 ring-offset-background-light dark:ring-offset-background-dark"
+          ? "sortable-group-wrapper--drop-target"
           : ""
       }`}
     >
@@ -822,18 +829,18 @@ function DroppableGroupZone({ groupId, children, isEmpty, isHighlighted, activeT
   return (
     <div
       ref={setNodeRef}
-      className="relative rounded-2xl"
+      className="droppable-group-zone"
     >
       {children}
       {isEmpty && activeType === "exercise" && (
         <div
-          className={`mt-1 flex items-center justify-center rounded-2xl border-2 border-dashed py-6 text-xs font-medium transition-colors duration-200 ${
+          className={`droppable-group-zone__empty ${
             isHighlighted
-              ? "border-primary/50 bg-primary/10 text-primary/70"
-              : "border-slate-200/60 bg-transparent text-slate-300 dark:border-slate-700/60 dark:text-slate-600"
+              ? "droppable-group-zone__empty--highlighted"
+              : "droppable-group-zone__empty--idle"
           }`}
         >
-          <span className="material-icons-round mr-1.5 text-sm">add_circle_outline</span>
+          <span className="material-icons-round droppable-group-zone__empty-icon">add_circle_outline</span>
           Drop exercise here
         </div>
       )}

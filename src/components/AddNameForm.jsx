@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "../styles/componentStyles.css";
 
 export function AddNameForm({
   placeholder,
@@ -36,8 +37,8 @@ export function AddNameForm({
   };
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
-      <div>
+    <form className="add-name-form" onSubmit={handleSubmit}>
+      <div className="add-name-form__field">
         <input
           type="text"
           name={inputName}
@@ -47,22 +48,22 @@ export function AddNameForm({
             setName(event.target.value);
             if (error) setError("");
           }}
-          className="w-full rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-base text-white placeholder:text-white/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="add-name-form__input"
         />
-        {error && <p className="mt-2 text-xs text-red-300">{error}</p>}
+        {error && <p className="add-name-form__error">{error}</p>}
       </div>
 
-      <div className="flex gap-3">
+      <div className="add-name-form__actions">
         <button
           type="button"
-          className="flex-1 rounded-2xl border border-white/30 bg-transparent py-3 text-base font-semibold text-white transition hover:bg-white/10"
+          className="add-name-form__cancel"
           onClick={handleCancel}
         >
           Cancel
         </button>
         <button
           type="submit"
-          className="flex-1 rounded-2xl bg-white py-3 text-base font-semibold text-slate-900 transition hover:bg-primary-muted"
+          className="add-name-form__confirm"
         >
           Confirm
         </button>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EXERCISE_VIEW_MODES, ExerciseTrendChart, SETS_DISPLAY_MODES } from "./ExerciseTrendChart";
 import { buildWorkoutTimeline } from "../utils/workoutMetrics";
+import "../styles/ExerciseItem.css";
 
 const DELETE_CONFIRM_MESSAGE = "Delete this exercise and all entries?";
 
@@ -212,14 +213,22 @@ export function ExerciseItem({
     centerCard();
   }, [centerCard, isOpen]);
 
+  const articleClassName = [
+    "exercise-item",
+    compact ? "exercise-item--compact" : "exercise-item--regular",
+    isDragging
+      ? "exercise-item--dragging"
+      : isDragOverlay
+        ? "exercise-item--drag-overlay"
+        : isReordering
+          ? "exercise-item--reordering"
+          : "exercise-item--idle",
+  ].join(" ");
+
   return (
     <article
       ref={cardRef}
-      className={`relative border border-slate-200 bg-card-light shadow-sm transition duration-150 ease-out will-change-transform transform dark:border-slate-800 dark:bg-card-dark ${
-        compact ? "rounded-xl p-3.5" : "rounded-2xl p-5"
-      } ${
-        isDragging ? "ring-2 ring-primary/40 shadow-lg" : isDragOverlay ? "ring-2 ring-primary/30 shadow-xl scale-[1.02]" : isReordering ? "scale-[1.01] ring-2 ring-primary/30 shadow-xl" : "hover:border-primary"
-      }`}
+      className={articleClassName}
       onClick={(event) => {
         if (event.target instanceof Element && event.target.closest('[data-no-toggle="true"]')) {
           return;
@@ -238,13 +247,13 @@ export function ExerciseItem({
         }
       }}
     >
-      <div className={`${compact ? "absolute right-3 top-3" : "absolute right-4 top-4"}`}>
+      <div className={compact ? "exercise-item__quick-add-wrap exercise-item__quick-add-wrap--compact" : "exercise-item__quick-add-wrap"}>
         <button
           type="button"
-          className={`flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow transition hover:border-primary ${
-            compact ? "h-7 w-7" : "h-8 w-8"
+          className={`exercise-item__quick-add-btn ${
+            compact ? "exercise-item__quick-add-btn--compact" : ""
           } ${
-            showQuickEntry ? "border-primary text-primary" : ""
+            showQuickEntry ? "exercise-item__quick-add-btn--active" : ""
           }`}
           aria-label={showQuickEntry ? "Close quick entry" : "Add entry"}
           data-dndkit-disable-dnd="true"
@@ -253,17 +262,15 @@ export function ExerciseItem({
             toggleQuickEntry(event);
           }}
         >
-          <span className="material-icons-round text-sm">add</span>
+          <span className="material-icons-round exercise-item__quick-add-icon">add</span>
         </button>
       </div>
-      <div className={compact ? "pr-2" : "pr-4"}>
-        <div className={compact ? "flex items-center gap-2.5" : "flex items-center gap-3"}>
-          <div className={`flex items-center justify-center rounded-full bg-amber-50/80 ring-1 ring-amber-100 dark:bg-amber-500/10 dark:ring-amber-500/30 ${
-            compact ? "h-8 w-12" : "h-10 w-16"
-          }`}>
+      <div className={compact ? "exercise-item__main exercise-item__main--compact" : "exercise-item__main"}>
+        <div className={compact ? "exercise-item__head exercise-item__head--compact" : "exercise-item__head"}>
+          <div className={`exercise-item__sparkline-wrap ${compact ? "exercise-item__sparkline-wrap--compact" : ""}`}>
             <svg
               viewBox={`0 0 ${SPARKLINE_WIDTH} ${SPARKLINE_HEIGHT}`}
-              className={`${compact ? "h-3.5 w-10" : "h-4 w-12"} text-amber-500 dark:text-amber-400`}
+              className={`${compact ? "exercise-item__sparkline exercise-item__sparkline--compact" : "exercise-item__sparkline"}`}
               aria-hidden="true"
             >
               <path
@@ -273,23 +280,23 @@ export function ExerciseItem({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="opacity-90"
+                className="exercise-item__sparkline-path"
               />
             </svg>
           </div>
-          <div className="min-w-0 flex-1">
-            <h3 className={`font-display font-semibold ${isOpen ? (compact ? "text-lg" : "text-xl") : (compact ? "text-base" : "text-lg")}`}>
+          <div className="exercise-item__title-wrap">
+            <h3 className={`exercise-item__title ${isOpen ? (compact ? "exercise-item__title--open-compact" : "exercise-item__title--open") : (compact ? "exercise-item__title--closed-compact" : "exercise-item__title--closed")}`}>
               {exercise.name}
             </h3>
             {!isOpen && (
-              <p className={`${compact ? "mt-0.5 text-xs" : "mt-1 text-sm"} text-slate-500`}>
+              <p className={`${compact ? "exercise-item__last-entry exercise-item__last-entry--compact" : "exercise-item__last-entry"}`}>
                 {lastEntry ? `Last: ${lastEntry.weight} kg × ${lastEntry.reps} • ${lastEntry.date}` : "No entries yet."}
               </p>
             )}
             {isOpen && (
-              <div className="mt-1">
-                <p className="inline-flex items-center gap-2 rounded-full bg-slate-100/80 px-3 py-1 text-[11px] font-semibold text-slate-600 shadow-inner dark:bg-slate-800/60 dark:text-slate-200">
-                  <span className="uppercase tracking-[0.2em] text-slate-400">View</span>
+              <div className="exercise-item__view-pill-wrap">
+                <p className="exercise-item__view-pill">
+                  <span className="exercise-item__view-pill-label">View</span>
                   <span>{viewModeLabel}</span>
                 </p>
               </div>
@@ -300,7 +307,7 @@ export function ExerciseItem({
 
       {isOpen && (
         <div
-          className="mt-4"
+          className="exercise-item__chart-wrap"
           data-no-toggle="true"
         >
           <ExerciseTrendChart
@@ -314,14 +321,14 @@ export function ExerciseItem({
 
       {showQuickEntry && (
         <div
-          className="mt-4 space-y-3 rounded-2xl border border-dashed border-slate-300 bg-white/80 p-4 text-sm dark:bg-slate-900/60"
+          className="exercise-item__quick-entry"
           data-dndkit-disable-dnd="true"
           data-no-toggle="true"
           onKeyDownCapture={(event) => {
             event.stopPropagation();
           }}
         >
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="exercise-item__quick-entry-grid">
             <input
               type="number"
               value={weight}
@@ -329,7 +336,7 @@ export function ExerciseItem({
               placeholder="kg"
               step="0.5"
               min="0"
-              className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="exercise-item__quick-input"
             />
             <input
               type="number"
@@ -337,20 +344,20 @@ export function ExerciseItem({
               onChange={(event) => setReps(event.target.value)}
               placeholder="Reps"
               min="1"
-              className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="exercise-item__quick-input"
             />
             <input
               type="text"
               value={note}
               onChange={(event) => setNote(event.target.value)}
               placeholder="Note (optional)"
-              className="sm:col-span-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="exercise-item__quick-input exercise-item__quick-input--note"
             />
           </div>
-          <div className="flex gap-3 text-base">
+          <div className="exercise-item__quick-actions">
             <button
               type="button"
-              className="flex-1 rounded-2xl border border-slate-200 py-2 font-semibold text-slate-600"
+              className="exercise-item__quick-cancel"
               onClick={(event) => {
                 event.stopPropagation();
                 resetQuickEntry();
@@ -360,7 +367,7 @@ export function ExerciseItem({
             </button>
             <button
               type="button"
-              className="flex-1 rounded-2xl bg-slate-900 py-2 font-semibold text-white"
+              className="exercise-item__quick-save"
               onClick={handleAddEntry}
             >
               Save
@@ -371,76 +378,76 @@ export function ExerciseItem({
 
       {isOpen && (
         <div
-          className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-800"
+          className="exercise-item__details"
           data-dndkit-disable-dnd="true"
           data-no-toggle="true"
         >
           {viewMode === EXERCISE_VIEW_MODES.TOP_SET ? (
             recentEntries.length === 0 ? (
-              <p className="text-sm text-slate-500">No entries for this exercise yet.</p>
+              <p className="exercise-item__empty-text">No entries for this exercise yet.</p>
             ) : (
-              <ul className="space-y-3 text-sm">
+              <ul className="exercise-item__entry-list">
                 {recentEntries.map((entry) => (
-                  <li key={`${entry.date}-${entry.weight}-${entry.reps}-${entry.note ?? ""}`} className="flex items-center gap-3">
-                    <div className="min-w-[110px]">
-                      <p className="font-semibold text-slate-800 dark:text-slate-100">{entry.date}</p>
-                      {entry.note ? <p className="text-xs italic text-slate-500">{entry.note}</p> : null}
+                  <li key={`${entry.date}-${entry.weight}-${entry.reps}-${entry.note ?? ""}`} className="exercise-item__entry-row">
+                    <div className="exercise-item__entry-date-wrap">
+                      <p className="exercise-item__entry-date">{entry.date}</p>
+                      {entry.note ? <p className="exercise-item__entry-note">{entry.note}</p> : null}
                     </div>
-                    <div className="flex flex-1 items-center justify-center text-slate-700">
-                      <span className="font-semibold">
+                    <div className="exercise-item__entry-main">
+                      <span className="exercise-item__entry-main-value">
                         {entry.weight} kg × {entry.reps}
                       </span>
                     </div>
                     <button
                       type="button"
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:text-red-500"
+                      className="exercise-item__entry-delete"
                       onClick={(event) => handleDeleteEntry(entry, event)}
                     >
-                      <span className="material-icons-round text-sm">close</span>
+                      <span className="material-icons-round exercise-item__entry-delete-icon">close</span>
                     </button>
                   </li>
                 ))}
               </ul>
             )
           ) : visibleWorkouts.length === 0 ? (
-            <p className="text-sm text-slate-500">No entries for this exercise yet.</p>
+            <p className="exercise-item__empty-text">No entries for this exercise yet.</p>
           ) : (
-            <ul className="space-y-1 text-sm">
+            <ul className="exercise-item__workout-list">
               {visibleWorkouts.map((workout) => {
                 const isExpanded = expandedWorkouts.has(workout.date);
                 const volumeText = `${formatVolume(workout.volume)}`;
                 return (
-                  <li key={workout.date} className="py-1">
+                  <li key={workout.date} className="exercise-item__workout-row">
                     <button
                       type="button"
-                      className="flex w-full items-center gap-3 rounded-none px-1 py-1 text-left text-slate-700 hover:bg-transparent dark:text-slate-200"
+                      className="exercise-item__workout-toggle"
                       onClick={() => toggleWorkoutDetails(workout.date)}
                       aria-expanded={isExpanded}
                     >
-                      <span className="font-semibold text-slate-800 dark:text-slate-100">{workout.date}</span>
-                      <span className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                      <span className="exercise-item__workout-date">{workout.date}</span>
+                      <span className="exercise-item__workout-sets">
                         {workout.setsCount} set{workout.setsCount === 1 ? "" : "s"}
                       </span>
-                      <span className="flex-1 text-right font-semibold text-slate-700 dark:text-slate-100">{volumeText}</span>
-                      <span className={`material-icons-round text-base text-slate-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}>
+                      <span className="exercise-item__workout-volume">{volumeText}</span>
+                      <span className={`material-icons-round exercise-item__workout-chevron ${isExpanded ? "exercise-item__workout-chevron--expanded" : ""}`}>
                         expand_more
                       </span>
                     </button>
                     {isExpanded && (
-                      <ul className="mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-200">
+                      <ul className="exercise-item__set-list">
                         {workout.sets.map((set) => (
-                          <li key={`${workout.date}-${set.weight}-${set.reps}-${set.note ?? ""}`} className="flex items-center gap-2">
-                            <span className="flex-1 font-semibold text-slate-800 dark:text-slate-100">
+                          <li key={`${workout.date}-${set.weight}-${set.reps}-${set.note ?? ""}`} className="exercise-item__set-row">
+                            <span className="exercise-item__set-main">
                               {formatWeight(set.weight)} × {set.reps}
                             </span>
-                            {set.note ? <span className="text-[11px] italic text-slate-500">{set.note}</span> : null}
+                            {set.note ? <span className="exercise-item__set-note">{set.note}</span> : null}
                             <button
                               type="button"
-                              className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:text-red-500 dark:bg-slate-800"
+                              className="exercise-item__set-delete"
                               onClick={(event) => handleDeleteEntry(set, event)}
                               aria-label="Delete set"
                             >
-                              <span className="material-icons-round text-[14px]">close</span>
+                              <span className="material-icons-round exercise-item__set-delete-icon">close</span>
                             </button>
                           </li>
                         ))}
@@ -452,38 +459,38 @@ export function ExerciseItem({
             </ul>
           )}
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900/60">
+          <div className="exercise-item__footer-actions">
+            <div className="exercise-item__reorder-wrap">
               <button
                 type="button"
-                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-black transition ${
-                  canMoveUp ? "text-slate-500 hover:text-primary" : "cursor-not-allowed text-slate-300"
+                className={`exercise-item__reorder-btn ${
+                  canMoveUp ? "exercise-item__reorder-btn--enabled" : "exercise-item__reorder-btn--disabled"
                 }`}
                 onClick={(event) => handleMove("up", event)}
                 disabled={!canMoveUp}
                 title="Move up"
                 aria-label="Move exercise up"
               >
-                <span className="material-icons-round text-base leading-none">expand_less</span>
+                <span className="material-icons-round exercise-item__reorder-icon">expand_less</span>
               </button>
-              <span className="h-4 w-px bg-slate-200 dark:bg-slate-700" aria-hidden="true"></span>
+              <span className="exercise-item__reorder-divider" aria-hidden="true"></span>
               <button
                 type="button"
-                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-black transition ${
-                  canMoveDown ? "text-slate-500 hover:text-primary" : "cursor-not-allowed text-slate-300"
+                className={`exercise-item__reorder-btn ${
+                  canMoveDown ? "exercise-item__reorder-btn--enabled" : "exercise-item__reorder-btn--disabled"
                 }`}
                 onClick={(event) => handleMove("down", event)}
                 disabled={!canMoveDown}
                 title="Move down"
                 aria-label="Move exercise down"
               >
-                <span className="material-icons-round text-base leading-none">expand_more</span>
+                <span className="material-icons-round exercise-item__reorder-icon">expand_more</span>
               </button>
             </div>
 
             <button
               type="button"
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-red-400 hover:text-red-500"
+              className="exercise-item__delete-btn"
               data-dndkit-disable-dnd="true"
               onClick={(event) => {
                 event.stopPropagation();
@@ -492,7 +499,7 @@ export function ExerciseItem({
                 }
               }}
             >
-              <span className="material-icons-round text-sm">delete</span>
+              <span className="material-icons-round exercise-item__delete-btn-icon">delete</span>
               Delete exercise
             </button>
           </div>

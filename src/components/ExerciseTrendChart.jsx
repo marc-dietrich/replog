@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { buildWorkoutTimeline } from "../utils/workoutMetrics";
 import { SetsTrendChart, SETS_DISPLAY_MODES } from "./SetsTrendChart";
+import "../styles/componentStyles.css";
 
 const GOLD = "#f7b733";
 const CHART_COLORS = {
@@ -140,7 +141,7 @@ export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP
   }
 
   if (chartData.length === 0) {
-    return <p className="text-center text-sm text-slate-400">No data yet</p>;
+    return <p className="trend-chart-empty">No data yet</p>;
   }
 
   const buildLabelText = () => {
@@ -156,8 +157,8 @@ export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP
   const currentDataKey = resolvedViewMode === EXERCISE_VIEW_MODES.VOLUME ? "volume" : "bestWeight";
 
   return (
-    <div className="rounded-2xl border border-amber-50 bg-white/90 shadow-inner dark:border-amber-500/20 dark:bg-slate-900/50">
-      <div className="px-2 py-4">
+    <div className="exercise-trend-chart">
+      <div className="exercise-trend-chart__inner">
         <ResponsiveContainer width="100%" height={180}>
         <AreaChart
             data={chartData}
