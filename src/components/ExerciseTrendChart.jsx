@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { buildWorkoutTimeline } from "../utils/workoutMetrics";
 import { SetsTrendChart, SETS_DISPLAY_MODES } from "./SetsTrendChart";
@@ -37,6 +37,8 @@ function WeightLabel({ viewBox, valueText }) {
   const boxX = x - boxWidth / 2;
   const boxY = Math.max(0, topThirdY - boxHeight / 2);
 
+  const lineCounts = new Map();
+
   return (
     <g>
       <rect
@@ -57,26 +59,27 @@ function WeightLabel({ viewBox, valueText }) {
         fontSize={10}
         fontWeight={600}
       >
-        {lines.map((line, index) => (
-          <tspan key={index} x={x} dy={index === 0 ? 0 : lineHeight}>
+        {lines.map((line, index) => {
+          const count = (lineCounts.get(line) ?? 0) + 1;
+          lineCounts.set(line, count);
+          return (
+            <tspan key={`${line}-${count}`} x={x} dy={index === 0 ? 0 : lineHeight}>
             {line}
-          </tspan>
-        ))}
+            </tspan>
+          );
+        })}
       </text>
     </g>
   );
 }
 
 export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP_SET, setsDisplayMode = SETS_DISPLAY_MODES.CONTINUOUS }) {
-  /* Delegate to the dedicated SetsTrendChart when in SETS mode */
-  if (viewMode === EXERCISE_VIEW_MODES.SETS) {
-    return <SetsTrendChart entries={entries} displayMode={setsDisplayMode} />;
-  }
-
-  const resolvedViewMode = viewMode;
+  const isSetsView = viewMode === EXERCISE_VIEW_MODES.SETS;
+  const resolvedViewMode = isSetsView ? EXERCISE_VIEW_MODES.TOP_SET : viewMode;
   const workouts = useMemo(() => buildWorkoutTimeline(entries), [entries]);
 
   const chartData = useMemo(() => {
+    if (isSetsView) return [];
     if (!workouts.length) return [];
     return workouts.map((workout) => {
       const [secondSet, thirdSet] = workout.rankedSets.slice(1, 3);
@@ -93,7 +96,7 @@ export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP
         thirdSet,
       };
     });
-  }, [workouts]);
+  }, [isSetsView, workouts]);
 
   const yBounds = useMemo(() => {
     if (chartData.length === 0) return [0, 1];
@@ -119,40 +122,22 @@ export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP
   }, [chartData, resolvedViewMode]);
 
   const [activeIndex, setActiveIndex] = useState(null);
-  const [activeEntry, setActiveEntry] = useState(null);
-  const [chartOpacity, setChartOpacity] = useState(1);
+  const activeEntry = activeIndex == null ? null : chartData[activeIndex] ?? null;
 
   const handlePointerMove = useCallback((state) => {
     if (typeof state?.activeTooltipIndex === "number") {
       const nextIndex = state.activeTooltipIndex;
       setActiveIndex(nextIndex);
-      setActiveEntry(chartData[nextIndex] ?? null);
     }
-  }, [chartData]);
+  }, []);
 
   const handlePointerLeave = useCallback(() => {
     setActiveIndex(null);
-    setActiveEntry(null);
   }, []);
 
-  useEffect(() => {
-    setChartOpacity(0);
-    const timer = setTimeout(() => setChartOpacity(1), 20);
-    return () => clearTimeout(timer);
-  }, [resolvedViewMode]);
-
-  useEffect(() => {
-    setActiveIndex(null);
-    setActiveEntry(null);
-  }, [resolvedViewMode]);
-
-  useEffect(() => {
-    if (activeIndex == null) {
-      setActiveEntry(null);
-    } else {
-      setActiveEntry(chartData[activeIndex] ?? null);
-    }
-  }, [activeIndex, chartData]);
+  if (isSetsView) {
+    return <SetsTrendChart entries={entries} displayMode={setsDisplayMode} />;
+  }
 
   if (chartData.length === 0) {
     return <p className="text-center text-sm text-slate-400">No data yet</p>;
@@ -172,7 +157,7 @@ export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP
 
   return (
     <div className="rounded-2xl border border-amber-50 bg-white/90 shadow-inner dark:border-amber-500/20 dark:bg-slate-900/50">
-      <div className="px-2 py-4" style={{ transition: "opacity 180ms ease", opacity: chartOpacity }}>
+      <div className="px-2 py-4">
         <ResponsiveContainer width="100%" height={180}>
         <AreaChart
             data={chartData}

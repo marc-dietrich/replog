@@ -240,7 +240,12 @@ function App() {
             </button>
             {isMenuOpen && (
               <>
-                <div className="fixed inset-0 z-40" onClick={closeMenu}></div>
+                <button
+                  type="button"
+                  className="fixed inset-0 z-40 cursor-default bg-transparent"
+                  aria-label="Close settings"
+                  onClick={closeMenu}
+                ></button>
                 <div className="absolute right-0 top-12 z-50 w-72 rounded-3xl border border-slate-200 bg-white/95 p-5 text-left shadow-2xl backdrop-blur-md dark:border-slate-800 dark:bg-slate-900">
                   <div className="mb-5">
                     <div className="mb-2 flex items-center gap-2 text-slate-400">

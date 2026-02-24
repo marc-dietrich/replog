@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -32,14 +32,6 @@ function setColor(index, total) {
   return `rgba(247, 183, 51, ${opacity.toFixed(2)})`;
 }
 
-function setStroke(index, total) {
-  const maxOpacity = 1;
-  const minOpacity = 0.35;
-  const step = total > 1 ? (maxOpacity - minOpacity) / (total - 1) : 0;
-  const opacity = maxOpacity - index * step;
-  return `rgba(247, 183, 51, ${opacity.toFixed(2)})`;
-}
-
 /* ──────────────── Floating label (reused pattern from ExerciseTrendChart) ──────────────── */
 
 function SetsLabel({ viewBox, valueText }) {
@@ -58,6 +50,8 @@ function SetsLabel({ viewBox, valueText }) {
   const topThirdY = y + height * 0.25;
   const boxX = x - boxWidth / 2;
   const boxY = Math.max(0, topThirdY - boxHeight / 2);
+
+  const lineCounts = new Map();
 
   return (
     <g>
@@ -79,11 +73,15 @@ function SetsLabel({ viewBox, valueText }) {
         fontSize={10}
         fontWeight={600}
       >
-        {lines.map((line, i) => (
-          <tspan key={i} x={x} dy={i === 0 ? 0 : lineHeight}>
-            {line}
-          </tspan>
-        ))}
+        {lines.map((line, i) => {
+          const count = (lineCounts.get(line) ?? 0) + 1;
+          lineCounts.set(line, count);
+          return (
+            <tspan key={`${line}-${count}`} x={x} dy={i === 0 ? 0 : lineHeight}>
+              {line}
+            </tspan>
+          );
+        })}
       </text>
     </g>
   );
@@ -201,42 +199,20 @@ export function SetsTrendChart({ entries, displayMode = SETS_DISPLAY_MODES.CONTI
 
   /* ── Interaction state ── */
   const [activeIndex, setActiveIndex] = useState(null);
-  const [activeEntry, setActiveEntry] = useState(null);
-  const [chartOpacity, setChartOpacity] = useState(1);
+  const activeEntry = activeIndex == null ? null : chartData[activeIndex] ?? null;
 
   const handlePointerMove = useCallback(
     (state) => {
       if (typeof state?.activeTooltipIndex === "number") {
         setActiveIndex(state.activeTooltipIndex);
-        setActiveEntry(chartData[state.activeTooltipIndex] ?? null);
       }
     },
-    [chartData]
+    []
   );
 
   const handlePointerLeave = useCallback(() => {
     setActiveIndex(null);
-    setActiveEntry(null);
   }, []);
-
-  useEffect(() => {
-    setChartOpacity(0);
-    const t = setTimeout(() => setChartOpacity(1), 20);
-    return () => clearTimeout(t);
-  }, [displayMode]);
-
-  useEffect(() => {
-    setActiveIndex(null);
-    setActiveEntry(null);
-  }, [displayMode]);
-
-  useEffect(() => {
-    if (activeIndex == null) {
-      setActiveEntry(null);
-    } else {
-      setActiveEntry(chartData[activeIndex] ?? null);
-    }
-  }, [activeIndex, chartData]);
 
   if (!chartData.length) {
     return <p className="text-center text-sm text-slate-400">No data yet</p>;
@@ -348,7 +324,7 @@ export function SetsTrendChart({ entries, displayMode = SETS_DISPLAY_MODES.CONTI
 
     return (
       <div className="rounded-2xl border border-amber-50 bg-white/90 shadow-inner dark:border-amber-500/20 dark:bg-slate-900/50">
-        <div className="px-2 py-4" style={{ transition: "opacity 180ms ease", opacity: chartOpacity }}>
+        <div className="px-2 py-4">
           <ResponsiveContainer width="100%" height={180}>
             <AreaChart {...sharedChartProps}>
               {sharedXAxis}
@@ -399,7 +375,7 @@ export function SetsTrendChart({ entries, displayMode = SETS_DISPLAY_MODES.CONTI
 
   return (
     <div className="rounded-2xl border border-amber-50 bg-white/90 shadow-inner dark:border-amber-500/20 dark:bg-slate-900/50">
-      <div className="px-2 py-4" style={{ transition: "opacity 180ms ease", opacity: chartOpacity }}>
+      <div className="px-2 py-4">
         <ResponsiveContainer width="100%" height={180}>
           <BarChart {...sharedChartProps} barCategoryGap="20%" barGap={0}>
             {sharedXAxis}

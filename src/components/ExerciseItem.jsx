@@ -217,7 +217,12 @@ export function ExerciseItem({
       className={`relative rounded-2xl border border-slate-200 bg-card-light p-5 shadow-sm transition duration-150 ease-out will-change-transform transform dark:border-slate-800 dark:bg-card-dark ${
         isDragging ? "ring-2 ring-primary/40 shadow-lg" : isDragOverlay ? "ring-2 ring-primary/30 shadow-xl scale-[1.02]" : isReordering ? "scale-[1.01] ring-2 ring-primary/30 shadow-xl" : "hover:border-primary"
       }`}
-      onClick={onToggle}
+      onClick={(event) => {
+        if (event.target instanceof Element && event.target.closest('[data-no-toggle="true"]')) {
+          return;
+        }
+        onToggle();
+      }}
       role="button"
       tabIndex={0}
       onKeyDown={(event) => {
@@ -289,13 +294,14 @@ export function ExerciseItem({
       {isOpen && (
         <div
           className="mt-4"
-          onClick={stopPropagation}
-          onMouseDown={stopPropagation}
-          onTouchStart={stopPropagation}
-          onPointerDown={stopPropagation}
-          onKeyDown={stopPropagation}
+          data-no-toggle="true"
         >
-          <ExerciseTrendChart entries={sortedEntries} viewMode={viewMode} setsDisplayMode={setsDisplayMode} />
+          <ExerciseTrendChart
+            key={`${viewMode}-${setsDisplayMode}`}
+            entries={sortedEntries}
+            viewMode={viewMode}
+            setsDisplayMode={setsDisplayMode}
+          />
         </div>
       )}
 
@@ -303,7 +309,7 @@ export function ExerciseItem({
         <div
           className="mt-4 space-y-3 rounded-2xl border border-dashed border-slate-300 bg-white/80 p-4 text-sm dark:bg-slate-900/60"
           data-dndkit-disable-dnd="true"
-          onClick={(event) => event.stopPropagation()}
+          data-no-toggle="true"
         >
           <div className="grid gap-3 sm:grid-cols-3">
             <input
@@ -357,15 +363,15 @@ export function ExerciseItem({
         <div
           className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-800"
           data-dndkit-disable-dnd="true"
-          onClick={(event) => event.stopPropagation()}
+          data-no-toggle="true"
         >
           {viewMode === EXERCISE_VIEW_MODES.TOP_SET ? (
             recentEntries.length === 0 ? (
               <p className="text-sm text-slate-500">No entries for this exercise yet.</p>
             ) : (
               <ul className="space-y-3 text-sm">
-                {recentEntries.map((entry, index) => (
-                  <li key={`${entry.date}-${index}`} className="flex items-center gap-3">
+                {recentEntries.map((entry) => (
+                  <li key={`${entry.date}-${entry.weight}-${entry.reps}-${entry.note ?? ""}`} className="flex items-center gap-3">
                     <div className="min-w-[110px]">
                       <p className="font-semibold text-slate-800 dark:text-slate-100">{entry.date}</p>
                       {entry.note ? <p className="text-xs italic text-slate-500">{entry.note}</p> : null}
@@ -412,8 +418,8 @@ export function ExerciseItem({
                     </button>
                     {isExpanded && (
                       <ul className="mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-200">
-                        {workout.sets.map((set, idx) => (
-                          <li key={`${workout.date}-${idx}`} className="flex items-center gap-2">
+                        {workout.sets.map((set) => (
+                          <li key={`${workout.date}-${set.weight}-${set.reps}-${set.note ?? ""}`} className="flex items-center gap-2">
                             <span className="flex-1 font-semibold text-slate-800 dark:text-slate-100">
                               {formatWeight(set.weight)} × {set.reps}
                             </span>
