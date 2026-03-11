@@ -33,7 +33,16 @@ const gitTag = resolveGitTag()
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: "/replog/", // <- exakt dein Repo-Name
+  base: "/", // Docker/production: serve from root
+  server: {
+    proxy: {
+      // Dev: proxy /api → backend on port 3001
+      "/api": {
+        target: "http://localhost:3001",
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     rollupOptions: {
       output: {

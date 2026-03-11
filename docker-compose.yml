@@ -1,0 +1,125 @@
+version: "3.9"
+
+# ============================================================
+#  RepLog – Production Docker Compose Stack
+#
+#  Services:
+#    frontend  – Vite-built React app served by Nginx
+#    backend   – Express API (Node 22)
+#    mongo     – MongoDB 7
+#    tunnel    – Cloudflare Tunnel (cloudflared)
+#    oauth2    – OAuth2 Proxy (optional, für geschützte Routen)
+# ============================================================
+
+services:
+  # ---------- Frontend ----------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /api
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    container_name: replog-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+    networks:
+      - replog
+
+  # ---------- Backend API ----------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: replog-backend
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      PORT: 3001
+      MONGO_URI: mongodb://mongo:27017/replog
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      SESSION_SECRET: ${SESSION_SECRET:-please-change-this-secret}
+      NODE_ENV: production
+    networks:
+      - replog
+
+  # ---------- MongoDB ----------
+  mongo:
+    image: mongo:7
+    container_name: replog-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - replog
+
+  # ---------- Cloudflare Tunnel ----------
+  # Voraussetzung: `cloudflared tunnel login` + `cloudflared tunnel create replog`
+  #   auf dem Server ausführen, dann TUNNEL_TOKEN hier setzen.
+  #
+  #   Alternativ: config.yml mounten (siehe docs).
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: replog-tunnel
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      - frontend
+    networks:
+      - replog
+
+  # ---------- OAuth2 Proxy (optional) ----------
+  # Schützt den gesamten Dienst hinter einem Google-Login-Screen,
+  # zusätzlich zur in-app Google-Auth.
+  # Kann entfernt werden wenn nur die in-app Auth genutzt wird.
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.8.1
+    container_name: replog-oauth2-proxy
+    restart: unless-stopped
+    command:
+      - --http-address=0.0.0.0:4180
+      - --upstream=http://frontend:80
+      - --provider=google
+      - --client-id=${GOOGLE_CLIENT_ID:-}
+      - --client-secret=${GOOGLE_CLIENT_SECRET:-}
+      - --cookie-secret=${OAUTH2_COOKIE_SECRET:-generate-a-32-byte-secret}
+      - --cookie-secure=true
+      - --cookie-samesite=lax
+      - --email-domain=*
+      - --skip-auth-route=^/api/health$$
+      # Gäste durchlassen — nur /settings oder /api/auth brauchen Auth:
+      # Um ALLE Seiten zu schützen, entferne die nächste Zeile:
+      - --skip-auth-route=^/((?!settings|api/auth).)*$$
+      - --redirect-url=${OAUTH2_REDIRECT_URL:-https://replog.example.com/oauth2/callback}
+      - --pass-access-token=true
+      - --pass-authorization-header=true
+      - --set-xauthrequest=true
+    ports:
+      - "4180:4180"
+    depends_on:
+      - frontend
+    networks:
+      - replog
+    profiles:
+      - with-oauth-proxy
+
+volumes:
+  mongo-data:
+
+networks:
+  replog:
+    driver: bridge

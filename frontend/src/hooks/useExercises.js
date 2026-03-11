@@ -1,5 +1,6 @@
 // src/hooks/useExercises.js
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { dataApi } from "../api/client";
 
 const STORAGE_KEY = "gym-tracker-exercises";
 const EXERCISE_VIEW_MODES = Object.freeze({
@@ -130,8 +131,15 @@ const applyExerciseOrder = (exercises, groupId, orderedIds) => {
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
-export function useExercises() {
+export function useExercises(serverState = null) {
   const [state, setState] = useState(() => {
+    // If the server provided initial state, use it (and cache locally)
+    if (serverState && Array.isArray(serverState.exercises)) {
+      const hydrated = hydrateState(serverState);
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(hydrated)); } catch { /* quota */ }
+      return hydrated;
+    }
+    // Fallback: localStorage (offline / guest)
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       const parsed = stored ? JSON.parse(stored) : DEFAULT_STATE;
@@ -148,9 +156,41 @@ export function useExercises() {
     }
   });
 
+  // ---- Debounced server sync ----
+  const syncTimer = useRef(null);
+  const isFirstRender = useRef(true);
+
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    // Always persist to localStorage (offline cache)
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* quota */ }
+
+    // Skip the initial render (we just loaded from server/localStorage)
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    // Debounce API writes (500ms)
+    clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(() => {
+      dataApi.put(state).catch((err) => {
+        console.warn("Failed to sync state to server:", err);
+      });
+    }, 500);
+
+    return () => clearTimeout(syncTimer.current);
   }, [state]);
+
+  // If serverState changes (e.g. after login/claim), rehydrate
+  const prevServerState = useRef(serverState);
+  useEffect(() => {
+    if (serverState && serverState !== prevServerState.current && Array.isArray(serverState.exercises)) {
+      const hydrated = hydrateState(serverState);
+      setState(hydrated);
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(hydrated)); } catch { /* quota */ }
+    }
+    prevServerState.current = serverState;
+  }, [serverState]);
 
   const addExercise = (name, groupId = null) => {
     const trimmed = name.trim();

@@ -5,6 +5,7 @@ import { AddPanel } from "./components/AddPanel";
 import { EXERCISE_VIEW_MODES, SETS_DISPLAY_MODES } from "./components/ExerciseTrendChart";
 import { ExerciseList } from "./components/ExerciseList";
 import { useExercises } from "./hooks/useExercises";
+import { useAuth } from "./hooks/useAuth";
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./styles/app.css";
 
@@ -20,6 +21,7 @@ const VIEW_MODE_OPTIONS = [
 ];
 
 function App() {
+  const { user, isGuest, isLoading, initialState, loginWithGoogle, logout } = useAuth();
   const {
     exercises,
     groups,
@@ -35,7 +37,7 @@ function App() {
     replaceState,
     setExerciseViewMode,
     setSetsDisplayMode,
-  } = useExercises();
+  } = useExercises(initialState);
   const [addPanelType, setAddPanelType] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
@@ -85,6 +87,37 @@ function App() {
   };
 
   const triggerImport = () => fileInputRef.current?.click();
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      if (!clientId) {
+        alert("Google Sign-In is not configured.");
+        return;
+      }
+      // Use Google Identity Services (GSI) one-tap / popup
+      if (!window.google?.accounts?.id) {
+        alert("Google Sign-In script not loaded.");
+        return;
+      }
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: async (response) => {
+          try {
+            await loginWithGoogle(response.credential, true /* claim guest data */);
+            closeMenu();
+          } catch (err) {
+            console.error("Google login failed:", err);
+            alert("Sign-in failed. Please try again.");
+          }
+        },
+      });
+      window.google.accounts.id.prompt();
+    } catch (err) {
+      console.error("Google Sign-In error:", err);
+    }
+  };
+
   const closeAddPanel = () => setAddPanelType(null);
   const closeImpressum = () => setIsImpressumOpen(false);
   const closeMenu = () => setIsMenuOpen(false);
@@ -138,7 +171,7 @@ function App() {
         <div className="app-header__inner">
           <div className="app-brand">
             <div className="app-brand__icon-wrap">
-              <img src="/replog/icon-192.png" alt="RepLog mark" className="app-brand__icon" />
+              <img src="/icon-192.png" alt="RepLog mark" className="app-brand__icon" />
             </div>
             <div className="app-brand__text">
               <p className="app-brand__title">RepLog</p>
@@ -308,7 +341,9 @@ function App() {
                     </h3>
                   </div>
                   <p className="app-settings-body">
-                    Your added data is saved in the browsers cache. If you want to clean you cache anytime, export your progress to keep it safe. You can re-import the file later to restore your data.
+                    {isGuest
+                      ? "You're using RepLog as a guest. Sign in to sync your data across devices. Your guest data will be transferred to your account."
+                      : "Your data is synced to the server. You can still export/import JSON backups."}
                   </p>
                   <div className="app-settings-actions">
                     <button
@@ -334,6 +369,49 @@ function App() {
                       Import JSON
                     </button>
                   </div>
+                  {/* ---- Account Section ---- */}
+                  <div className="app-settings-section-head">
+                    <span className="material-icons-round">person</span>
+                    <h3 className="app-settings-section-head__title">
+                      Account
+                    </h3>
+                  </div>
+                  {isGuest ? (
+                    <>
+                      <p className="app-settings-body">
+                        Sign in with Google to persist your data and access it from any device.
+                      </p>
+                      <div className="app-settings-actions">
+                        <button
+                          type="button"
+                          className="app-settings-action-btn app-settings-action-btn--google"
+                          onClick={handleGoogleSignIn}
+                        >
+                          <span className="material-icons-round app-settings-action-btn__icon">login</span>
+                          Sign in with Google
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="app-settings-body">
+                        Signed in as <strong>{user?.displayName || user?.email || "User"}</strong>
+                      </p>
+                      <div className="app-settings-actions">
+                        <button
+                          type="button"
+                          className="app-settings-action-btn"
+                          onClick={() => {
+                            logout();
+                            closeMenu();
+                          }}
+                        >
+                          <span className="material-icons-round app-settings-action-btn__icon">logout</span>
+                          Sign out
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </>
             )}
