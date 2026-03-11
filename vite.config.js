@@ -59,12 +59,6 @@ export default defineConfig({
   },
   define: {
     __APP_VERSION__: JSON.stringify(gitTag),
-  },
-  test: {
-    environment: "jsdom",
-    globals: true,
-    setupFiles: ["./src/test/setup.js"],
-    css: false,
-  },
+  }
 })
 
