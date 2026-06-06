@@ -5,12 +5,12 @@ services:
     restart: unless-stopped
 
     environment:
-      POSTGRES_USER: appuser
-      POSTGRES_PASSWORD: strongpassword
-      POSTGRES_DB: appdb
+      POSTGRES_USER: gym-tracker-user
+      POSTGRES_PASSWORD: gym-tracker-password
+      POSTGRES_DB: gym-tracker-db
 
     ports:
-      - "5432:5432"
+      - "0.0.0.0:6000:5432"
 
     volumes:
       # persistent database storage
