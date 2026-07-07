@@ -1,0 +1,219 @@
+.app-shell {
+	@apply min-h-screen bg-background-light font-sans text-slate-900 dark:bg-background-dark dark:text-slate-100;
+}
+
+.app-header {
+	@apply sticky top-0 z-40 border-b border-slate-200/70 bg-background-light/90 pt-[var(--app-top-offset)] backdrop-blur-md dark:border-slate-800 dark:bg-background-dark/80;
+}
+
+.app-header__inner {
+	@apply mx-auto flex max-w-md items-center gap-3 px-4 py-4;
+}
+
+.app-brand {
+	@apply flex min-w-0 items-center gap-3;
+}
+
+.app-brand__icon-wrap {
+	@apply flex h-10 w-10 items-center justify-center rounded-xl bg-white p-1 shadow-inner;
+}
+
+.app-brand__icon {
+	@apply h-full w-full rounded-lg object-contain;
+}
+
+.app-brand__text {
+	@apply flex flex-col;
+}
+
+.app-brand__title {
+	@apply font-display text-lg font-semibold leading-none;
+}
+
+.app-brand__meta-row {
+	@apply mt-1 flex items-center gap-2;
+}
+
+.app-brand__impressum-wrap {
+	@apply relative;
+}
+
+.app-impressum-btn {
+	@apply flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-[8px] font-black uppercase text-slate-500 transition hover:border-slate-500 hover:text-slate-700 dark:border-slate-600 dark:text-slate-300 dark:hover:border-slate-400 dark:hover:text-slate-100;
+}
+
+.app-impressum-tooltip {
+	@apply fixed inset-x-4 top-[calc(var(--app-top-offset,0px)+4.5rem)] z-50 mx-auto max-w-md rounded-3xl border border-slate-200/70 bg-white/95 p-5 text-left text-xs leading-relaxed text-slate-600 shadow-[0_18px_45px_rgba(15,23,42,0.25)] ring-1 ring-white/30 backdrop-blur-lg dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-200 md:absolute md:inset-auto md:right-0 md:top-6 md:z-40 md:mx-0 md:w-64;
+}
+
+.app-impressum-tooltip__head {
+	@apply flex items-center gap-2;
+}
+
+.app-impressum-tooltip__info-icon {
+	@apply text-base text-slate-400 dark:text-slate-300;
+}
+
+.app-impressum-tooltip__title {
+	@apply text-[10px] font-semibold uppercase tracking-[0.4em] text-slate-500 dark:text-slate-300;
+}
+
+.app-impressum-tooltip__body {
+	@apply mt-3 whitespace-pre-line rounded-2xl bg-slate-100/80 p-3 font-medium text-slate-700 shadow-inner dark:bg-slate-800/60 dark:text-slate-100;
+}
+
+.app-version {
+	@apply text-[10px] font-semibold uppercase tracking-[0.1em] text-primary;
+}
+
+.app-add-wrap {
+	@apply flex flex-1 justify-center;
+}
+
+.app-add-switch {
+	@apply inline-flex items-center gap-1.5 rounded-3xl border border-slate-200 bg-white px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-600 shadow-sm backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-200;
+}
+
+.app-add-switch__plus {
+	@apply flex h-7 w-7 items-center justify-center rounded-2xl bg-slate-100 text-sm font-black text-slate-500 dark:bg-slate-800 dark:text-slate-300;
+}
+
+.app-add-switch__buttons {
+	@apply flex w-28 flex-col;
+}
+
+.app-add-switch__btn {
+	@apply flex items-center justify-center rounded-2xl px-2.5 py-0.5 transition;
+}
+
+.app-add-switch__btn--active {
+	@apply bg-orange-500 text-white;
+}
+
+.app-add-switch__btn--inactive {
+	@apply text-slate-700 hover:bg-orange-100;
+}
+
+.app-add-switch__divider {
+	@apply my-1 h-px w-full border-t border-dashed border-slate-300/80 dark:border-slate-700/60;
+}
+
+.app-settings-wrap {
+	@apply relative flex-shrink-0;
+}
+
+.app-settings-btn {
+	@apply flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-primary;
+}
+
+.app-settings-btn__icon {
+	@apply text-base;
+}
+
+.app-settings-overlay {
+	@apply fixed inset-0 z-40 cursor-default bg-transparent;
+}
+
+.app-settings-menu {
+	@apply absolute right-0 top-12 z-50 w-72 rounded-3xl border border-slate-200 bg-white/95 p-5 text-left shadow-2xl backdrop-blur-md dark:border-slate-800 dark:bg-slate-900;
+}
+
+.app-settings-block {
+	@apply mb-5;
+}
+
+.app-settings-block__header {
+	@apply mb-2 flex items-center gap-2 text-slate-400;
+}
+
+.app-settings-block__header-icon {
+	@apply text-base;
+}
+
+.app-settings-block__title {
+	@apply font-display text-[10px] font-bold uppercase tracking-[0.4em] text-slate-900 dark:text-slate-100;
+}
+
+.app-settings-block__hint {
+	@apply mb-3 text-[11px] text-slate-500;
+}
+
+.app-settings-grid {
+	@apply grid gap-1 rounded-2xl bg-slate-100 p-1 dark:bg-slate-800/70;
+}
+
+.app-settings-grid--3 {
+	@apply grid-cols-3;
+}
+
+.app-settings-grid--2 {
+	@apply grid-cols-2;
+}
+
+.app-settings-option {
+	@apply relative rounded-xl px-2 py-2 text-[11px] font-semibold transition;
+}
+
+.app-settings-option--active {
+	@apply bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100;
+}
+
+.app-settings-option--inactive {
+	@apply text-slate-500 hover:text-slate-800 dark:text-slate-300;
+}
+
+.app-settings-option--disabled {
+	@apply cursor-not-allowed opacity-60;
+}
+
+.app-settings-option__disabled-dot {
+	@apply absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-amber-400;
+}
+
+.app-settings-section-head {
+	@apply mb-4 flex items-center gap-2 text-slate-400;
+}
+
+.app-settings-section-head__title {
+	@apply font-display text-xs font-bold uppercase tracking-[0.4em] text-slate-900 dark:text-slate-100;
+}
+
+.app-settings-body {
+	@apply mb-4 text-xs text-justify text-slate-500;
+}
+
+.app-settings-actions {
+	@apply grid grid-cols-2 gap-3;
+}
+
+.app-settings-action-btn {
+	@apply flex flex-col items-center gap-2 rounded-2xl border border-transparent bg-slate-50 p-4 text-[11px] font-semibold uppercase tracking-tight text-slate-700 transition hover:border-slate-200 hover:bg-white dark:bg-slate-800/50 dark:text-slate-100;
+}
+
+.app-settings-action-btn__icon {
+	@apply text-primary;
+}
+
+.app-main {
+	@apply mx-auto max-w-md space-y-6 px-4 py-6 pb-8;
+}
+
+.app-section {
+	@apply space-y-4;
+}
+
+.app-section-head {
+	@apply flex items-center justify-between px-1;
+}
+
+.app-section-head__label {
+	@apply text-xs uppercase tracking-[0.3em] text-slate-400;
+}
+
+.app-section-head__count {
+	@apply text-xs font-medium uppercase tracking-[0.3em] text-slate-500;
+}
+
+.app-hidden-input {
+	@apply hidden;
+}

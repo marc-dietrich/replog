@@ -1,0 +1,219 @@
+import { useCallback, useMemo, useState } from "react";
+import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { buildWorkoutTimeline } from "../utils/workoutMetrics";
+import { SetsTrendChart, SETS_DISPLAY_MODES } from "./SetsTrendChart";
+import "../styles/componentStyles.css";
+
+const GOLD = "#f7b733";
+const CHART_COLORS = {
+  labelBackground: "var(--chart-label-bg)",
+  labelBorder: "var(--chart-label-border)",
+  labelText: "var(--chart-label-text)",
+  referenceLine: "var(--chart-reference-line)",
+};
+const NUMBER_FORMATTER = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
+
+export const EXERCISE_VIEW_MODES = Object.freeze({
+  TOP_SET: "topSet",
+  VOLUME: "volume",
+  SETS: "sets",
+});
+
+export { SETS_DISPLAY_MODES };
+
+function WeightLabel({ viewBox, valueText }) {
+  if (!viewBox) return null;
+  const { x = 0, y = 0, height = 0 } = viewBox;
+  const lines = (valueText ?? "")
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const paddingX = 6;
+  const longestLine = lines.reduce((max, line) => Math.max(max, line.length), 0);
+  const textWidth = longestLine * 6; // approx width per character
+  const lineHeight = 12;
+  const boxHeight = Math.max(18, lines.length * lineHeight + 6);
+  const boxWidth = textWidth + paddingX * 2;
+  const topThirdY = y + height * 0.25;
+  const boxX = x - boxWidth / 2;
+  const boxY = Math.max(0, topThirdY - boxHeight / 2);
+
+  const lineCounts = new Map();
+
+  return (
+    <g>
+      <rect
+        x={boxX}
+        y={boxY}
+        width={boxWidth}
+        height={boxHeight}
+        rx={boxHeight / 2}
+        fill={CHART_COLORS.labelBackground}
+        stroke={CHART_COLORS.labelBorder}
+        strokeWidth={0.6}
+      />
+      <text
+        x={x}
+        y={boxY + boxHeight / 2 - ((lines.length - 1) * lineHeight) / 2 + 4}
+        textAnchor="middle"
+        fill={CHART_COLORS.labelText}
+        fontSize={10}
+        fontWeight={600}
+      >
+        {lines.map((line, index) => {
+          const count = (lineCounts.get(line) ?? 0) + 1;
+          lineCounts.set(line, count);
+          return (
+            <tspan key={`${line}-${count}`} x={x} dy={index === 0 ? 0 : lineHeight}>
+            {line}
+            </tspan>
+          );
+        })}
+      </text>
+    </g>
+  );
+}
+
+export function ExerciseTrendChart({ entries, viewMode = EXERCISE_VIEW_MODES.TOP_SET, setsDisplayMode = SETS_DISPLAY_MODES.CONTINUOUS }) {
+  const isSetsView = viewMode === EXERCISE_VIEW_MODES.SETS;
+  const resolvedViewMode = isSetsView ? EXERCISE_VIEW_MODES.TOP_SET : viewMode;
+  const workouts = useMemo(() => buildWorkoutTimeline(entries), [entries]);
+
+  const chartData = useMemo(() => {
+    if (isSetsView) return [];
+    if (!workouts.length) return [];
+    return workouts.map((workout) => {
+      const [secondSet, thirdSet] = workout.rankedSets.slice(1, 3);
+      return {
+        date: workout.date,
+        bestWeight: workout.bestSet?.weight ?? 0,
+        bestReps: workout.bestSet?.reps ?? 0,
+        volume: workout.volume,
+        setsCount: workout.setsCount,
+        rankedSets: workout.rankedSets,
+        secondWeight: secondSet?.weight ?? null,
+        thirdWeight: thirdSet?.weight ?? null,
+        secondSet,
+        thirdSet,
+      };
+    });
+  }, [isSetsView, workouts]);
+
+  const yBounds = useMemo(() => {
+    if (chartData.length === 0) return [0, 1];
+    let values = [];
+    if (resolvedViewMode === EXERCISE_VIEW_MODES.TOP_SET) {
+      values = chartData.map((entry) => entry.bestWeight);
+    } else {
+      values = chartData.map((entry) => entry.volume);
+    }
+    if (!values.length) return [0, 1];
+    const minValue = Math.min(...values);
+    const maxValue = Math.max(...values);
+    if (!Number.isFinite(minValue) || !Number.isFinite(maxValue)) {
+      return [0, 1];
+    }
+    let lower = minValue * 0.95;
+    let upper = maxValue * 1.05;
+    if (minValue === maxValue) {
+      lower = minValue * 0.95 - 1;
+      upper = maxValue * 1.05 + 1;
+    }
+    return [Math.max(0, lower), upper];
+  }, [chartData, resolvedViewMode]);
+
+  const [activeIndex, setActiveIndex] = useState(null);
+  const activeEntry = activeIndex == null ? null : chartData[activeIndex] ?? null;
+
+  const handlePointerMove = useCallback((state) => {
+    if (typeof state?.activeTooltipIndex === "number") {
+      const nextIndex = state.activeTooltipIndex;
+      setActiveIndex(nextIndex);
+    }
+  }, []);
+
+  const handlePointerLeave = useCallback(() => {
+    setActiveIndex(null);
+  }, []);
+
+  if (isSetsView) {
+    return <SetsTrendChart entries={entries} displayMode={setsDisplayMode} />;
+  }
+
+  if (chartData.length === 0) {
+    return <p className="trend-chart-empty">No data yet</p>;
+  }
+
+  const buildLabelText = () => {
+    if (!activeEntry) return "";
+    if (resolvedViewMode === EXERCISE_VIEW_MODES.VOLUME) {
+      const totalVolume = NUMBER_FORMATTER.format(activeEntry.volume);
+      const setLabel = activeEntry.setsCount === 1 ? "set" : "sets";
+      return `${activeEntry.date}\n${totalVolume} kg\n${activeEntry.setsCount} ${setLabel}`;
+    }
+    return `${activeEntry.date}\n${NUMBER_FORMATTER.format(activeEntry.bestWeight)} kg × ${activeEntry.bestReps}`;
+  };
+
+  const currentDataKey = resolvedViewMode === EXERCISE_VIEW_MODES.VOLUME ? "volume" : "bestWeight";
+
+  return (
+    <div className="exercise-trend-chart">
+      <div className="exercise-trend-chart__inner">
+        <ResponsiveContainer width="100%" height={180}>
+        <AreaChart
+            data={chartData}
+          margin={{ top: 10, right: 8, bottom: 4, left: 0 }}
+          onMouseMove={handlePointerMove}
+          onTouchStart={handlePointerMove}
+          onTouchMove={handlePointerMove}
+          onMouseLeave={handlePointerLeave}
+          onTouchEnd={handlePointerLeave}
+          onClick={handlePointerMove}
+        >
+          <XAxis
+            dataKey="date"
+            interval="preserveStartEnd"
+            //tickFormatter={formatAxisTick}
+            axisLine={false}
+            tickLine={false}
+            tick={false} // { fontSize: 11, fill: "#94a3b8" }}
+            padding={{ left: 15, right: 5 }}
+            minTickGap={12}
+          />
+          <Tooltip cursor={false} wrapperStyle={{ display: "none" }} />
+          <YAxis
+            hide
+            domain={yBounds}
+            allowDecimals={false}
+            padding={{ top: 4, bottom: 4 }}
+          />
+          <Area
+              type="linear"
+              dataKey={currentDataKey}
+              stroke={GOLD}
+              strokeWidth={2.5}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              fill={GOLD}
+              fillOpacity={0.15}
+              isAnimationActive={false}
+              dot={{ r: 3.5, fill: GOLD, stroke: "#fff", strokeWidth: 1 }}
+              activeDot={{ r: 4.5, fill: GOLD, stroke: "#fff", strokeWidth: 1 }}
+            />
+          {activeEntry && (activeIndex || activeIndex === 0) && (
+            <ReferenceLine
+              x={activeEntry.date}
+              stroke={CHART_COLORS.referenceLine}
+              strokeWidth={1}
+              strokeDasharray="2 3"
+              strokeOpacity={0.95}
+              isFront
+              label={<WeightLabel valueText={buildLabelText()} />}
+            />
+          )}
+        </AreaChart>
+      </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,47 @@
+.add-name-form {
+  @apply space-y-4;
+}
+
+.add-name-form__field {
+  @apply w-full;
+}
+
+.add-name-form__input {
+  @apply w-full rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-base text-white placeholder:text-white/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30;
+}
+
+.add-name-form__error {
+  @apply mt-2 text-xs text-red-300;
+}
+
+.add-name-form__actions {
+  @apply flex gap-3;
+}
+
+.add-name-form__cancel {
+  @apply flex-1 rounded-2xl border border-white/30 bg-transparent py-3 text-base font-semibold text-white transition hover:bg-white/10;
+}
+
+.add-name-form__confirm {
+  @apply flex-1 rounded-2xl bg-white py-3 text-base font-semibold text-slate-900 transition hover:bg-primary-muted;
+}
+
+.add-panel {
+  @apply rounded-3xl border border-slate-900 bg-slate-900/95 p-5 text-white shadow-2xl;
+}
+
+.add-panel__title {
+  @apply mb-3 text-xs uppercase tracking-[0.3em] text-white/60;
+}
+
+.trend-chart-empty {
+  @apply text-center text-sm text-slate-400;
+}
+
+.exercise-trend-chart {
+  @apply rounded-2xl border border-amber-50 bg-white/90 shadow-inner dark:border-amber-500/20 dark:bg-slate-900/50;
+}
+
+.exercise-trend-chart__inner {
+  @apply px-2 py-4;
+}
