@@ -138,7 +138,7 @@ function App() {
         <div className="app-header__inner">
           <div className="app-brand">
             <div className="app-brand__icon-wrap">
-              <img src="/replog/icon-192.png" alt="RepLog mark" className="app-brand__icon" />
+              <img src="/icon-192.png" alt="RepLog mark" className="app-brand__icon" />
             </div>
             <div className="app-brand__text">
               <p className="app-brand__title">RepLog</p>

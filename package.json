@@ -1,7 +1,7 @@
 {
   "name": "replog",
   "version": "0.0.1",
-  "homepage": "https://marc-dietrich.github.io/replog/",
+  "homepage": "",
   "private": true,
   "type": "module",
   "scripts": {

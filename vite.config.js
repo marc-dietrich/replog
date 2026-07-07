@@ -33,7 +33,7 @@ const gitTag = resolveGitTag()
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: "/replog/", // <- exakt dein Repo-Name
+  base: "/",
   build: {
     rollupOptions: {
       output: {
