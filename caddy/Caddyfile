@@ -1,0 +1,4 @@
+http://gym.made-simple.online {
+  encode zstd gzip
+  reverse_proxy gym:80
+}
