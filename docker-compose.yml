@@ -15,6 +15,17 @@ services:
     container_name: replog
     restart: unless-stopped
 
+  database:
+    image: postgres:16-alpine
+    container_name: replog-postgres
+    ports:
+      - "15432:5432"
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gym
+      POSTGRES_PASSWORD: gym
+      POSTGRES_DB: gymdb
+
 volumes:
   caddy_data:
   caddy_config:

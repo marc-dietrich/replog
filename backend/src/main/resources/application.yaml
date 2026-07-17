@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: replog
+  datasource:
+      url: jdbc:postgresql://localhost:15432/gymdb
+      username: gym
+      password: gym
+  jpa:
+    hibernate:
+      ddl-auto: update   # todo: after prototyping, switch to Flyway later
+    show-sql: true

@@ -1,0 +1,1932 @@
+{
+    "exercises": [
+        {
+            "id": "1764086786541",
+            "name": "Breites Rudern",
+            "entries": [
+                {
+                    "date": "2025-11-26",
+                    "weight": 30,
+                    "reps": 12
+                },
+                {
+                    "date": "2025-12-03",
+                    "weight": 35,
+                    "reps": 12
+                },
+                {
+                    "date": "2025-12-10",
+                    "weight": 40,
+                    "reps": 12
+                },
+                {
+                    "date": "2025-12-15",
+                    "weight": 45,
+                    "reps": 13
+                },
+                {
+                    "date": "2025-12-18",
+                    "weight": 50,
+                    "reps": 10
+                },
+                {
+                    "date": "2025-12-22",
+                    "weight": 55,
+                    "reps": 11
+                },
+                {
+                    "date": "2026-01-08",
+                    "weight": 55,
+                    "reps": 7
+                },
+                {
+                    "date": "2026-01-12",
+                    "weight": 50,
+                    "reps": 9
+                },
+                {
+                    "date": "2026-01-19",
+                    "weight": 45,
+                    "reps": 12,
+                    "note": ""
+                },
+                {
+                    "date": "2026-01-22",
+                    "weight": 40,
+                    "reps": 12,
+                    "note": "Deload"
+                },
+                {
+                    "date": "2026-01-26",
+                    "weight": 45,
+                    "reps": 12,
+                    "note": ""
+                },
+                {
+                    "date": "2026-01-29",
+                    "weight": 47.5,
+                    "reps": 8,
+                    "note": "Am Ende vom Training"
+                },
+                {
+                    "date": "2026-02-02",
+                    "weight": 50,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-05",
+                    "weight": 50,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-12",
+                    "weight": 52.5,
+                    "reps": 8,
+                    "note": "Sitz 8, rudern 8"
+                },
+                {
+                    "date": "2026-02-16",
+                    "weight": 50,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-19",
+                    "weight": 52.5,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-02",
+                    "weight": 57.5,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-05",
+                    "weight": 52.5,
+                    "reps": 9,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-09",
+                    "weight": 55,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-12",
+                    "weight": 57.5,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-16",
+                    "weight": 60,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-26",
+                    "weight": 62.5,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-01",
+                    "weight": 62.5,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-07",
+                    "weight": 65,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-21",
+                    "weight": 67.5,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-29",
+                    "weight": 67.5,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-04",
+                    "weight": 67.5,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-12",
+                    "weight": 67.5,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-18",
+                    "weight": 67.5,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-06-04",
+                    "weight": 67.5,
+                    "reps": 8,
+                    "note": ""
+                }
+            ],
+            "groupId": "1771967411282",
+            "order": 2
+        },
+        {
+            "id": "1764168257070",
+            "name": "Beinbeuger",
+            "entries": [
+                {
+                    "date": "2025-11-26",
+                    "weight": 10,
+                    "reps": 8
+                },
+                {
+                    "date": "2025-12-03",
+                    "weight": 20,
+                    "reps": 12
+                },
+                {
+                    "date": "2025-12-10",
+                    "weight": 25,
+                    "reps": 12
+                },
+                {
+                    "date": "2025-12-15",
+                    "weight": 30,
+                    "reps": 12
+                },
+                {
+                    "date": "2025-12-18",
+                    "weight": 35,
+                    "reps": 11
+                },
+                {
+                    "date": "2025-12-22",
+                    "weight": 40,
+                    "reps": 7
+                },
+                {
+                    "date": "2026-01-05",
+                    "weight": 40,
+                    "reps": 7
+                },
+                {
+                    "date": "2026-01-08",
+                    "weight": 40,
+                    "reps": 9
+                },
+                {
+                    "date": "2026-01-12",
+                    "weight": 40,
+                    "reps": 9
+                },
+                {
+                    "date": "2026-01-19",
+                    "weight": 42.5,
+                    "reps": 5,
+                    "note": ""
+                },
+                {
+                    "date": "2026-01-22",
+                    "weight": 42.5,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-01-26",
+                    "weight": 45,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-01-29",
+                    "weight": 45,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-02",
+                    "weight": 45,
+                    "reps": 5,
+                    "note": "Weniger. Bei vllt 35"
+                },
+                {
+                    "date": "2026-02-05",
+                    "weight": 35,
+                    "reps": 9,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-09",
+                    "weight": 37.5,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-12",
+                    "weight": 40,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-16",
+                    "weight": 42.5,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-19",
+                    "weight": 42.5,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-02",
+                    "weight": 42.5,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-05",
+                    "weight": 42.5,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-12",
+                    "weight": 42.5,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-18",
+                    "weight": 40,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-01",
+                    "weight": 42.5,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-07",
+                    "weight": 45,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-29",
+                    "weight": 47.5,
+                    "reps": 5,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-04",
+                    "weight": 50,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-12",
+                    "weight": 52.5,
+                    "reps": 5,
+                    "note": ""
+                },
+                {
+                    "date": "2026-06-04",
+                    "weight": 50,
+                    "reps": 7,
+                    "note": ""
+                }
+            ],
+            "groupId": "1771967411282",
+            "order": 3
+        },
+        {
+            "id": "1764169219745",
+            "name": "Beinpresse",
+            "entries": [
+                {
+                    "date": "2025-11-26",
+                    "weight": 80,
+                    "reps": 12
+                },
+                {
+                    "date": "2025-12-03",
+                    "weight": 90,
+                    "reps": 12
+                },
+                {
+                    "date": "2025-12-10",
+                    "weight": 100,
+                    "reps": 12
+                },
+                {
+                    "date": "2025-12-15",
+                    "weight": 110,
+                    "reps": 12
+                },
+                {
+                    "date": "2025-12-18",
+                    "weight": 120,
+                    "reps": 10
+                },
+                {
+                    "date": "2025-12-22",
+                    "weight": 130,
+                    "reps": 12
+                },
+                {
+                    "date": "2026-01-05",
+                    "weight": 70,
+                    "reps": 10
+                },
+                {
+                    "date": "2026-01-12",
+                    "weight": 80,
+                    "reps": 10
+                },
+                {
+                    "date": "2026-01-19",
+                    "weight": 80,
+                    "reps": 10,
+                    "note": "2 schlitten, 4 Füße"
+                },
+                {
+                    "date": "2026-01-22",
+                    "weight": 80,
+                    "reps": 12,
+                    "note": "Schlitten 2, Beine 5"
+                },
+                {
+                    "date": "2026-01-26",
+                    "weight": 40,
+                    "reps": 10,
+                    "note": "Schlitten 1, Beine 5"
+                },
+                {
+                    "date": "2026-01-29",
+                    "weight": 40,
+                    "reps": 12,
+                    "note": "Schlitten 1, Stufe: Strich zwischen 6,7"
+                },
+                {
+                    "date": "2026-02-02",
+                    "weight": 40,
+                    "reps": 12,
+                    "note": "Strich zwischen 6 und 7"
+                },
+                {
+                    "date": "2026-02-05",
+                    "weight": 40,
+                    "reps": 10,
+                    "note": "Stufe zwischen 7 und 8"
+                },
+                {
+                    "date": "2026-02-09",
+                    "weight": 40,
+                    "reps": 10,
+                    "note": "max."
+                },
+                {
+                    "date": "2026-02-12",
+                    "weight": 40,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-16",
+                    "weight": 40,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-19",
+                    "weight": 40,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-02",
+                    "weight": 40,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-05",
+                    "weight": 40,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-09",
+                    "weight": 40,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-12",
+                    "weight": 40,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-18",
+                    "weight": 40,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-07",
+                    "weight": 40,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-16",
+                    "weight": 40,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-21",
+                    "weight": 40,
+                    "reps": 10,
+                    "note": ""
+                }
+            ],
+            "groupId": "1771967411282",
+            "order": 0
+        },
+        {
+            "id": "1764169799388",
+            "name": "Beinstrecker",
+            "entries": [
+                {
+                    "date": "2025-11-26",
+                    "weight": 15,
+                    "reps": 12
+                },
+                {
+                    "date": "2025-12-03",
+                    "weight": 20,
+                    "reps": 12
+                },
+                {
+                    "date": "2025-12-10",
+                    "weight": 50,
+                    "reps": 12
+                },
+                {
+                    "date": "2025-12-15",
+                    "weight": 55,
+                    "reps": 12
+                },
+                {
+                    "date": "2025-12-18",
+                    "weight": 60,
+                    "reps": 10
+                },
+                {
+                    "date": "2025-12-22",
+                    "weight": 65,
+                    "reps": 10
+                },
+                {
+                    "date": "2026-01-05",
+                    "weight": 65,
+                    "reps": 10
+                },
+                {
+                    "date": "2026-01-08",
+                    "weight": 70,
+                    "reps": 10
+                },
+                {
+                    "date": "2026-01-12",
+                    "weight": 72.5,
+                    "reps": 9
+                },
+                {
+                    "date": "2026-01-19",
+                    "weight": 72.5,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-01-22",
+                    "weight": 75,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-01-26",
+                    "weight": 75,
+                    "reps": 9,
+                    "note": ""
+                },
+                {
+                    "date": "2026-01-29",
+                    "weight": 77.5,
+                    "reps": 9,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-02",
+                    "weight": 80,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-05",
+                    "weight": 80,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-09",
+                    "weight": 82.5,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-12",
+                    "weight": 82.5,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-16",
+                    "weight": 85,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-19",
+                    "weight": 85,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-02",
+                    "weight": 85,
+                    "reps": 5,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-05",
+                    "weight": 80,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-09",
+                    "weight": 85,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-12",
+                    "weight": 85,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-26",
+                    "weight": 87.5,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-01",
+                    "weight": 90,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-07",
+                    "weight": 92.5,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-16",
+                    "weight": 95,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-21",
+                    "weight": 95,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-29",
+                    "weight": 95,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-04",
+                    "weight": 97.5,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-12",
+                    "weight": 95,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-06-04",
+                    "weight": 97.5,
+                    "reps": 7,
+                    "note": ""
+                }
+            ],
+            "groupId": "1771967411282",
+            "order": 5
+        },
+        {
+            "id": "1764170313566",
+            "name": "Klimmzüge",
+            "entries": [
+                {
+                    "date": "2025-11-26",
+                    "weight": -7,
+                    "reps": 9
+                },
+                {
+                    "date": "2025-12-03",
+                    "weight": 0,
+                    "reps": 6
+                },
+                {
+                    "date": "2025-12-10",
+                    "weight": 0,
+                    "reps": 5
+                },
+                {
+                    "date": "2025-12-15",
+                    "weight": 0,
+                    "reps": 5
+                },
+                {
+                    "date": "2025-12-18",
+                    "weight": -7,
+                    "reps": 7
+                },
+                {
+                    "date": "2025-12-22",
+                    "weight": -7,
+                    "reps": 7
+                },
+                {
+                    "date": "2026-01-08",
+                    "weight": -7,
+                    "reps": 8
+                },
+                {
+                    "date": "2026-01-12",
+                    "weight": -7,
+                    "reps": 8
+                },
+                {
+                    "date": "2026-01-19",
+                    "weight": -14,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-01-22",
+                    "weight": -14,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-01-29",
+                    "weight": 0,
+                    "reps": 5,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-02",
+                    "weight": -7,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-05",
+                    "weight": -7,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-09",
+                    "weight": 0,
+                    "reps": 5,
+                    "note": "Hätte6seinkönnen"
+                },
+                {
+                    "date": "2026-02-12",
+                    "weight": 0,
+                    "reps": 5,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-16",
+                    "weight": 0,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-19",
+                    "weight": 0,
+                    "reps": 6,
+                    "note": "Eng gegriffen"
+                },
+                {
+                    "date": "2026-03-02",
+                    "weight": 0,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-05",
+                    "weight": 0,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-09",
+                    "weight": 0,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-12",
+                    "weight": 0,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-16",
+                    "weight": 0,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-26",
+                    "weight": 0,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-01",
+                    "weight": 0,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-07",
+                    "weight": 0,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-16",
+                    "weight": 0,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-21",
+                    "weight": 0,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-29",
+                    "weight": 0,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-04",
+                    "weight": 0,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-12",
+                    "weight": 0,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-06-04",
+                    "weight": 0,
+                    "reps": 6,
+                    "note": ""
+                }
+            ],
+            "groupId": "1771967411282",
+            "order": 4
+        },
+        {
+            "id": "1764171911917",
+            "name": "Bizeps",
+            "entries": [
+                {
+                    "date": "2025-11-26",
+                    "weight": 30,
+                    "reps": 8
+                },
+                {
+                    "date": "2025-12-03",
+                    "weight": 35,
+                    "reps": 8
+                },
+                {
+                    "date": "2025-12-10",
+                    "weight": 37.5,
+                    "reps": 10
+                },
+                {
+                    "date": "2025-12-15",
+                    "weight": 40,
+                    "reps": 10
+                },
+                {
+                    "date": "2025-12-18",
+                    "weight": 42.5,
+                    "reps": 8
+                },
+                {
+                    "date": "2025-12-22",
+                    "weight": 45,
+                    "reps": 8
+                },
+                {
+                    "date": "2026-01-05",
+                    "weight": 45,
+                    "reps": 7
+                },
+                {
+                    "date": "2026-01-08",
+                    "weight": 45,
+                    "reps": 9
+                },
+                {
+                    "date": "2026-01-12",
+                    "weight": 50,
+                    "reps": 5
+                },
+                {
+                    "date": "2026-01-22",
+                    "weight": 50,
+                    "reps": 5,
+                    "note": ""
+                },
+                {
+                    "date": "2026-01-26",
+                    "weight": 47.5,
+                    "reps": 9,
+                    "note": ""
+                },
+                {
+                    "date": "2026-01-29",
+                    "weight": 50,
+                    "reps": 8,
+                    "note": "Schwer"
+                },
+                {
+                    "date": "2026-02-02",
+                    "weight": 50,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-09",
+                    "weight": 50,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-12",
+                    "weight": 52.5,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-16",
+                    "weight": 52.5,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-19",
+                    "weight": 52.5,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-02",
+                    "weight": 52.5,
+                    "reps": 4,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-09",
+                    "weight": 52.5,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-12",
+                    "weight": 52.5,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-26",
+                    "weight": 52.5,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-01",
+                    "weight": 55,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-07",
+                    "weight": 55,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-21",
+                    "weight": 57.5,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-04",
+                    "weight": 60,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-12",
+                    "weight": 62.5,
+                    "reps": 4,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-18",
+                    "weight": 65,
+                    "reps": 4,
+                    "note": ""
+                }
+            ],
+            "groupId": "1771967411282",
+            "order": 6
+        },
+        {
+            "id": "1764261648997",
+            "name": "Butterfly",
+            "entries": [
+                {
+                    "date": "2025-11-27",
+                    "weight": 50,
+                    "reps": 9
+                },
+                {
+                    "date": "2025-12-11",
+                    "weight": 55,
+                    "reps": 9
+                },
+                {
+                    "date": "2025-12-17",
+                    "weight": 60,
+                    "reps": 8
+                },
+                {
+                    "date": "2026-01-06",
+                    "weight": 60,
+                    "reps": 8
+                },
+                {
+                    "date": "2026-01-14",
+                    "weight": 65,
+                    "reps": 7
+                },
+                {
+                    "date": "2026-01-20",
+                    "weight": 65,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-01-27",
+                    "weight": 65,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-03",
+                    "weight": 60,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-10",
+                    "weight": 62.5,
+                    "reps": 9,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-03",
+                    "weight": 65,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-10",
+                    "weight": 65,
+                    "reps": 9,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-16",
+                    "weight": 67.5,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-24",
+                    "weight": 70,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-30",
+                    "weight": 70,
+                    "reps": 7.5,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-14",
+                    "weight": 72.5,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-20",
+                    "weight": 72.5,
+                    "reps": 4,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-23",
+                    "weight": 75,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-28",
+                    "weight": 77.5,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-05",
+                    "weight": 80,
+                    "reps": 5,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-11",
+                    "weight": 82.5,
+                    "reps": 4,
+                    "note": ""
+                },
+                {
+                    "date": "2026-06-03",
+                    "weight": 82.5,
+                    "reps": 4,
+                    "note": ""
+                }
+            ],
+            "groupId": "1771967450043",
+            "order": 5
+        },
+        {
+            "id": "1764262250113",
+            "name": "Bauch",
+            "entries": [
+                {
+                    "date": "2025-11-27",
+                    "weight": 0,
+                    "reps": 10
+                },
+                {
+                    "date": "2025-12-11",
+                    "weight": 10,
+                    "reps": 12
+                },
+                {
+                    "date": "2025-12-17",
+                    "weight": 0,
+                    "reps": 12
+                },
+                {
+                    "date": "2026-01-06",
+                    "weight": 10,
+                    "reps": 12
+                },
+                {
+                    "date": "2026-01-10",
+                    "weight": 15,
+                    "reps": 12
+                },
+                {
+                    "date": "2026-01-14",
+                    "weight": 20,
+                    "reps": 10
+                },
+                {
+                    "date": "2026-01-27",
+                    "weight": 0,
+                    "reps": 10,
+                    "note": "Schräger: -10%"
+                },
+                {
+                    "date": "2026-02-10",
+                    "weight": 0,
+                    "reps": 12,
+                    "note": "-10%"
+                },
+                {
+                    "date": "2026-03-03",
+                    "weight": 10,
+                    "reps": 10,
+                    "note": "-10%"
+                },
+                {
+                    "date": "2026-03-10",
+                    "weight": 8,
+                    "reps": 12,
+                    "note": "Mit Ball"
+                },
+                {
+                    "date": "2026-03-18",
+                    "weight": 10,
+                    "reps": 11,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-24",
+                    "weight": 15,
+                    "reps": 12,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-30",
+                    "weight": 15,
+                    "reps": 12,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-14",
+                    "weight": 0,
+                    "reps": 10,
+                    "note": "-20%"
+                },
+                {
+                    "date": "2026-04-20",
+                    "weight": 5,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-23",
+                    "weight": 5,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-28",
+                    "weight": 5,
+                    "reps": 10,
+                    "note": "-20%"
+                },
+                {
+                    "date": "2026-05-05",
+                    "weight": 5,
+                    "reps": 12,
+                    "note": "unterer Bauch auf -10%"
+                },
+                {
+                    "date": "2026-05-11",
+                    "weight": 10,
+                    "reps": 8,
+                    "note": "-20%"
+                },
+                {
+                    "date": "2026-05-18",
+                    "weight": 15,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-06-03",
+                    "weight": 15,
+                    "reps": 10,
+                    "note": ""
+                }
+            ],
+            "groupId": "1771967444577",
+            "order": 2
+        },
+        {
+            "id": "1764262763264",
+            "name": "Seitliche Schulter",
+            "entries": [
+                {
+                    "date": "2025-11-27",
+                    "weight": 30,
+                    "reps": 10
+                },
+                {
+                    "date": "2025-12-11",
+                    "weight": 35,
+                    "reps": 8
+                },
+                {
+                    "date": "2025-12-17",
+                    "weight": 37.5,
+                    "reps": 5
+                },
+                {
+                    "date": "2026-01-06",
+                    "weight": 35,
+                    "reps": 8
+                },
+                {
+                    "date": "2026-01-10",
+                    "weight": 35,
+                    "reps": 12
+                },
+                {
+                    "date": "2026-01-14",
+                    "weight": 37.5,
+                    "reps": 10
+                },
+                {
+                    "date": "2026-01-20",
+                    "weight": 40,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-01-27",
+                    "weight": 40,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-03",
+                    "weight": 42.5,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-13",
+                    "weight": 42.5,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-17",
+                    "weight": 45,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-03",
+                    "weight": 45,
+                    "reps": 5,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-10",
+                    "weight": 45,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-16",
+                    "weight": 45,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-30",
+                    "weight": 45,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-14",
+                    "weight": 45,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-20",
+                    "weight": 47.5,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-23",
+                    "weight": 50,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-11",
+                    "weight": 50,
+                    "reps": 6,
+                    "note": "6 Reps, + 2 umgriff"
+                },
+                {
+                    "date": "2026-06-03",
+                    "weight": 50,
+                    "reps": 7,
+                    "note": ""
+                }
+            ],
+            "groupId": "1771967444577",
+            "order": 0
+        },
+        {
+            "id": "1764263350392",
+            "name": "Schräge Brustpresse",
+            "entries": [
+                {
+                    "date": "2025-11-27",
+                    "weight": 20,
+                    "reps": 10
+                },
+                {
+                    "date": "2026-01-06",
+                    "weight": 40,
+                    "reps": 6
+                }
+            ],
+            "groupId": "1771967444577",
+            "order": 3
+        },
+        {
+            "id": "1764263531136",
+            "name": "Schulterpresse",
+            "entries": [
+                {
+                    "date": "2025-12-11",
+                    "weight": 25,
+                    "reps": 8
+                },
+                {
+                    "date": "2025-12-17",
+                    "weight": 27.5,
+                    "reps": 8
+                },
+                {
+                    "date": "2026-01-10",
+                    "weight": 30,
+                    "reps": 8
+                },
+                {
+                    "date": "2026-01-14",
+                    "weight": 25,
+                    "reps": 8
+                },
+                {
+                    "date": "2026-01-20",
+                    "weight": 30,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-01-27",
+                    "weight": 32.5,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-10",
+                    "weight": 35,
+                    "reps": 8,
+                    "note": ""
+                }
+            ],
+            "groupId": "1771967450043",
+            "order": 1
+        },
+        {
+            "id": "1764264419577",
+            "name": "Trizeptsmaschine",
+            "entries": [
+                {
+                    "date": "2025-11-27",
+                    "weight": 50,
+                    "reps": 11
+                },
+                {
+                    "date": "2025-12-11",
+                    "weight": 55,
+                    "reps": 11
+                },
+                {
+                    "date": "2025-12-17",
+                    "weight": 60,
+                    "reps": 10
+                },
+                {
+                    "date": "2026-01-14",
+                    "weight": 62.5,
+                    "reps": 12
+                },
+                {
+                    "date": "2026-01-20",
+                    "weight": 65,
+                    "reps": 12,
+                    "note": ""
+                },
+                {
+                    "date": "2026-01-27",
+                    "weight": 65,
+                    "reps": 11,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-03",
+                    "weight": 70,
+                    "reps": 10,
+                    "note": ""
+                }
+            ],
+            "groupId": "1771967450043",
+            "order": 2
+        },
+        {
+            "id": "1766405898061",
+            "name": "Waden",
+            "entries": [
+                {
+                    "date": "2025-12-22",
+                    "weight": 80,
+                    "reps": 8
+                },
+                {
+                    "date": "2026-01-05",
+                    "weight": 90,
+                    "reps": 15
+                },
+                {
+                    "date": "2026-01-08",
+                    "weight": 100,
+                    "reps": 13
+                },
+                {
+                    "date": "2026-01-12",
+                    "weight": 110,
+                    "reps": 12
+                },
+                {
+                    "date": "2026-01-19",
+                    "weight": 120,
+                    "reps": 12,
+                    "note": ""
+                },
+                {
+                    "date": "2026-01-22",
+                    "weight": 130,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-01-26",
+                    "weight": 130,
+                    "reps": 12,
+                    "note": "Schlitten eher 9, 8 vllt manchmal"
+                },
+                {
+                    "date": "2026-01-29",
+                    "weight": 140,
+                    "reps": 12,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-02",
+                    "weight": 150,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-05",
+                    "weight": 160,
+                    "reps": 9,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-09",
+                    "weight": 160,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-16",
+                    "weight": 170,
+                    "reps": 9,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-19",
+                    "weight": 180,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-05",
+                    "weight": 180,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-09",
+                    "weight": 180,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-12",
+                    "weight": 180,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-18",
+                    "weight": 190,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-26",
+                    "weight": 190,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-01",
+                    "weight": 190,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-07",
+                    "weight": 190,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-16",
+                    "weight": 190,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-21",
+                    "weight": 190,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-29",
+                    "weight": 190,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-04",
+                    "weight": 190,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-06-04",
+                    "weight": 190,
+                    "reps": 10,
+                    "note": ""
+                }
+            ],
+            "groupId": "1771967411282",
+            "order": 1
+        },
+        {
+            "id": "1767635914381",
+            "name": "Latzug",
+            "entries": [
+                {
+                    "date": "2026-01-05",
+                    "weight": 80,
+                    "reps": 8
+                },
+                {
+                    "date": "2026-01-26",
+                    "weight": 70,
+                    "reps": 10,
+                    "note": ""
+                }
+            ],
+            "groupId": "1771967450043",
+            "order": 6
+        },
+        {
+            "id": "1768930449906",
+            "name": "Bauchmaschine",
+            "entries": [
+                {
+                    "date": "2026-01-20",
+                    "weight": 40,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-02-03",
+                    "weight": 40,
+                    "reps": 10,
+                    "note": ""
+                }
+            ],
+            "groupId": "1771967450043",
+            "order": 3
+        },
+        {
+            "id": "1771009316011",
+            "name": "Flyes",
+            "entries": [
+                {
+                    "date": "2026-02-17",
+                    "weight": 30,
+                    "reps": 8,
+                    "note": ""
+                }
+            ],
+            "groupId": "1771967444577",
+            "order": 1
+        },
+        {
+            "id": "1771010626460",
+            "name": "Dips",
+            "entries": [
+                {
+                    "date": "2026-02-17",
+                    "weight": -7,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-03",
+                    "weight": 0,
+                    "reps": 4,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-16",
+                    "weight": 0,
+                    "reps": 4,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-24",
+                    "weight": 0,
+                    "reps": 4,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-30",
+                    "weight": 0,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-14",
+                    "weight": 0,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-20",
+                    "weight": 0,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-23",
+                    "weight": 0,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-28",
+                    "weight": 0,
+                    "reps": 6,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-05",
+                    "weight": 0,
+                    "reps": 7,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-11",
+                    "weight": 0,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-18",
+                    "weight": 0,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-06-03",
+                    "weight": 0,
+                    "reps": 8,
+                    "note": ""
+                }
+            ],
+            "groupId": "1771967444577",
+            "order": 5
+        },
+        {
+            "id": "1771967698973",
+            "name": "Unterer Rücken",
+            "entries": [
+                {
+                    "date": "2026-03-03",
+                    "weight": 65,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-03-10",
+                    "weight": 65,
+                    "reps": 10,
+                    "note": ""
+                }
+            ],
+            "groupId": "1771967444577",
+            "order": 4
+        },
+        {
+            "id": "1774545172616",
+            "name": "Leg Curl Sitzend",
+            "entries": [
+                {
+                    "date": "2026-03-26",
+                    "weight": 40,
+                    "reps": 15,
+                    "note": ""
+                },
+                {
+                    "date": "2026-04-16",
+                    "weight": 52.5,
+                    "reps": 8,
+                    "note": ""
+                }
+            ],
+            "groupId": "1771967450043",
+            "order": 0
+        },
+        {
+            "id": "1777393261997",
+            "name": "Freier Rückenstrecker",
+            "entries": [
+                {
+                    "date": "2026-04-28",
+                    "weight": 0,
+                    "reps": 8,
+                    "note": ""
+                },
+                {
+                    "date": "2026-05-11",
+                    "weight": 10,
+                    "reps": 10,
+                    "note": "Stufe 8"
+                },
+                {
+                    "date": "2026-05-18",
+                    "weight": 10,
+                    "reps": 10,
+                    "note": ""
+                },
+                {
+                    "date": "2026-06-03",
+                    "weight": 15,
+                    "reps": 10,
+                    "note": ""
+                }
+            ],
+            "groupId": "1771967450043",
+            "order": 4
+        }
+    ],
+    "groups": [
+        {
+            "id": "1771967411282",
+            "name": "Legs/Pull",
+            "order": 0
+        },
+        {
+            "id": "1771967444577",
+            "name": "Push",
+            "order": 1
+        },
+        {
+            "id": "1771967450043",
+            "name": "Rest",
+            "order": 2
+        }
+    ],
+    "settings": {
+        "exerciseViewMode": "topSet",
+        "setsDisplayMode": "discrete"
+    }
+}
