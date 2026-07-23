@@ -1,5 +1,6 @@
 package made.simple.replog.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -17,6 +18,9 @@ public class Entry {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
 
     private LocalDate date;
 
@@ -78,5 +82,9 @@ public class Entry {
 
     public void setExercise(Exercise exercise) {
         this.exercise = exercise;
+    }
+
+    public void setUserId(UUID currentUserId) {
+        this.userId = currentUserId;
     }
 }

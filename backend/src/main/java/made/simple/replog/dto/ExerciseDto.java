@@ -7,5 +7,6 @@ public record ExerciseDto(
     UUID id,
     String name,
     Integer order,
-    List<EntryDto> entries
+    List<EntryDto> entries,
+    UUID groupId
 ) {}

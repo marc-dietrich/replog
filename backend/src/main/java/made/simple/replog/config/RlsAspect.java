@@ -1,0 +1,41 @@
+package made.simple.replog.config;
+
+import made.simple.replog.security.CurrentUserProvider;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Before;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+
+@Aspect
+@Component
+@Order(1)
+public class RlsAspect {
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    private final CurrentUserProvider currentUserProvider;
+
+    public RlsAspect(CurrentUserProvider currentUserProvider) {
+        this.currentUserProvider = currentUserProvider;
+    }
+
+    @Before("execution(* made.simple.replog.service..*(..))")
+    public void setRlsContext() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            System.out.println("RlsAspect: KEIN Auth-Context gefunden!");
+            return;
+        }
+
+        String userId = currentUserProvider.getCurrentUserId().toString();
+        System.out.println("RlsAspect: setze app.current_user_id = " + userId);
+
+        entityManager.createNativeQuery("SELECT set_config('app.current_user_id', :userId, true)")
+                .setParameter("userId", userId)
+                .getSingleResult();
+    }
+}

@@ -1,11 +1,25 @@
 spring:
   application:
     name: replog
+
   datasource:
-      url: jdbc:postgresql://localhost:15432/gymdb
-      username: gym
-      password: gym
+    url: jdbc:postgresql://localhost:15432/gymdb
+    username: replog_app
+    password: replog_app
+
+  flyway:
+    url: jdbc:postgresql://localhost:15432/gymdb
+    user: gym
+    password: gym
+    locations: classpath:db/migration
+
   jpa:
     hibernate:
-      ddl-auto: update   # todo: after prototyping, switch to Flyway later
+      ddl-auto: validate
     show-sql: true
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8081/realms/replog

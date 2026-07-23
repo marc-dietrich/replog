@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <title>replog API Tester</title>
+    <style>
+        :root {
+            --bg: #0f1115;
+            --panel: #171a21;
+            --border: #2a2f3a;
+            --text: #e6e8eb;
+            --muted: #8b93a1;
+            --accent: #5b8cff;
+            --accent-hover: #4574f0;
+            --ok: #3ecf8e;
+            --err: #ff6b6b;
+            --warn: #f5a623;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 24px;
+        }
+
+        h1 {
+            font-size: 20px;
+            margin: 0 0 4px;
+        }
+
+        .sub {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .base-url {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .base-url input {
+            flex: 1;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .card.auth {
+            border-color: var(--warn);
+        }
+
+        .card h2 {
+            font-size: 14px;
+            margin: 0 0 12px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card.auth h2 {
+            color: var(--warn);
+        }
+
+        .method {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: var(--accent);
+            color: #0b0d11;
+        }
+
+        .method.get {
+            background: var(--ok);
+        }
+
+        .method.delete {
+            background: var(--err);
+        }
+
+        label {
+            display: block;
+            font-size: 11px;
+            color: var(--muted);
+            margin: 8px 0 3px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 7px 9px;
+            background: #0f1115;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 13px;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        button {
+            margin-top: 12px;
+            width: 100%;
+            padding: 9px;
+            background: var(--accent);
+            border: none;
+            border-radius: 6px;
+            color: #0b0d11;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: var(--accent-hover);
+        }
+
+        button.get-btn {
+            background: var(--ok);
+        }
+
+        button.get-btn:hover {
+            filter: brightness(1.1);
+        }
+
+        button.delete-btn {
+            background: var(--err);
+        }
+
+        button.delete-btn:hover {
+            filter: brightness(1.1);
+        }
+
+        button.auth-btn {
+            background: var(--warn);
+        }
+
+        button.auth-btn:hover {
+            filter: brightness(1.1);
+        }
+
+        button.logout-btn {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .token-status {
+            margin-top: 10px;
+            font-size: 11px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            background: #0b0d11;
+            border: 1px solid var(--border);
+            word-break: break-all;
+        }
+
+        .token-status.logged-in {
+            color: var(--ok);
+            border-color: var(--ok);
+        }
+
+        .token-status.logged-out {
+            color: var(--muted);
+        }
+
+        .row2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .result-section {
+            margin-top: 28px;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .result-header h2 {
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .status-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: var(--border);
+        }
+
+        .status-badge.ok {
+            background: var(--ok);
+            color: #0b0d11;
+        }
+
+        .status-badge.err {
+            background: var(--err);
+            color: #0b0d11;
+        }
+
+        pre {
+            background: #0b0d11;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 12px;
+            line-height: 1.5;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .hint {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 6px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>replog API Tester</h1>
+    <div class="sub">UI zum Testen der REST-Endpoints inkl. Keycloak-Login (Password-Grant, nur zum Testen!) und
+        Deletes.</div>
+
+    <div class="base-url">
+        <div style="flex:1">
+            <label>Backend Base URL</label>
+            <input id="baseUrl" value="http://localhost:8080">
+        </div>
+    </div>
+
+    <div class="grid">
+
+        <!-- AUTH -->
+        <div class="card auth">
+            <h2>🔑 Login (Keycloak)</h2>
+            <label>Keycloak URL</label>
+            <input id="kc-url" value="http://localhost:8085">
+            <div class="row2">
+                <div>
+                    <label>Realm</label>
+                    <input id="kc-realm" value="replog">
+                </div>
+                <div>
+                    <label>Client ID</label>
+                    <input id="kc-clientId" value="replog-frontend">
+                </div>
+            </div>
+            <div class="row2">
+                <div>
+                    <label>Username</label>
+                    <input id="kc-username" placeholder="marc">
+                </div>
+                <div>
+                    <label>Password</label>
+                    <input id="kc-password" type="password">
+                </div>
+            </div>
+            <button class="auth-btn" onclick="login()">Login</button>
+            <button class="logout-btn" onclick="logout()">Logout / Token löschen</button>
+            <div id="tokenStatus" class="token-status logged-out">Nicht eingeloggt — Requests laufen ohne Token
+                (führt zu 401, sobald Security aktiv ist).</div>
+        </div>
+
+        <!-- Create Group -->
+        <div class="card">
+            <h2><span class="method">POST</span> /api/groups</h2>
+            <label>Name</label>
+            <input id="grp-name" placeholder="z.B. Legs/Pull">
+            <label>Order</label>
+            <input id="grp-order" type="number" value="0">
+            <button onclick="createGroup()">Group erstellen</button>
+        </div>
+
+        <!-- Create Exercise -->
+        <div class="card">
+            <h2><span class="method">POST</span> /api/exercises</h2>
+            <label>Name</label>
+            <input id="ex-name" placeholder="z.B. Beinpresse">
+            <label>Order</label>
+            <input id="ex-order" type="number" value="0">
+            <label>Group ID (optional)</label>
+            <input id="ex-groupId" placeholder="leer lassen = ungrouped">
+            <button onclick="createExercise()">Exercise erstellen</button>
+        </div>
+
+        <!-- Create Entry -->
+        <div class="card">
+            <h2><span class="method">POST</span> /api/entries</h2>
+            <label>Exercise ID</label>
+            <input id="en-exerciseId" placeholder="UUID der Exercise">
+            <label>Date</label>
+            <input id="en-date" type="date">
+            <label>Weight (kg)</label>
+            <input id="en-weight" type="number" step="0.5" value="20">
+            <label>Reps</label>
+            <input id="en-reps" type="number" value="10">
+            <label>Note (optional)</label>
+            <input id="en-note" placeholder="">
+            <button onclick="createEntry()">Entry erstellen</button>
+        </div>
+
+        <!-- GET groups/full -->
+        <div class="card">
+            <h2><span class="method get">GET</span> /api/groups/all</h2>
+            <div class="hint">Alle Groups inkl. verschachtelter Exercises &amp; Entries.</div>
+            <button class="get-btn" onclick="getGroupsFull()">Laden</button>
+        </div>
+
+        <!-- GET exercises/ungrouped -->
+        <div class="card">
+            <h2><span class="method get">GET</span> /api/exercises/ungrouped</h2>
+            <div class="hint">Exercises ohne Group, inkl. ihrer Entries.</div>
+            <button class="get-btn" onclick="getUngrouped()">Laden</button>
+        </div>
+
+        <!-- DELETE Group -->
+        <div class="card">
+            <h2><span class="method delete">DELETE</span> /api/groups/{id}</h2>
+            <label>Group ID</label>
+            <input id="del-groupId" placeholder="UUID der Group">
+            <div class="hint">Exercises dieser Group werden NICHT gelöscht, sondern "ungrouped".</div>
+            <button class="delete-btn" onclick="deleteGroup()">Group löschen</button>
+        </div>
+
+        <!-- DELETE Exercise -->
+        <div class="card">
+            <h2><span class="method delete">DELETE</span> /api/exercises/{id}</h2>
+            <label>Exercise ID</label>
+            <input id="del-exerciseId" placeholder="UUID der Exercise">
+            <div class="hint">Löscht auch alle zugehörigen Entries (Cascade).</div>
+            <button class="delete-btn" onclick="deleteExercise()">Exercise löschen</button>
+        </div>
+
+        <!-- DELETE Entry -->
+        <div class="card">
+            <h2><span class="method delete">DELETE</span> /api/entries/{id}</h2>
+            <label>Entry ID</label>
+            <input id="del-entryId" placeholder="UUID des Entry">
+            <button class="delete-btn" onclick="deleteEntry()">Entry löschen</button>
+        </div>
+
+    </div>
+
+    <div class="result-section">
+        <div class="result-header">
+            <h2>Response</h2>
+            <span id="statusBadge" class="status-badge">–</span>
+        </div>
+        <pre id="result">Noch keine Anfrage gestellt.</pre>
+    </div>
+
+    <script>
+        const $ = (id) => document.getElementById(id);
+
+        // ---- Token State ----
+        let accessToken = null;
+
+        function updateTokenStatus() {
+            const el = $('tokenStatus');
+            if (accessToken) {
+                el.className = 'token-status logged-in';
+                el.textContent = '✓ Eingeloggt — Token wird bei jedem Request mitgeschickt: ' +
+                    accessToken.slice(0, 24) + '...';
+            } else {
+                el.className = 'token-status logged-out';
+                el.textContent = 'Nicht eingeloggt — Requests laufen ohne Token (führt zu 401, sobald Security aktiv ist).';
+            }
+        }
+
+        async function login() {
+            const kcUrl = $('kc-url').value.replace(/\/$/, '');
+            const realm = $('kc-realm').value;
+            const clientId = $('kc-clientId').value;
+            const username = $('kc-username').value;
+            const password = $('kc-password').value;
+
+            const tokenUrl = `${kcUrl}/realms/${realm}/protocol/openid-connect/token`;
+
+            try {
+                const res = await fetch(tokenUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        client_id: clientId,
+                        grant_type: 'password',
+                        username,
+                        password,
+                    }),
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    accessToken = null;
+                    updateTokenStatus();
+                    setResult(res.status + ' ' + res.statusText, false, data);
+                    return;
+                }
+
+                accessToken = data.access_token;
+                updateTokenStatus();
+                setResult('200 OK (Login)', true, { note: 'Token erhalten und gespeichert (nur im Speicher).', expires_in: data.expires_in });
+            } catch (err) {
+                accessToken = null;
+                updateTokenStatus();
+                setResult('Network Error', false, err.message + '\n\nLäuft Keycloak? CORS/Web-Origins im Client korrekt gesetzt?');
+            }
+        }
+
+        function logout() {
+            accessToken = null;
+            updateTokenStatus();
+            setResult('–', true, 'Token gelöscht.');
+        }
+
+        // ---- Generic Request Helper ----
+        function baseUrl() {
+            return $('baseUrl').value.replace(/\/$/, '');
+        }
+
+        function setResult(status, ok, data) {
+            const badge = $('statusBadge');
+            badge.textContent = status;
+            badge.className = 'status-badge ' + (ok ? 'ok' : 'err');
+            $('result').textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+        }
+
+        async function request(method, path, body) {
+            try {
+                const headers = {};
+                if (body) headers['Content-Type'] = 'application/json';
+                if (accessToken) headers['Authorization'] = 'Bearer ' + accessToken;
+
+                const res = await fetch(baseUrl() + path, {
+                    method,
+                    headers,
+                    body: body ? JSON.stringify(body) : undefined,
+                });
+
+                let data;
+                const text = await res.text();
+                try { data = text ? JSON.parse(text) : {}; } catch { data = text; }
+
+                setResult(res.status + ' ' + res.statusText, res.ok, (text ? data : '(kein Body, z.B. 204 No Content)'));
+                return data;
+            } catch (err) {
+                setResult('Network Error', false, err.message + '\n\nLäuft dein Backend? CORS erlaubt?');
+            }
+        }
+
+        // ---- POST ----
+        function createGroup() {
+            request('POST', '/api/groups', {
+                name: $('grp-name').value,
+                order: Number($('grp-order').value) || 0,
+            });
+        }
+
+        function createExercise() {
+            const groupId = $('ex-groupId').value.trim();
+            request('POST', '/api/exercises', {
+                name: $('ex-name').value,
+                order: Number($('ex-order').value) || 0,
+                groupId: groupId ? groupId : null,
+            });
+        }
+
+        function createEntry() {
+            request('POST', '/api/entries', {
+                exerciseId: $('en-exerciseId').value.trim(),
+                date: $('en-date').value,
+                weight: Number($('en-weight').value),
+                reps: Number($('en-reps').value),
+                note: $('en-note').value,
+            });
+        }
+
+        // ---- GET ----
+        function getGroupsFull() {
+            request('GET', '/api/groups/all');
+        }
+
+        function getUngrouped() {
+            request('GET', '/api/exercises/ungrouped');
+        }
+
+        // ---- DELETE ----
+        function deleteGroup() {
+            const id = $('del-groupId').value.trim();
+            if (!id) return;
+            request('DELETE', `/api/groups/${id}`);
+        }
+
+        function deleteExercise() {
+            const id = $('del-exerciseId').value.trim();
+            if (!id) return;
+            request('DELETE', `/api/exercises/${id}`);
+        }
+
+        function deleteEntry() {
+            const id = $('del-entryId').value.trim();
+            if (!id) return;
+            request('DELETE', `/api/entries/${id}`);
+        }
+
+        // ---- Init ----
+        $('en-date').value = new Date().toISOString().slice(0, 10);
+        updateTokenStatus();
+    </script>
+
+</body>
+
+</html>

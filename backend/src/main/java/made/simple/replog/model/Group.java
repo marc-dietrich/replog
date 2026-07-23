@@ -20,12 +20,15 @@ public class Group {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
+
     private String name;
 
     @Column(name = "sort_order")
     private Integer order;
 
-    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "group")
     private List<Exercise> exercises = new ArrayList<>();
 
     // Getter & Setter unverändert
@@ -59,5 +62,9 @@ public class Group {
 
     public void setExercises(List<Exercise> exercises) {
         this.exercises = exercises;
+    }
+
+    public void setUserId(UUID currentUserId) {
+        this.userId = currentUserId;
     }
 }

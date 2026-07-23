@@ -21,6 +21,9 @@ public class Exercise {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
+
     private String name;
 
     @Column(name = "sort_order")
@@ -73,5 +76,9 @@ public class Exercise {
 
     public void setEntries(List<Entry> entries) {
         this.entries = entries;
+    }
+
+    public void setUserId(UUID currentUserId) {
+        this.userId = currentUserId;
     }
 }

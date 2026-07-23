@@ -25,7 +25,24 @@ services:
       POSTGRES_USER: gym
       POSTGRES_PASSWORD: gym
       POSTGRES_DB: gymdb
+    volumes:
+      - replog-pgdata:/var/lib/postgresql/data
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: replog-keycloak
+    command: start-dev
+    ports:
+      - "8085:8080"
+    restart: unless-stopped
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    volumes:
+      - replog-keycloak-data:/opt/keycloak/data
 
 volumes:
   caddy_data:
   caddy_config:
+  replog-pgdata:
+  replog-keycloak-data:
