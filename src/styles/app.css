@@ -217,3 +217,11 @@
 .app-hidden-input {
 	@apply hidden;
 }
+
+.app-status-msg {
+	@apply px-4 py-12 text-center text-sm text-slate-500;
+}
+
+.app-status-msg--error {
+	@apply text-red-500;
+}

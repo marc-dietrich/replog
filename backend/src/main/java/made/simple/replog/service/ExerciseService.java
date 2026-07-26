@@ -49,8 +49,13 @@ public class ExerciseService {
 
     @Transactional(readOnly = true)
     public List<ExerciseDto> listUngrouped() {
+        return listUngrouped(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExerciseDto> listUngrouped(Integer entriesLimit) {
         return exerciseRepository.findByGroupIsNull().stream()
-                .map(this::toDto)
+                .map(e -> toDto(e, entriesLimit))
                 .toList();
     }
 
@@ -132,7 +137,18 @@ public class ExerciseService {
     }
 
     private ExerciseDto toDto(Exercise exercise) {
-        List<EntryDto> entryDtos = exercise.getEntries().stream()
+        return toDto(exercise, null);
+    }
+
+    private ExerciseDto toDto(Exercise exercise, Integer entriesLimit) {
+        var allEntries = exercise.getEntries().stream()
+                .sorted((a, b) -> b.getDate().compareTo(a.getDate()))
+                .toList();
+        var limitedEntries = (entriesLimit != null && entriesLimit > 0)
+                ? allEntries.stream().limit(entriesLimit).toList()
+                : allEntries;
+
+        List<EntryDto> entryDtos = limitedEntries.stream()
                 .map(e -> new EntryDto(e.getId(), e.getDate(), e.getWeight(), e.getReps(), e.getNote()))
                 .toList();
         UUID groupId = exercise.getGroup() != null ? exercise.getGroup().getId() : null;

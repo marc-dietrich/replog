@@ -33,8 +33,13 @@ public class GroupService {
 
     @Transactional(readOnly = true)
     public List<GroupDto> listAll() {
+        return listAll(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<GroupDto> listAll(Integer entriesLimit) {
         return groupRepository.findAll().stream()
-            .map(this::toDto)
+            .map(g -> toDto(g, entriesLimit))
             .toList();
     }
 
@@ -83,17 +88,29 @@ public class GroupService {
     }
 
     private GroupDto toDto(Group group) {
+        return toDto(group, null);
+    }
+
+    private GroupDto toDto(Group group, Integer entriesLimit) {
         List<ExerciseDto> exerciseDtos = group.getExercises().stream()
-            .map(this::toDto)
+            .map(e -> toDto(e, entriesLimit))
             .toList();
         return new GroupDto(group.getId(), group.getName(), group.getOrder(), exerciseDtos);
     }
 
-    private ExerciseDto toDto(Exercise exercise) {
-        List<EntryDto> entryDtos = exercise.getEntries().stream()
-            .map(this::toDto)
-            .toList();
-        return new ExerciseDto(exercise.getId(), exercise.getName(), exercise.getOrder(), entryDtos, exercise.getGroup() != null ? exercise.getGroup().getId() : null);
+    private ExerciseDto toDto(Exercise exercise, Integer entriesLimit) {
+        var allEntries = exercise.getEntries().stream()
+                .sorted((a, b) -> b.getDate().compareTo(a.getDate()))
+                .toList();
+        var limitedEntries = (entriesLimit != null && entriesLimit > 0)
+                ? allEntries.stream().limit(entriesLimit).toList()
+                : allEntries;
+
+        List<EntryDto> entryDtos = limitedEntries.stream()
+                .map(this::toDto)
+                .toList();
+        return new ExerciseDto(exercise.getId(), exercise.getName(), exercise.getOrder(), entryDtos,
+                exercise.getGroup() != null ? exercise.getGroup().getId() : null);
     }
 
     private EntryDto toDto(Entry entry) {

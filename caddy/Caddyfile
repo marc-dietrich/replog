@@ -1,4 +1,13 @@
 http://gym.made-simple.online {
   encode zstd gzip
-  reverse_proxy gym:80
+
+  # API requests go to the Spring Boot backend
+  handle /api/* {
+    reverse_proxy backend:8080
+  }
+
+  # Everything else is the React frontend
+  handle {
+    reverse_proxy frontend:80
+  }
 }

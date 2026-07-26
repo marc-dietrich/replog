@@ -1,0 +1,32 @@
+# config.yaml — RepLog configuration overrides
+#
+# Only specify values you want to change from the defaults in
+# src/config.defaults.js. All other values keep their defaults.
+#
+# Example: to show only 5 entries per exercise:
+#   entries:
+#     defaultLimit: 5
+
+# ── Sync queue ─────────────────────────────────────────────────────────
+# sync:
+#   maxRetries: 10
+#   baseDelayMs: 2000
+#   maxDelayMs: 300000
+#   retryIntervalMs: 30000
+
+# ── Health check ───────────────────────────────────────────────────────
+# health:
+#   cacheMs: 5000
+#   fetchTimeoutMs: 3000
+#   pollIntervalMs: 30000
+
+# ── Entries ────────────────────────────────────────────────────────────
+# entries:
+#   defaultLimit: 10
+#   loadMoreLimit: 200
+
+# ── Storage keys ───────────────────────────────────────────────────────
+# storage:
+#   dbName: replog
+#   tempIdPrefix: temp_
+#   settingsKey: replog-ui-settings

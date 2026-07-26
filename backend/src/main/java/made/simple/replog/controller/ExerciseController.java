@@ -2,7 +2,9 @@ package made.simple.replog.controller;
 
 import made.simple.replog.dto.CreateExerciseRequest;
 import made.simple.replog.dto.ExerciseDto;
+import made.simple.replog.dto.PagedEntriesDto;
 import made.simple.replog.dto.ReorderExerciseRequest;
+import made.simple.replog.service.EntryService;
 import made.simple.replog.service.ExerciseService;
 
 import java.util.List;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -23,9 +26,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class ExerciseController {
 
     private final ExerciseService exerciseService;
+    private final EntryService entryService;
 
-    public ExerciseController(ExerciseService exerciseService) {
+    public ExerciseController(ExerciseService exerciseService, EntryService entryService) {
         this.exerciseService = exerciseService;
+        this.entryService = entryService;
     }
 
     @PostMapping
@@ -34,8 +39,17 @@ public class ExerciseController {
     }
 
     @GetMapping("/ungrouped")
-    public List<ExerciseDto> listUngrouped() {
-        return exerciseService.listUngrouped();
+    public List<ExerciseDto> listUngrouped(
+            @RequestParam(required = false) Integer entriesLimit) {
+        return exerciseService.listUngrouped(entriesLimit);
+    }
+
+    @GetMapping("/{id}/entries")
+    public PagedEntriesDto listEntries(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "50") int limit) {
+        return entryService.listForExercise(id, offset, limit);
     }
 
     @DeleteMapping("/{id}")

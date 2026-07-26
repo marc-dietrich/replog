@@ -1,0 +1,9 @@
+node_modules
+backend
+docs
+log
+*.md
+.git
+.gitignore
+caddy
+keycloak

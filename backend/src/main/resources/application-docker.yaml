@@ -1,0 +1,32 @@
+# application-docker.yaml
+#
+# Profile activated inside Docker containers.
+# Uses Docker network hostnames instead of localhost.
+
+spring:
+  datasource:
+    url: jdbc:postgresql://database:5432/gymdb
+    username: replog_app
+    password: replog_app
+
+  flyway:
+    url: jdbc:postgresql://database:5432/gymdb
+    user: gym
+    password: gym
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://keycloak:8080/realms/replog
+
+app:
+  cors:
+    allowed-origins:
+      - http://localhost:8082
+      - https://gym.made-simple.online

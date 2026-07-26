@@ -114,7 +114,7 @@ class GroupRlsIntegrationTest {
             .expiresAt(Instant.now().plusSeconds(60))
             .build();
 
-        JwtAuthenticationToken authentication = new JwtAuthenticationToken(jwt);
+        JwtAuthenticationToken authentication = new JwtAuthenticationToken(jwt, List.of());
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         try {

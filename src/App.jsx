@@ -4,7 +4,7 @@ import { AddGroupForm } from "./components/AddGroupForm";
 import { AddPanel } from "./components/AddPanel";
 import { EXERCISE_VIEW_MODES, SETS_DISPLAY_MODES } from "./components/ExerciseTrendChart";
 import { ExerciseList } from "./components/ExerciseList";
-import { useExercises } from "./hooks/useExercises";
+import { useExercises, useSettings } from "./hooks";
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./styles/app.css";
 
@@ -23,7 +23,8 @@ function App() {
   const {
     exercises,
     groups,
-    settings,
+    loading,
+    error,
     addExercise,
     addGroup,
     addEntry,
@@ -32,10 +33,10 @@ function App() {
     deleteGroup,
     moveExercise,
     reorderGroups,
-    replaceState,
-    setExerciseViewMode,
-    setSetsDisplayMode,
+    importData,
   } = useExercises();
+
+  const { settings, setExerciseViewMode, setSetsDisplayMode } = useSettings();
   const [addPanelType, setAddPanelType] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
@@ -57,12 +58,12 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
-  const handleImport = (event) => {
+  const handleImport = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const imported = JSON.parse(e.target.result);
 
@@ -75,7 +76,7 @@ function App() {
           return;
         }
 
-        replaceState(nextState);
+        await importData(nextState);
         alert("Data imported successfully!");
       } catch {
         alert("Failed to parse JSON file.");
@@ -361,18 +362,30 @@ function App() {
               )}
             </AddPanel>
           )}
-          <ExerciseList
-            exercises={exercises}
-            groups={orderedGroups}
-            activeViewMode={settings.exerciseViewMode}
-            setsDisplayMode={settings.setsDisplayMode}
-            onAddEntry={addEntry}
-            onDeleteEntry={deleteEntry}
-            onDeleteExercise={deleteExercise}
-            onDeleteGroup={deleteGroup}
-            onMoveExercise={moveExercise}
-            onReorderGroups={reorderGroups}
-          />
+
+          {loading && (
+            <p className="app-status-msg">Loading your exercises…</p>
+          )}
+          {error && (
+            <p className="app-status-msg app-status-msg--error">
+              Could not reach the server: {error}
+            </p>
+          )}
+
+          {!loading && !error && (
+            <ExerciseList
+              exercises={exercises}
+              groups={orderedGroups}
+              activeViewMode={settings.exerciseViewMode}
+              setsDisplayMode={settings.setsDisplayMode}
+              onAddEntry={addEntry}
+              onDeleteEntry={deleteEntry}
+              onDeleteExercise={deleteExercise}
+              onDeleteGroup={deleteGroup}
+              onMoveExercise={moveExercise}
+              onReorderGroups={reorderGroups}
+            />
+          )}
         </section>
 
       </main>

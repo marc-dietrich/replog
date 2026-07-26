@@ -7,13 +7,25 @@ services:
       - "8082:80"
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/datad
+      - caddy_data:/data
       - caddy_config:/config
 
-  gym:
-    build: .
-    container_name: replog
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: replog-frontend
     restart: unless-stopped
+
+  backend:
+    image: replog-backend:latest
+    container_name: replog-backend
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      database:
+        condition: service_started
 
   database:
     image: postgres:16-alpine
@@ -31,7 +43,7 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
     container_name: replog-keycloak
-    command: start-dev
+    command: start-dev --import-realm
     ports:
       - "8085:8080"
     restart: unless-stopped
@@ -40,6 +52,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
     volumes:
       - replog-keycloak-data:/opt/keycloak/data
+      - ./keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
 
 volumes:
   caddy_data:

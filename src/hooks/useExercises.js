@@ -1,355 +1,321 @@
 // src/hooks/useExercises.js
-import { useEffect, useState } from "react";
+//
+// Local-first data hook — reads from IndexedDB (instant, offline-capable),
+// writes optimistically to IndexedDB, then syncs to the backend in the background.
+//
+// Public API is identical to the old server-first version, plus:
+//   loadMoreEntries(exerciseId) — fetch all entries for a specific exercise
 
-const STORAGE_KEY = "gym-tracker-exercises";
-const EXERCISE_VIEW_MODES = Object.freeze({
-  TOP_SET: "topSet",
-  VOLUME: "volume",
-  SETS: "sets",
-});
-const SETS_DISPLAY_MODES = Object.freeze({
-  CONTINUOUS: "continuous",
-  DISCRETE: "discrete",
-});
-const DEFAULT_SETTINGS = Object.freeze({
-  exerciseViewMode: EXERCISE_VIEW_MODES.TOP_SET,
-  setsDisplayMode: SETS_DISPLAY_MODES.CONTINUOUS,
-});
-const DEFAULT_STATE = Object.freeze({ exercises: [], groups: [], settings: DEFAULT_SETTINGS });
+import { useCallback, useEffect, useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import {
+  getAllGroups,
+  getAllExercises,
+  createGroup,
+  deleteGroup,
+  updateGroupOrder,
+  createExercise,
+  deleteExercise,
+  updateExerciseOrder,
+  createEntry,
+  deleteEntry,
+  replaceAllData,
+} from "../db/repositories";
+import {
+  addToQueue,
+  processQueue,
+  startPeriodicRetry,
+  stopPeriodicRetry,
+} from "../sync/queue";
+import config from "virtual:app-config";
 
-const normalizeGroupId = (groupId) => (groupId == null ? null : groupId);
-const isValidExerciseViewMode = (value) => Object.values(EXERCISE_VIEW_MODES).includes(value);
-const isValidSetsDisplayMode = (value) => Object.values(SETS_DISPLAY_MODES).includes(value);
+const { apiBase, entries: entriesCfg, sync: syncCfg } = config;
 
-const isLegacyState = (raw) => {
-  if (!raw) return true;
-  if (Array.isArray(raw)) return true;
-  if (!Array.isArray(raw.groups)) return true;
-  if (!Array.isArray(raw.exercises)) return true;
-  if (!isValidExerciseViewMode(raw?.settings?.exerciseViewMode)) return true;
-  return raw.exercises.some((exercise) => typeof exercise.order !== "number");
-};
+// ── Server fetch helpers ───────────────────────────────────────────────────
 
-const normalizeState = (raw) => {
-  if (!raw) return DEFAULT_STATE;
+async function apiFetch(path, options = {}) {
+  const url = `${apiBase}${path}`;
+  const config = {
+    headers: { "Content-Type": "application/json", ...options.headers },
+    ...options,
+  };
+  const response = await fetch(url, config);
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(body || `${response.status} ${response.statusText}`);
+  }
+  if (response.status === 204) return null;
+  return response.json();
+}
 
-  if (Array.isArray(raw)) {
-    return {
-      exercises: raw.map((exercise, index) => ({
-        ...exercise,
-        groupId: normalizeGroupId(exercise.groupId),
-        order: typeof exercise.order === "number" ? exercise.order : index,
-        entries: Array.isArray(exercise.entries) ? exercise.entries : [],
-      })),
-      groups: [],
-      settings: DEFAULT_SETTINGS,
-    };
+async function fetchFromServer() {
+  const [groupsData, ungroupedData] = await Promise.all([
+    apiFetch(`/groups/all?entriesLimit=${entriesCfg.defaultLimit}`),
+    apiFetch(`/exercises/ungrouped?entriesLimit=${entriesCfg.defaultLimit}`),
+  ]);
+  return flattenResponse(groupsData, ungroupedData);
+}
+
+function flattenResponse(groupsData, ungroupedData) {
+  const groups = [];
+  const exercises = [];
+
+  for (const g of groupsData || []) {
+    groups.push({ id: g.id, name: g.name, order: g.order });
+    for (const ex of g.exercises || []) {
+      exercises.push(normaliseExercise(ex, g.id));
+    }
   }
 
-  const exercises = Array.isArray(raw.exercises)
-    ? raw.exercises.map((exercise, index) => ({
-        ...exercise,
-        groupId: normalizeGroupId(exercise.groupId),
-        order: typeof exercise.order === "number" ? exercise.order : index,
-        entries: Array.isArray(exercise.entries) ? exercise.entries : [],
-      }))
-    : [];
+  for (const ex of ungroupedData || []) {
+    exercises.push(normaliseExercise(ex, null));
+  }
 
-  const groups = Array.isArray(raw.groups)
-    ? raw.groups.map((group, index) => ({
-        id: group.id ?? `group-${index}`,
-        name: group.name ?? `Group ${index + 1}`,
-        order: typeof group.order === "number" ? group.order : index,
-      }))
-    : [];
+  return { groups, exercises };
+}
 
-  const settings = {
-    exerciseViewMode: isValidExerciseViewMode(raw?.settings?.exerciseViewMode)
-      ? raw.settings.exerciseViewMode
-      : EXERCISE_VIEW_MODES.TOP_SET,
-    setsDisplayMode: isValidSetsDisplayMode(raw?.settings?.setsDisplayMode)
-      ? raw.settings.setsDisplayMode
-      : SETS_DISPLAY_MODES.CONTINUOUS,
-  };
-
-  return { exercises, groups, settings };
-};
-
-const ensureSequentialExerciseOrder = (exercises) => {
-  const grouped = new Map();
-  exercises.forEach((exercise) => {
-    const key = normalizeGroupId(exercise.groupId);
-    if (!grouped.has(key)) grouped.set(key, []);
-    grouped.get(key).push(exercise);
-  });
-
-  const orderLookup = new Map();
-  grouped.forEach((list) => {
-    list
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-      .forEach((exercise, index) => orderLookup.set(exercise.id, index));
-  });
-
-  return exercises.map((exercise) => ({
-    ...exercise,
-    order: orderLookup.get(exercise.id) ?? 0,
-  }));
-};
-
-const ensureSequentialGroupOrder = (groups) =>
-  groups
-    .slice()
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-    .map((group, index) => ({ ...group, order: index }));
-
-const hydrateState = (raw) => {
-  const normalized = normalizeState(raw);
+function normaliseExercise(ex, groupId) {
   return {
-    exercises: ensureSequentialExerciseOrder(normalized.exercises),
-    groups: ensureSequentialGroupOrder(normalized.groups),
-    settings: normalized.settings,
+    id: ex.id,
+    name: ex.name,
+    order: ex.order ?? 0,
+    groupId: groupId ?? null,
+    entries: (ex.entries || []).map((e) => ({
+      id: e.id,
+      date: e.date,
+      weight: Number(e.weight),
+      reps: e.reps,
+      note: e.note ?? "",
+    })),
   };
-};
+}
 
-const getOrderedExerciseIds = (exercises, groupId) =>
-  exercises
-    .filter((exercise) => normalizeGroupId(exercise.groupId) === normalizeGroupId(groupId))
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-    .map((exercise) => exercise.id);
-
-const applyExerciseOrder = (exercises, groupId, orderedIds) => {
-  const lookup = new Map(orderedIds.map((id, index) => [id, index]));
-  return exercises.map((exercise) => {
-    if (normalizeGroupId(exercise.groupId) !== normalizeGroupId(groupId)) {
-      return exercise;
-    }
-    const nextOrder = lookup.get(exercise.id);
-    return typeof nextOrder === "number" ? { ...exercise, order: nextOrder } : exercise;
-  });
-};
-
-const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+// ── Hook ───────────────────────────────────────────────────────────────────
 
 export function useExercises() {
-  const [state, setState] = useState(() => {
+  // Reactively read from IndexedDB — updates automatically on any change
+  const exercisesLive = useLiveQuery(() => getAllExercises(), []);
+  const groupsLive = useLiveQuery(() => getAllGroups(), []);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Derived data — use live data if available, otherwise empty
+  const exercises = exercisesLive ?? [];
+  const groups = groupsLive ?? [];
+
+  // ── Initial load: fetch from server and populate IndexedDB ────────────
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      const parsed = stored ? JSON.parse(stored) : DEFAULT_STATE;
-      const normalized = hydrateState(parsed);
-
-      if (stored && isLegacyState(parsed)) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
-      }
-
-      return normalized;
-    } catch (error) {
-      console.error("Failed to parse stored exercises", error);
-      return hydrateState(DEFAULT_STATE);
+      const data = await fetchFromServer();
+      await replaceAllData(data.groups, data.exercises);
+      // After replacing, try to sync any queued changes
+      processQueue();
+    } catch (err) {
+      setError(err.message || "Failed to load data");
+    } finally {
+      setLoading(false);
     }
-  });
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
+    refresh();
+    startPeriodicRetry(syncCfg.retryIntervalMs);
+    return () => stopPeriodicRetry();
+  }, [refresh]);
 
-  const addExercise = (name, groupId = null) => {
+  // ── Exercise mutations ──────────────────────────────────────────────────
+
+  const addExercise = useCallback(async (name, groupId = null) => {
     const trimmed = name.trim();
     if (!trimmed) return;
 
-    setState((prev) => {
-      const normalizedGroupId = normalizeGroupId(groupId);
-      const siblings = getOrderedExerciseIds(prev.exercises, normalizedGroupId);
-      const newExercise = {
-        id: Date.now().toString(),
-        name: trimmed,
-        entries: [],
-        groupId: normalizedGroupId,
-        order: siblings.length,
-      };
+    const order = exercises.filter(
+      (ex) => (ex.groupId ?? null) === (groupId ?? null)
+    ).length;
 
-      return {
-        ...prev,
-        exercises: [...prev.exercises, newExercise],
-      };
+    // Optimistic: write to IndexedDB immediately
+    const id = await createExercise({ name: trimmed, order, groupId });
+
+    // Enqueue sync to backend
+    await addToQueue("exercise", id, "create", {
+      name: trimmed,
+      order,
+      groupId: groupId || null,
     });
-  };
+    processQueue();
+  }, [exercises]);
 
-  const addGroup = (name) => {
+  const deleteExercise = useCallback(async (exerciseId) => {
+    await deleteExercise(exerciseId);
+    await addToQueue("exercise", exerciseId, "delete", null);
+    processQueue();
+  }, []);
+
+  const moveExercise = useCallback(async (exerciseId, targetGroupId, targetIndex) => {
+    await updateExerciseOrder(exerciseId, targetGroupId, targetIndex);
+    await addToQueue("exerciseReorder", exerciseId, "update", {
+      exerciseId,
+      targetGroupId: targetGroupId ?? null,
+      newOrder: targetIndex,
+    });
+    processQueue();
+  }, []);
+
+  // ── Group mutations ─────────────────────────────────────────────────────
+
+  const addGroup = useCallback(async (name) => {
     const trimmed = name.trim();
     if (!trimmed) return;
 
-    setState((prev) => {
-      const newGroup = {
-        id: Date.now().toString(),
-        name: trimmed,
-        order: prev.groups.length,
-      };
-
-      return {
-        ...prev,
-        groups: [...prev.groups, newGroup],
-      };
+    const id = await createGroup({ name: trimmed, order: groups.length });
+    await addToQueue("group", id, "create", {
+      name: trimmed,
+      order: groups.length,
     });
-  };
+    processQueue();
+  }, [groups]);
 
-  const reorderGroups = (orderedIds) => {
-    setState((prev) => {
-      const lookup = new Map(prev.groups.map((group) => [group.id, group]));
-      const ordered = orderedIds
-        .map((id) => lookup.get(id))
-        .filter(Boolean)
-        .map((group, index) => ({ ...group, order: index }));
+  const deleteGroup = useCallback(async (groupId) => {
+    await deleteGroup(groupId);
+    await addToQueue("group", groupId, "delete", null);
+    processQueue();
+  }, []);
 
-      const missing = prev.groups.filter((group) => !orderedIds.includes(group.id));
-      const complete = [...ordered, ...missing.map((group, index) => ({ ...group, order: ordered.length + index }))];
+  const reorderGroups = useCallback(async (orderedIds) => {
+    // Update local order immediately
+    for (let i = 0; i < orderedIds.length; i++) {
+      await updateGroupOrder(orderedIds[i], i);
+    }
 
-      return {
-        ...prev,
-        groups: complete,
-      };
+    // Enqueue one reorder per changed group
+    const currentOrder = new Map(groups.map((g) => [g.id, g.order]));
+    const changes = orderedIds
+      .map((id, newOrder) => ({ id, newOrder, oldOrder: currentOrder.get(id) }))
+      .filter((c) => c.oldOrder !== c.newOrder && c.oldOrder != null)
+      .sort((a, b) => a.newOrder - b.newOrder);
+
+    for (const { id, newOrder } of changes) {
+      await addToQueue("groupReorder", id, "update", {
+        groupId: id,
+        newOrder,
+      });
+    }
+    processQueue();
+  }, [groups]);
+
+  // ── Entry mutations ─────────────────────────────────────────────────────
+
+  const addEntry = useCallback(async (exerciseId, date, weight, reps, note = "") => {
+    if (!date || weight == null || reps == null) return;
+
+    const id = await createEntry({
+      date,
+      weight: Number(weight),
+      reps: Number(reps),
+      note: (note ?? "").trim(),
+      exerciseId,
     });
-  };
 
-  const moveExercise = (exerciseId, targetGroupId, targetIndex) => {
-    setState((prev) => {
-      const targetGroup = normalizeGroupId(targetGroupId);
-      const exercise = prev.exercises.find((ex) => ex.id === exerciseId);
-      if (!exercise) return prev;
+    await addToQueue("entry", id, "create", {
+      date,
+      weight: Number(weight),
+      reps: Number(reps),
+      note: (note ?? "").trim(),
+      exerciseId,
+    });
+    processQueue();
+  }, []);
 
-      const sourceGroup = normalizeGroupId(exercise.groupId);
-      const sourceIds = getOrderedExerciseIds(prev.exercises, sourceGroup).filter((id) => id !== exerciseId);
-      const baseTargetIds = sourceGroup === targetGroup ? sourceIds : getOrderedExerciseIds(prev.exercises, targetGroup);
-      const insertionIndex = clamp(targetIndex, 0, baseTargetIds.length);
-      const targetIds = [...baseTargetIds];
-      targetIds.splice(insertionIndex, 0, exerciseId);
+  const deleteEntry = useCallback(async (_exerciseId, entry) => {
+    if (!entry?.id) return;
+    await deleteEntry(entry.id);
+    await addToQueue("entry", entry.id, "delete", null);
+    processQueue();
+  }, []);
 
-      let updatedExercises = prev.exercises.map((ex) =>
-        ex.id === exerciseId ? { ...ex, groupId: targetGroup } : ex
-      );
+  // ── Load more entries for a specific exercise ────────────────────────────
 
-      if (sourceGroup !== targetGroup) {
-        updatedExercises = applyExerciseOrder(updatedExercises, sourceGroup, sourceIds);
+  const loadMoreEntries = useCallback(async (exerciseId) => {
+    const page = await apiFetch(
+      `/exercises/${exerciseId}/entries?offset=0&limit=${entriesCfg.loadMoreLimit}`
+    );
+    // Merge into IndexedDB — useLiveQuery will pick up the changes
+    const { entries: allEntries } = page;
+    for (const entry of allEntries) {
+      await createEntry({
+        id: entry.id,
+        date: entry.date,
+        weight: Number(entry.weight),
+        reps: entry.reps,
+        note: entry.note ?? "",
+        exerciseId,
+      });
+    }
+    return page.totalCount;
+  }, []);
+
+  // ── Bulk import ─────────────────────────────────────────────────────────
+
+  const importData = useCallback(async (data) => {
+    if (!data || !Array.isArray(data.exercises) || !Array.isArray(data.groups)) {
+      throw new Error("Invalid import format – expected { exercises, groups }");
+    }
+
+    // 1. Create groups locally (with temp IDs that map to originals)
+    const groupIdMap = new Map();
+    for (const g of data.groups || []) {
+      const id = await createGroup({ name: g.name, order: g.order });
+      groupIdMap.set(g.id, id);
+      await addToQueue("group", id, "create", { name: g.name, order: g.order });
+    }
+
+    // 2. Create exercises & their entries
+    const ungrouped = (data.exercises || []).filter((ex) => !ex.groupId);
+    const grouped = (data.exercises || []).filter((ex) => !!ex.groupId);
+    for (const ex of [...grouped, ...ungrouped]) {
+      const mappedGroupId = ex.groupId ? (groupIdMap.get(ex.groupId) ?? null) : null;
+      const exId = await createExercise({
+        name: ex.name,
+        order: ex.order ?? 0,
+        groupId: mappedGroupId,
+      });
+      await addToQueue("exercise", exId, "create", {
+        name: ex.name,
+        order: ex.order ?? 0,
+        groupId: mappedGroupId,
+      });
+
+      for (const entry of ex.entries || []) {
+        const entryId = await createEntry({
+          date: entry.date,
+          weight: Number(entry.weight),
+          reps: Number(entry.reps),
+          note: entry.note ?? "",
+          exerciseId: exId,
+        });
+        await addToQueue("entry", entryId, "create", {
+          date: entry.date,
+          weight: Number(entry.weight),
+          reps: Number(entry.reps),
+          note: entry.note ?? "",
+          exerciseId: exId,
+        });
       }
+    }
 
-      updatedExercises = applyExerciseOrder(updatedExercises, targetGroup, targetIds);
-
-      return { ...prev, exercises: updatedExercises };
-    });
-  };
-
-  const addEntry = (exerciseId, date, weight, reps, note = "") => {
-    if (!date || !weight || !reps) return;
-
-    const trimmedNote = note?.trim() ?? "";
-
-    setState((prev) => ({
-      ...prev,
-      exercises: prev.exercises.map((exercise) =>
-        exercise.id === exerciseId
-          ? {
-              ...exercise,
-              entries: [
-                ...exercise.entries,
-                {
-                  date,
-                  weight: Number(weight),
-                  reps: Number(reps),
-                  note: trimmedNote,
-                },
-              ],
-            }
-          : exercise
-      ),
-    }));
-  };
-
-  const deleteEntry = (exerciseId, entryToDelete) => {
-    setState((prev) => ({
-      ...prev,
-      exercises: prev.exercises.map((exercise) => {
-        if (exercise.id !== exerciseId) return exercise;
-
-        const normalizeValue = (value) => (value ?? "");
-        return {
-          ...exercise,
-          entries: exercise.entries.filter(
-            (entry) =>
-              !(
-                entry.date === entryToDelete.date &&
-                entry.weight === entryToDelete.weight &&
-                entry.reps === entryToDelete.reps &&
-                normalizeValue(entry.note) === normalizeValue(entryToDelete.note)
-              )
-          ),
-        };
-      }),
-    }));
-  };
-
-  const deleteExercise = (exerciseId) => {
-    setState((prev) => ({
-      ...prev,
-      exercises: ensureSequentialExerciseOrder(prev.exercises.filter((exercise) => exercise.id !== exerciseId)),
-    }));
-  };
-
-  const replaceState = (nextState) => {
-    setState(hydrateState(nextState));
-  };
-
-  const setExerciseViewMode = (viewMode) => {
-    if (!isValidExerciseViewMode(viewMode)) return;
-    setState((prev) => ({
-      ...prev,
-      settings: {
-        ...prev.settings,
-        exerciseViewMode: viewMode,
-      },
-    }));
-  };
-
-  const setSetsDisplayMode = (mode) => {
-    if (!isValidSetsDisplayMode(mode)) return;
-    setState((prev) => ({
-      ...prev,
-      settings: {
-        ...prev.settings,
-        setsDisplayMode: mode,
-      },
-    }));
-  };
-
-  const deleteGroup = (groupId) => {
-    setState((prev) => {
-      const normalizedId = normalizeGroupId(groupId);
-      if (normalizedId == null) return prev;
-
-      // Move any remaining exercises in this group to ungrouped
-      const ungroupedIds = getOrderedExerciseIds(prev.exercises, null);
-      const orphanIds = getOrderedExerciseIds(prev.exercises, normalizedId);
-      const updatedExercises = prev.exercises.map((ex) =>
-        normalizeGroupId(ex.groupId) === normalizedId ? { ...ex, groupId: null } : ex
-      );
-      const reordered = applyExerciseOrder(
-        updatedExercises,
-        null,
-        [...ungroupedIds, ...orphanIds]
-      );
-
-      return {
-        ...prev,
-        exercises: reordered,
-        groups: ensureSequentialGroupOrder(
-          prev.groups.filter((g) => g.id !== normalizedId)
-        ),
-      };
-    });
-  };
+    processQueue();
+  }, []);
 
   return {
-    exercises: state.exercises,
-    groups: state.groups,
-    settings: state.settings,
+    exercises,
+    groups,
+    loading,
+    error,
+    refresh,
     addExercise,
     addGroup,
     addEntry,
@@ -358,8 +324,8 @@ export function useExercises() {
     deleteGroup,
     moveExercise,
     reorderGroups,
-    replaceState,
-    setExerciseViewMode,
-    setSetsDisplayMode,
+    importData,
+    loadMoreEntries,
   };
 }
+
