@@ -36,6 +36,13 @@ const config = {
     tempIdPrefix: "temp_",
     settingsKey: "replog-ui-settings",
   },
+
+  // ── Keycloak ───────────────────────────────────────────────────────────
+  keycloak: {
+    url: "",                        // empty = same origin + /auth (via Caddy proxy)
+    realm: "replog",
+    clientId: "replog-frontend",
+  },
 };
 
 export default config;

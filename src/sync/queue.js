@@ -9,6 +9,7 @@
 import db from "../db/dexie";
 import { replaceTempId, TEMP_PREFIX } from "../db/repositories";
 import config from "virtual:app-config";
+import { getToken } from "../auth/keycloak";
 
 const { apiBase, sync: syncCfg, health: healthCfg } = config;
 
@@ -16,10 +17,12 @@ const { apiBase, sync: syncCfg, health: healthCfg } = config;
 
 async function apiFetch(path, options = {}) {
   const url = `${apiBase}${path}`;
-  const config = {
-    headers: { "Content-Type": "application/json", ...options.headers },
-    ...options,
-  };
+  const headers = { "Content-Type": "application/json", ...options.headers };
+  const token = getToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const config = { headers, ...options };
 
   const response = await fetch(url, config);
 

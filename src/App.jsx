@@ -4,7 +4,9 @@ import { AddGroupForm } from "./components/AddGroupForm";
 import { AddPanel } from "./components/AddPanel";
 import { EXERCISE_VIEW_MODES, SETS_DISPLAY_MODES } from "./components/ExerciseTrendChart";
 import { ExerciseList } from "./components/ExerciseList";
+import { LoginButton } from "./components/LoginButton";
 import { useExercises, useSettings } from "./hooks";
+import { AuthProvider } from "./auth/AuthContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./styles/app.css";
 
@@ -20,10 +22,17 @@ const VIEW_MODE_OPTIONS = [
 ];
 
 function App() {
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
+  );
+}
+
+function AppInner() {
   const {
     exercises,
     groups,
-    loading,
     error,
     addExercise,
     addGroup,
@@ -177,6 +186,7 @@ function App() {
               </div>
             </div>
           </div>
+          <LoginButton />
           <div className="app-add-wrap">
             <div
               className="app-add-switch"
@@ -363,17 +373,13 @@ function App() {
             </AddPanel>
           )}
 
-          {loading && (
-            <p className="app-status-msg">Loading your exercises…</p>
-          )}
-          {error && (
+          {exercises.length === 0 && error && (
             <p className="app-status-msg app-status-msg--error">
               Could not reach the server: {error}
             </p>
           )}
 
-          {!loading && !error && (
-            <ExerciseList
+          <ExerciseList
               exercises={exercises}
               groups={orderedGroups}
               activeViewMode={settings.exerciseViewMode}
@@ -385,7 +391,6 @@ function App() {
               onMoveExercise={moveExercise}
               onReorderGroups={reorderGroups}
             />
-          )}
         </section>
 
       </main>

@@ -23,6 +23,8 @@ services:
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: docker
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       database:
         condition: service_started
@@ -43,19 +45,50 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
     container_name: replog-keycloak
-    command: start-dev --import-realm
+    command: start --import-realm
     ports:
       - "8085:8080"
     restart: unless-stopped
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME_URL: http://localhost:8082/auth
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
     volumes:
       - replog-keycloak-data:/opt/keycloak/data
       - ./keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
+
+  backup:
+    image: postgres:16-alpine
+    container_name: replog-backup
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/scripts/backup-scheduler.sh"]
+    environment:
+      BACKUP_DIR: /backups
+      DB_HOST: database
+      DB_PORT: "5432"
+      DB_USER: gym
+      DB_NAME: gymdb
+      DB_PASSWORD: gym
+      REMOTE_USER: ""       # fill in: your Raspi SSH user
+      REMOTE_HOST: ""        # fill in: your Raspi IP/hostname
+      REMOTE_PATH: ""        # fill in: /path/to/backups/on/raspi
+    volumes:
+      - ./scripts:/scripts:ro
+      - replog-backups:/backups
+      - ~/.ssh/id_rsa:/root/.ssh/id_rsa:ro
+      - ~/.ssh/known_hosts:/root/.ssh/known_hosts:ro
+      - ~/.ssh/config:/root/.ssh/config:ro
+    depends_on:
+      - database
 
 volumes:
   caddy_data:
   caddy_config:
   replog-pgdata:
   replog-keycloak-data:
+  replog-backups:

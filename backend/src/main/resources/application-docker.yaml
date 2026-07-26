@@ -23,7 +23,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://keycloak:8080/realms/replog
+          jwk-set-uri: http://keycloak:8080/auth/realms/replog/protocol/openid-connect/certs
 
 app:
   cors:

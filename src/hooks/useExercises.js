@@ -6,19 +6,19 @@
 // Public API is identical to the old server-first version, plus:
 //   loadMoreEntries(exerciseId) — fetch all entries for a specific exercise
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   getAllGroups,
   getAllExercises,
-  createGroup,
-  deleteGroup,
-  updateGroupOrder,
-  createExercise,
-  deleteExercise,
-  updateExerciseOrder,
-  createEntry,
-  deleteEntry,
+  createGroup as dbCreateGroup,
+  deleteGroup as dbDeleteGroup,
+  updateGroupOrder as dbUpdateGroupOrder,
+  createExercise as dbCreateExercise,
+  deleteExercise as dbDeleteExercise,
+  updateExerciseOrder as dbUpdateExerciseOrder,
+  createEntry as dbCreateEntry,
+  deleteEntry as dbDeleteEntry,
   replaceAllData,
 } from "../db/repositories";
 import {
@@ -28,6 +28,8 @@ import {
   stopPeriodicRetry,
 } from "../sync/queue";
 import config from "virtual:app-config";
+import { getToken } from "../auth/keycloak";
+import { useAuth } from "../auth/AuthContext";
 
 const { apiBase, entries: entriesCfg, sync: syncCfg } = config;
 
@@ -35,10 +37,12 @@ const { apiBase, entries: entriesCfg, sync: syncCfg } = config;
 
 async function apiFetch(path, options = {}) {
   const url = `${apiBase}${path}`;
-  const config = {
-    headers: { "Content-Type": "application/json", ...options.headers },
-    ...options,
-  };
+  const headers = { "Content-Type": "application/json", ...options.headers };
+  const token = getToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const config = { headers, ...options };
   const response = await fetch(url, config);
   if (!response.ok) {
     const body = await response.text().catch(() => "");
@@ -94,20 +98,20 @@ function normaliseExercise(ex, groupId) {
 
 export function useExercises() {
   // Reactively read from IndexedDB — updates automatically on any change
-  const exercisesLive = useLiveQuery(() => getAllExercises(), []);
-  const groupsLive = useLiveQuery(() => getAllGroups(), []);
+  const exercises = useLiveQuery(() => getAllExercises(), []) ?? [];
+  const groups = useLiveQuery(() => getAllGroups(), []) ?? [];
 
-  const [loading, setLoading] = useState(true);
+  // Auth state — re-fetch from server when user logs in
+  const { authenticated } = useAuth();
+
+  // syncing = server fetch in progress (silent background operation)
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
 
-  // Derived data — use live data if available, otherwise empty
-  const exercises = exercisesLive ?? [];
-  const groups = groupsLive ?? [];
-
-  // ── Initial load: fetch from server and populate IndexedDB ────────────
+  // ── Initial load: fetch from server and merge into IndexedDB ──────────
 
   const refresh = useCallback(async () => {
-    setLoading(true);
+    setSyncing(true);
     setError(null);
     try {
       const data = await fetchFromServer();
@@ -115,9 +119,14 @@ export function useExercises() {
       // After replacing, try to sync any queued changes
       processQueue();
     } catch (err) {
-      setError(err.message || "Failed to load data");
+      // 401 = not authenticated — expected, not an error state
+      if (err.message && err.message.includes("401")) {
+        // Silently skip — user just isn't logged in, local data is fine
+      } else {
+        setError(err.message || "Failed to load data");
+      }
     } finally {
-      setLoading(false);
+      setSyncing(false);
     }
   }, []);
 
@@ -126,6 +135,15 @@ export function useExercises() {
     startPeriodicRetry(syncCfg.retryIntervalMs);
     return () => stopPeriodicRetry();
   }, [refresh]);
+
+  // Re-fetch from server when user logs in (token now available)
+  const wasAuthenticated = useRef(authenticated);
+  useEffect(() => {
+    if (authenticated && !wasAuthenticated.current) {
+      refresh();
+    }
+    wasAuthenticated.current = authenticated;
+  }, [authenticated, refresh]);
 
   // ── Exercise mutations ──────────────────────────────────────────────────
 
@@ -138,7 +156,7 @@ export function useExercises() {
     ).length;
 
     // Optimistic: write to IndexedDB immediately
-    const id = await createExercise({ name: trimmed, order, groupId });
+    const id = await dbCreateExercise({ name: trimmed, order, groupId });
 
     // Enqueue sync to backend
     await addToQueue("exercise", id, "create", {
@@ -150,13 +168,13 @@ export function useExercises() {
   }, [exercises]);
 
   const deleteExercise = useCallback(async (exerciseId) => {
-    await deleteExercise(exerciseId);
+    await dbDeleteExercise(exerciseId);
     await addToQueue("exercise", exerciseId, "delete", null);
     processQueue();
   }, []);
 
   const moveExercise = useCallback(async (exerciseId, targetGroupId, targetIndex) => {
-    await updateExerciseOrder(exerciseId, targetGroupId, targetIndex);
+    await dbUpdateExerciseOrder(exerciseId, targetGroupId, targetIndex);
     await addToQueue("exerciseReorder", exerciseId, "update", {
       exerciseId,
       targetGroupId: targetGroupId ?? null,
@@ -171,7 +189,7 @@ export function useExercises() {
     const trimmed = name.trim();
     if (!trimmed) return;
 
-    const id = await createGroup({ name: trimmed, order: groups.length });
+    const id = await dbCreateGroup({ name: trimmed, order: groups.length });
     await addToQueue("group", id, "create", {
       name: trimmed,
       order: groups.length,
@@ -180,7 +198,7 @@ export function useExercises() {
   }, [groups]);
 
   const deleteGroup = useCallback(async (groupId) => {
-    await deleteGroup(groupId);
+    await dbDeleteGroup(groupId);
     await addToQueue("group", groupId, "delete", null);
     processQueue();
   }, []);
@@ -188,7 +206,7 @@ export function useExercises() {
   const reorderGroups = useCallback(async (orderedIds) => {
     // Update local order immediately
     for (let i = 0; i < orderedIds.length; i++) {
-      await updateGroupOrder(orderedIds[i], i);
+      await dbUpdateGroupOrder(orderedIds[i], i);
     }
 
     // Enqueue one reorder per changed group
@@ -212,7 +230,7 @@ export function useExercises() {
   const addEntry = useCallback(async (exerciseId, date, weight, reps, note = "") => {
     if (!date || weight == null || reps == null) return;
 
-    const id = await createEntry({
+    const id = await dbCreateEntry({
       date,
       weight: Number(weight),
       reps: Number(reps),
@@ -232,7 +250,7 @@ export function useExercises() {
 
   const deleteEntry = useCallback(async (_exerciseId, entry) => {
     if (!entry?.id) return;
-    await deleteEntry(entry.id);
+    await dbDeleteEntry(entry.id);
     await addToQueue("entry", entry.id, "delete", null);
     processQueue();
   }, []);
@@ -246,7 +264,7 @@ export function useExercises() {
     // Merge into IndexedDB — useLiveQuery will pick up the changes
     const { entries: allEntries } = page;
     for (const entry of allEntries) {
-      await createEntry({
+      await dbCreateEntry({
         id: entry.id,
         date: entry.date,
         weight: Number(entry.weight),
@@ -268,7 +286,7 @@ export function useExercises() {
     // 1. Create groups locally (with temp IDs that map to originals)
     const groupIdMap = new Map();
     for (const g of data.groups || []) {
-      const id = await createGroup({ name: g.name, order: g.order });
+      const id = await dbCreateGroup({ name: g.name, order: g.order });
       groupIdMap.set(g.id, id);
       await addToQueue("group", id, "create", { name: g.name, order: g.order });
     }
@@ -278,7 +296,7 @@ export function useExercises() {
     const grouped = (data.exercises || []).filter((ex) => !!ex.groupId);
     for (const ex of [...grouped, ...ungrouped]) {
       const mappedGroupId = ex.groupId ? (groupIdMap.get(ex.groupId) ?? null) : null;
-      const exId = await createExercise({
+      const exId = await dbCreateExercise({
         name: ex.name,
         order: ex.order ?? 0,
         groupId: mappedGroupId,
@@ -290,7 +308,7 @@ export function useExercises() {
       });
 
       for (const entry of ex.entries || []) {
-        const entryId = await createEntry({
+        const entryId = await dbCreateEntry({
           date: entry.date,
           weight: Number(entry.weight),
           reps: Number(entry.reps),
@@ -313,7 +331,7 @@ export function useExercises() {
   return {
     exercises,
     groups,
-    loading,
+    syncing,
     error,
     refresh,
     addExercise,

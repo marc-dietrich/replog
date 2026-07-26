@@ -3,7 +3,7 @@
   "realm": "replog",
   "enabled": true,
   "displayName": "RepLog",
-  "registrationAllowed": false,
+  "registrationAllowed": true,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": true,
@@ -22,16 +22,21 @@
       "directAccessGrantsEnabled": true,
       "redirectUris": [
         "http://localhost:8082/*",
+        "http://localhost:8082",
         "http://localhost:5173/*",
-        "https://gym.made-simple.online/*"
+        "http://localhost:5173",
+        "http://localhost:8085/*",
+        "https://gym.made-simple.online/*",
+        "https://gym.made-simple.online"
       ],
       "webOrigins": [
         "http://localhost:8082",
         "http://localhost:5173",
+        "http://localhost:8085",
         "https://gym.made-simple.online"
       ],
-      "standardFlowEnabled": false,
-      "implicitFlowEnabled": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
       "consentRequired": false,
       "protocol": "openid-connect",
       "attributes": {

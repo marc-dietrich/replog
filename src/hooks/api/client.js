@@ -1,19 +1,26 @@
 // src/hooks/api/client.js
 
 import config from "virtual:app-config";
+import { getToken } from "../../auth/keycloak";
 
 const API_BASE = config.apiBase;
 
 /**
  * Thin wrapper around fetch for the RepLog backend.
- * Attaches JSON headers and unwraps 204 No Content responses.
+ * Attaches JSON headers, JWT auth token, and unwraps 204 No Content responses.
  */
 export async function apiFetch(path, options = {}) {
   const url = `${API_BASE}${path}`;
-  const config = {
-    headers: { "Content-Type": "application/json", ...options.headers },
-    ...options,
-  };
+
+  const headers = { "Content-Type": "application/json", ...options.headers };
+
+  // Attach JWT if the user is authenticated
+  const token = getToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const config = { headers, ...options };
 
   const response = await fetch(url, config);
 

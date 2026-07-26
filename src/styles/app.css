@@ -225,3 +225,25 @@
 .app-status-msg--error {
 	@apply text-red-500;
 }
+
+/* ── Auth ─────────────────────────────────────────────────────────────── */
+
+.auth-btn {
+	@apply rounded-lg px-3 py-1.5 text-xs font-medium transition-colors;
+}
+
+.auth-btn--login {
+	@apply bg-indigo-600 text-white hover:bg-indigo-700;
+}
+
+.auth-btn--logout {
+	@apply bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600;
+}
+
+.auth-user {
+	@apply flex items-center gap-2;
+}
+
+.auth-user__name {
+	@apply max-w-[100px] truncate text-xs text-slate-500 dark:text-slate-400;
+}
