@@ -1,17 +1,12 @@
 // src/auth/AuthContext.jsx
 //
-// React context + provider for Keycloak authentication state.
-// Wraps the app so any component can access auth via useAuth().
+// Simple username+password authentication with session cookies.
+// No Keycloak, no JWT management — the browser handles the session cookie.
 
-import { createContext, useContext, useEffect, useState } from "react";
-import {
-  initKeycloak,
-  login,
-  logout,
-  getToken,
-  isAuthenticated,
-  getUserInfo,
-} from "./keycloak";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import config from "virtual:app-config";
+
+const { apiBase } = config;
 
 const AuthContext = createContext(null);
 
@@ -21,38 +16,66 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [error, setError] = useState(null);
 
+  // Check if we already have a session on mount
   useEffect(() => {
-    initKeycloak()
-      .then((kc) => {
-        setAuthenticated(kc.authenticated ?? false);
-        setUser(getUserInfo());
-        setReady(true);
-
-        // Listen for subsequent auth state changes
-        kc.onAuthSuccess = () => {
-          setAuthenticated(true);
-          setUser(getUserInfo());
-        };
-        kc.onAuthLogout = () => {
-          setAuthenticated(false);
-          setUser(null);
-        };
-        kc.onAuthRefreshSuccess = () => {
-          setAuthenticated(true);
-        };
-        kc.onAuthRefreshError = () => {
-          setAuthenticated(false);
-          setUser(null);
-        };
+    fetch(`${apiBase}/auth/me`, { credentials: "include" })
+      .then((res) => {
+        if (res.ok) return res.json();
+        throw new Error("Not authenticated");
       })
-      .catch((err) => {
-        setError(err.message);
-        setReady(true);
-      });
+      .then((data) => {
+        setAuthenticated(true);
+        setUser({ id: data.id, username: data.username });
+      })
+      .catch(() => {
+        setAuthenticated(false);
+        setUser(null);
+      })
+      .finally(() => setReady(true));
   }, []);
 
-  const handleLogin = () => login();
-  const handleLogout = () => logout();
+  const login = useCallback(async (username, password) => {
+    setError(null);
+    const res = await fetch(`${apiBase}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ username, password }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "Login failed");
+      throw new Error(text);
+    }
+    const data = await res.json();
+    setAuthenticated(true);
+    setUser({ id: data.id, username: data.username });
+  }, []);
+
+  const register = useCallback(async (username, password) => {
+    setError(null);
+    const res = await fetch(`${apiBase}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ username, password }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "Registration failed");
+      throw new Error(text);
+    }
+    const data = await res.json();
+    setAuthenticated(true);
+    setUser({ id: data.id, username: data.username });
+  }, []);
+
+  const logout = useCallback(async () => {
+    await fetch(`${apiBase}/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => {});
+    setAuthenticated(false);
+    setUser(null);
+  }, []);
 
   return (
     <AuthContext.Provider
@@ -61,9 +84,9 @@ export function AuthProvider({ children }) {
         authenticated,
         user,
         error,
-        login: handleLogin,
-        logout: handleLogout,
-        getToken,
+        login,
+        register,
+        logout,
       }}
     >
       {children}

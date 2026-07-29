@@ -27,16 +27,4 @@
 
 # ── Storage keys ───────────────────────────────────────────────────────
 # storage:
-#   dbName: replog
-#   tempIdPrefix: temp_
 #   settingsKey: replog-ui-settings
-
-# ── Keycloak ───────────────────────────────────────────────────────────
-# keycloak:
-#   url: ""                       # empty = same origin (Docker/Caddy: /auth)
-#   realm: replog
-#   clientId: replog-frontend
-#
-# For local dev (Keycloak on localhost:8085):
-# keycloak:
-#   url: http://localhost:8085

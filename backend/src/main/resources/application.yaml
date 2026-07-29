@@ -18,12 +18,6 @@ spring:
       ddl-auto: validate
     show-sql: true
 
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:8081/realms/replog
-
 app:
   health:
     db-timeout-seconds: 3

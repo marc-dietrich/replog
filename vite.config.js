@@ -137,6 +137,7 @@ export default defineConfig(async () => {
       environment: 'jsdom',
       setupFiles: ['./src/__tests__/setup.js'],
       globals: true,
+      exclude: ['e2e/**', 'node_modules/**'],
     },
   }
 })

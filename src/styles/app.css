@@ -247,3 +247,32 @@
 .auth-user__name {
 	@apply max-w-[100px] truncate text-xs text-slate-500 dark:text-slate-400;
 }
+
+.auth-form-wrap {
+	@apply flex items-center;
+}
+
+.auth-form {
+	@apply flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-800;
+}
+
+.auth-form__tabs {
+	@apply flex gap-0 rounded-md bg-slate-100 p-0.5 dark:bg-slate-700;
+}
+
+.auth-form__tab {
+	@apply rounded px-2.5 py-1 text-xs font-medium text-slate-500 transition-colors hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200;
+}
+
+.auth-form__tab--active {
+	@apply bg-white text-indigo-600 shadow-sm dark:bg-slate-600 dark:text-indigo-300;
+}
+
+.auth-form__input {
+	@apply rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 placeholder-slate-400 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-500;
+	width: 120px;
+}
+
+.auth-form__error {
+	@apply text-xs text-red-500;
+}

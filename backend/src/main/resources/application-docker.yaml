@@ -19,12 +19,6 @@ spring:
       ddl-auto: validate
     show-sql: false
 
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          jwk-set-uri: http://keycloak:8080/auth/realms/replog/protocol/openid-connect/certs
-
 app:
   cors:
     allowed-origins:

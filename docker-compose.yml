@@ -42,26 +42,6 @@ services:
     volumes:
       - replog-pgdata:/var/lib/postgresql/data
 
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.0
-    container_name: replog-keycloak
-    command: start --import-realm
-    ports:
-      - "8085:8080"
-    restart: unless-stopped
-    environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_HOSTNAME_URL: http://localhost:8082/auth
-      KC_HOSTNAME_STRICT: "false"
-      KC_HOSTNAME_STRICT_HTTPS: "false"
-      KC_HTTP_RELATIVE_PATH: /auth
-      KC_PROXY_HEADERS: xforwarded
-      KC_HTTP_ENABLED: "true"
-    volumes:
-      - replog-keycloak-data:/opt/keycloak/data
-      - ./keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
-
   backup:
     image: postgres:16-alpine
     container_name: replog-backup
@@ -90,5 +70,4 @@ volumes:
   caddy_data:
   caddy_config:
   replog-pgdata:
-  replog-keycloak-data:
   replog-backups:

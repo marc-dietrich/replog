@@ -1,27 +1,17 @@
 // src/hooks/useSyncStatus.js
 //
-// Health polling + sync status hook.
-// Periodically checks backend/db health and exposes connectivity state
-// so the UI can render a status indicator.
+// Simplified health check + online status hook.
+// No sync queue — just tells the UI whether the backend is reachable.
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
-import db from "../db/dexie";
-import { checkHealth, processQueue, startPeriodicRetry, stopPeriodicRetry } from "../sync/queue";
+import { useState, useEffect, useCallback } from "react";
 import config from "virtual:app-config";
 
-const { health: healthCfg, sync: syncCfg } = config;
+const { health: healthCfg } = config;
 
 export function useSyncStatus() {
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
-  const [backendStatus, setBackendStatus] = useState("unknown"); // "up" | "down" | "db-down" | "offline" | "unknown"
+  const [backendStatus, setBackendStatus] = useState("unknown");
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
-  const busyRef = useRef(false);
-
-  // Reactively count pending sync items
-  const pendingCount = useLiveQuery(() => db.syncQueue.count(), []) ?? 0;
-
-  // ── Device online/offline ──────────────────────────────────────────────
 
   useEffect(() => {
     const onOnline = () => setIsOnline(true);
@@ -34,49 +24,38 @@ export function useSyncStatus() {
     };
   }, []);
 
-  // ── Health polling ─────────────────────────────────────────────────────
-
   useEffect(() => {
     let timer;
 
     async function poll() {
-      const status = await checkHealth();
-      setBackendStatus(status);
+      try {
+        const res = await fetch("/api/health", {
+          signal: AbortSignal.timeout(healthCfg.fetchTimeoutMs),
+          credentials: "include",
+        });
+        const data = await res.json();
+        setBackendStatus(data.db === "UP" ? "up" : "db-down");
+      } catch {
+        setBackendStatus("down");
+      }
     }
 
-    poll(); // immediate first check
+    poll();
     timer = setInterval(poll, healthCfg.pollIntervalMs);
-
     return () => clearInterval(timer);
   }, []);
 
-  // ── Retry sync when connectivity returns ───────────────────────────────
-
-  useEffect(() => {
-    if (isOnline && (backendStatus === "up")) {
-      processQueue().then(() => {
-        setLastSyncedAt(Date.now());
-      });
-    }
-  }, [isOnline, backendStatus]);
-
-  // ── Periodic retry ─────────────────────────────────────────────────────
-
-  useEffect(() => {
-    startPeriodicRetry(syncCfg.retryIntervalMs);
-    return () => stopPeriodicRetry();
-  }, []);
-
-  // ── Manual force sync ──────────────────────────────────────────────────
-
   const forceSync = useCallback(async () => {
-    if (busyRef.current) return;
-    busyRef.current = true;
     try {
-      await processQueue();
-      setLastSyncedAt(Date.now());
-    } finally {
-      busyRef.current = false;
+      const res = await fetch("/api/health", {
+        signal: AbortSignal.timeout(healthCfg.fetchTimeoutMs),
+        credentials: "include",
+      });
+      const data = await res.json();
+      setBackendStatus(data.db === "UP" ? "up" : "db-down");
+      if (data.db === "UP") setLastSyncedAt(Date.now());
+    } catch {
+      setBackendStatus("down");
     }
   }, []);
 
@@ -84,7 +63,7 @@ export function useSyncStatus() {
     isOnline,
     backendStatus,
     canSync: backendStatus === "up",
-    pendingCount,
+    pendingCount: 0,
     lastSyncedAt,
     forceSync,
   };

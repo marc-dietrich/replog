@@ -14,7 +14,7 @@ export default defineConfig({
   fullyParallel: false,
   retries: 0,
   workers: 1,
-  reporter: "html",
+  reporter: [["html", { open: "never" }]],
   timeout: 60_000,
 
   use: {

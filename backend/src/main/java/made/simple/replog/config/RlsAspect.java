@@ -6,6 +6,7 @@ import jakarta.persistence.PersistenceContext;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
@@ -23,19 +24,20 @@ public class RlsAspect {
         this.currentUserProvider = currentUserProvider;
     }
 
-    @Before("execution(* made.simple.replog.service..*(..))")
+    @Before("execution(* made.simple.replog.service..*(..)) && !execution(* made.simple.replog.service.AuthService.*(..))")
     public void setRlsContext() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
-            System.out.println("RlsAspect: KEIN Auth-Context gefunden!");
+        if (auth == null || !auth.isAuthenticated() || !(auth instanceof UsernamePasswordAuthenticationToken)) {
             return;
         }
 
-        String userId = currentUserProvider.getCurrentUserId().toString();
-        System.out.println("RlsAspect: setze app.current_user_id = " + userId);
-
-        entityManager.createNativeQuery("SELECT set_config('app.current_user_id', :userId, true)")
-                .setParameter("userId", userId)
-                .getSingleResult();
+        try {
+            String userId = currentUserProvider.getCurrentUserId().toString();
+            entityManager.createNativeQuery("SELECT set_config('app.current_user_id', :userId, true)")
+                    .setParameter("userId", userId)
+                    .getSingleResult();
+        } catch (Exception e) {
+            // AuthService may not have a user context — ignore
+        }
     }
 }

@@ -1,11 +1,6 @@
 :80 {
   encode zstd gzip
 
-  # Keycloak — forward full path, Keycloak handles /auth prefix
-  handle /auth/* {
-    reverse_proxy keycloak:8080
-  }
-
   # API requests go to the Spring Boot backend
   handle /api/* {
     reverse_proxy backend:8080
