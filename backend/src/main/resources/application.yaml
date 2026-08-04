@@ -31,3 +31,12 @@ app:
       - PUT
       - DELETE
       - OPTIONS
+  migration:
+    redirect-base-url: http://localhost:5173/migrate
+    token-ttl-hours: 48
+    cleanup-cron: "0 0 3 * * *"
+    rate-limit:
+      migrate-capacity: 10
+      migrate-period-hours: 1
+      claim-capacity: 15
+      claim-period-minutes: 1

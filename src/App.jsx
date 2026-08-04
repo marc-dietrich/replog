@@ -6,7 +6,8 @@ import { EXERCISE_VIEW_MODES, SETS_DISPLAY_MODES } from "./components/ExerciseTr
 import { ExerciseList } from "./components/ExerciseList";
 import { LoginButton } from "./components/LoginButton";
 import { useExercises, useSettings } from "./hooks";
-import { AuthProvider } from "./auth/AuthContext";
+import { AuthProvider, useAuth } from "./auth/AuthContext";
+import { LoginDialog } from "./components/LoginDialog";
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./styles/app.css";
 
@@ -45,6 +46,7 @@ function AppInner() {
     importData,
   } = useExercises();
 
+  const { ready, authenticated } = useAuth();
   const { settings, setExerciseViewMode, setSetsDisplayMode } = useSettings();
   const [addPanelType, setAddPanelType] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -353,46 +355,50 @@ function AppInner() {
       </header>
 
       <main className="app-main">
-
-        <section className="app-section">
-          <div className="app-section-head">
-            <div>
-              <p className="app-section-head__label">Your Exercises</p>
+        {!ready ? (
+          <div className="app-status-msg">Loading…</div>
+        ) : !authenticated ? (
+          <LoginDialog />
+        ) : (
+          <section className="app-section">
+            <div className="app-section-head">
+              <div>
+                <p className="app-section-head__label">Your Exercises</p>
+              </div>
+              <span className="app-section-head__count">
+                {exercises.length} ACTIVE
+              </span>
             </div>
-            <span className="app-section-head__count">
-              {exercises.length} ACTIVE
-            </span>
-          </div>
-          {isAddPanelOpen && (
-            <AddPanel title={addPanelType === "group" ? "Add group" : "Add exercise"}>
-              {addPanelType === "group" ? (
-                <AddGroupForm onAdd={addGroup} onSuccess={closeAddPanel} onCancel={closeAddPanel} />
-              ) : (
-                <AddExerciseForm onAdd={addExercise} onSuccess={closeAddPanel} onCancel={closeAddPanel} />
-              )}
-            </AddPanel>
-          )}
+            {isAddPanelOpen && (
+              <AddPanel title={addPanelType === "group" ? "Add group" : "Add exercise"}>
+                {addPanelType === "group" ? (
+                  <AddGroupForm onAdd={addGroup} onSuccess={closeAddPanel} onCancel={closeAddPanel} />
+                ) : (
+                  <AddExerciseForm onAdd={addExercise} onSuccess={closeAddPanel} onCancel={closeAddPanel} />
+                )}
+              </AddPanel>
+            )}
 
-          {exercises.length === 0 && error && (
-            <p className="app-status-msg app-status-msg--error">
-              Could not reach the server: {error}
-            </p>
-          )}
+            {exercises.length === 0 && error && (
+              <p className="app-status-msg app-status-msg--error">
+                Could not reach the server: {error}
+              </p>
+            )}
 
-          <ExerciseList
-              exercises={exercises}
-              groups={orderedGroups}
-              activeViewMode={settings.exerciseViewMode}
-              setsDisplayMode={settings.setsDisplayMode}
-              onAddEntry={addEntry}
-              onDeleteEntry={deleteEntry}
-              onDeleteExercise={deleteExercise}
-              onDeleteGroup={deleteGroup}
-              onMoveExercise={moveExercise}
-              onReorderGroups={reorderGroups}
-            />
-        </section>
-
+            <ExerciseList
+                exercises={exercises}
+                groups={orderedGroups}
+                activeViewMode={settings.exerciseViewMode}
+                setsDisplayMode={settings.setsDisplayMode}
+                onAddEntry={addEntry}
+                onDeleteEntry={deleteEntry}
+                onDeleteExercise={deleteExercise}
+                onDeleteGroup={deleteGroup}
+                onMoveExercise={moveExercise}
+                onReorderGroups={reorderGroups}
+              />
+          </section>
+        )}
       </main>
 
       <input

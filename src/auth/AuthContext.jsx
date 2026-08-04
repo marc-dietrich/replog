@@ -10,6 +10,20 @@ const { apiBase } = config;
 
 const AuthContext = createContext(null);
 
+/**
+ * Extracts a human-readable error message from a JSON error response body.
+ * The backend returns { "error": "some message" } — we only want the value.
+ */
+function extractErrorMessage(text) {
+  if (!text) return null;
+  try {
+    const parsed = JSON.parse(text);
+    return parsed.error || null;
+  } catch {
+    return text; // not JSON, use as-is
+  }
+}
+
 export function AuthProvider({ children }) {
   const [ready, setReady] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
@@ -43,8 +57,9 @@ export function AuthProvider({ children }) {
       body: JSON.stringify({ username, password }),
     });
     if (!res.ok) {
-      const text = await res.text().catch(() => "Login failed");
-      throw new Error(text);
+      const text = await res.text().catch(() => null);
+      const message = extractErrorMessage(text) || "Login failed";
+      throw new Error(message);
     }
     const data = await res.json();
     setAuthenticated(true);
@@ -60,8 +75,9 @@ export function AuthProvider({ children }) {
       body: JSON.stringify({ username, password }),
     });
     if (!res.ok) {
-      const text = await res.text().catch(() => "Registration failed");
-      throw new Error(text);
+      const text = await res.text().catch(() => null);
+      const message = extractErrorMessage(text) || "Registration failed";
+      throw new Error(message);
     }
     const data = await res.json();
     setAuthenticated(true);

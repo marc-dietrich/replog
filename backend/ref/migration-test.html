@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Migration Test</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, sans-serif;
+    background: #111;
+    color: #eee;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 32px;
+    width: 100%;
+    max-width: 520px;
+  }
+  h2 {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+    color: #f0c040;
+  }
+  label {
+    display: block;
+    font-size: 0.8rem;
+    color: #999;
+    margin-bottom: 4px;
+    margin-top: 12px;
+  }
+  input, textarea, button {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #444;
+    background: #222;
+    color: #eee;
+    font-size: 0.9rem;
+    font-family: inherit;
+  }
+  textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+  button {
+    margin-top: 16px;
+    background: #f0c040;
+    color: #111;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  button:hover { background: #d4a820; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .divider {
+    border: none;
+    border-top: 1px solid #333;
+    margin: 28px 0;
+  }
+  .log {
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .log.success { background: #1a3a1a; border: 1px solid #2a5a2a; }
+  .log.error   { background: #3a1a1a; border: 1px solid #5a2a2a; }
+  .log.info    { background: #1a1a3a; border: 1px solid #2a2a5a; }
+  .step { display: none; }
+  .step.active { display: block; }
+  a { color: #f0c040; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h2>🧪 Migration Flow Tester</h2>
+
+  <!-- Step 1: Migrate -->
+  <div id="step1" class="step active">
+    <label>Backend URL</label>
+    <input id="baseUrl" value="http://localhost:8082" placeholder="http://localhost:8082">
+
+    <label>Payload (JSON)</label>
+    <textarea id="payload">{
+  "exercises": [
+    {
+      "name": "Deadlift",
+      "order": 0,
+      "entries": [
+        { "date": "2025-01-01", "weight": 100, "reps": 5 }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "name": "Push",
+      "order": 0,
+      "exercises": [
+        {
+          "name": "Bench Press",
+          "order": 0,
+          "entries": [
+            { "date": "2025-01-01", "weight": 80, "reps": 8 }
+          ]
+        }
+      ]
+    }
+  ]
+}</textarea>
+
+    <button id="btnMigrate" onclick="doMigrate()">1️⃣ POST /api/migrate</button>
+    <div id="log1"></div>
+  </div>
+
+  <!-- Step 2: Redirect / Claim -->
+  <div id="step2" class="step">
+    <p style="margin-bottom:12px">
+      ✅ Migration created.<br>
+      Redirect URL: <a id="redirectLink" href="#" target="_blank"></a>
+    </p>
+
+    <label>Token (from redirect URL fragment)</label>
+    <input id="token" placeholder="UUID from #token=...">
+
+    <label>Desired username</label>
+    <input id="username" placeholder="myusername" value="migrateduser">
+
+    <label>Desired password</label>
+    <input id="password" type="password" placeholder="••••••" value="password123">
+
+    <button id="btnClaim" onclick="doClaim()">2️⃣ PUT /api/migrate/claim</button>
+    <div id="log2"></div>
+
+    <button style="background:#444;color:#eee;margin-top:8px" onclick="resetFlow()">← Back to step 1</button>
+  </div>
+
+  <!-- Step 3: Done -->
+  <div id="step3" class="step">
+    <p>🎉 Account claimed successfully!</p>
+    <div id="log3"></div>
+    <button style="background:#444;color:#eee" onclick="resetFlow()">← Start over</button>
+  </div>
+</div>
+
+<script>
+function log(elId, text, cls) {
+  const el = document.getElementById(elId);
+  el.textContent = text;
+  el.className = 'log ' + cls;
+}
+
+function showStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step' + n).classList.add('active');
+}
+
+async function doMigrate() {
+  const btn = document.getElementById('btnMigrate');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  const baseUrl = document.getElementById('baseUrl').value.replace(/\/$/, '');
+  let payload;
+
+  try {
+    payload = JSON.parse(document.getElementById('payload').value);
+  } catch (e) {
+    log('log1', 'Invalid JSON: ' + e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = '1️⃣ POST /api/migrate';
+    return;
+  }
+
+  try {
+    const res = await fetch(baseUrl + '/api/migrate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const body = await res.text();
+    if (!res.ok) {
+      log('log1', 'HTTP ' + res.status + '\n' + body, 'error');
+      btn.disabled = false;
+      btn.textContent = '1️⃣ POST /api/migrate';
+      return;
+    }
+
+    const data = JSON.parse(body);
+    log('log1', 'HTTP 200\n' + JSON.stringify(data, null, 2), 'success');
+
+    // Extract token and populate step 2
+    const m = data.redirectUrl.match(/token=([a-f0-9-]+)/);
+    if (m) {
+      document.getElementById('token').value = m[1];
+      document.getElementById('redirectLink').href = data.redirectUrl;
+      document.getElementById('redirectLink').textContent = data.redirectUrl;
+    }
+
+    showStep(2);
+  } catch (e) {
+    log('log1', 'Network error: ' + e.message, 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '1️⃣ POST /api/migrate';
+}
+
+async function doClaim() {
+  const btn = document.getElementById('btnClaim');
+  btn.disabled = true;
+  btn.textContent = 'Claiming...';
+
+  const baseUrl = document.getElementById('baseUrl').value.replace(/\/$/, '');
+  const token = document.getElementById('token').value.trim();
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+
+  if (!token || !username || !password) {
+    log('log2', 'All fields are required.', 'error');
+    btn.disabled = false;
+    btn.textContent = '2️⃣ PUT /api/migrate/claim';
+    return;
+  }
+
+  try {
+    const res = await fetch(baseUrl + '/api/migrate/claim', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token,
+      },
+      body: JSON.stringify({ username, password }),
+    });
+
+    const body = await res.text();
+    if (!res.ok) {
+      log('log2', 'HTTP ' + res.status + '\n' + body, 'error');
+      btn.disabled = false;
+      btn.textContent = '2️⃣ PUT /api/migrate/claim';
+      return;
+    }
+
+    const data = JSON.parse(body);
+    log('log3', JSON.stringify(data, null, 2), 'success');
+    showStep(3);
+  } catch (e) {
+    log('log2', 'Network error: ' + e.message, 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '2️⃣ PUT /api/migrate/claim';
+}
+
+function resetFlow() {
+  showStep(1);
+  document.getElementById('log1').textContent = '';
+  document.getElementById('log1').className = 'log';
+  document.getElementById('log2').textContent = '';
+  document.getElementById('log2').className = 'log';
+}
+</script>
+
+</body>
+</html>

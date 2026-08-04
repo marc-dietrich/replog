@@ -10,6 +10,10 @@
 	@apply mx-auto flex max-w-md items-center gap-3 px-4 py-4;
 }
 
+.app-header__account-btn {
+	@apply flex h-10 w-10 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100;
+}
+
 .app-brand {
 	@apply flex min-w-0 items-center gap-3;
 }
@@ -275,4 +279,70 @@
 
 .auth-form__error {
 	@apply text-xs text-red-500;
+}
+
+/* ── Login Dialog ─────────────────────────────────────────────────────── */
+
+.login-dialog {
+	@apply flex min-h-[60vh] items-start justify-center px-4 pt-8;
+}
+
+.login-dialog__card {
+	@apply relative w-full max-w-sm overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900;
+}
+
+.login-dialog__accent {
+	@apply h-1 w-full bg-primary;
+}
+
+.login-dialog__head {
+	@apply flex justify-center px-6 pb-2 pt-6;
+}
+
+.login-dialog__avatar {
+	@apply text-[5.5rem] leading-none text-primary/80 dark:text-primary/70;
+}
+
+.login-dialog__tabs {
+	@apply mx-6 mb-5 flex gap-0 rounded-xl bg-slate-100 p-1 dark:bg-slate-800/70;
+}
+
+.login-dialog__tab {
+	@apply flex-1 rounded-[0.625rem] py-2.5 text-sm font-semibold tracking-wide text-slate-500 transition-colors hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200;
+}
+
+.login-dialog__tab--active {
+	@apply bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100;
+}
+
+.login-dialog__form {
+	@apply space-y-4 px-6 pb-6;
+}
+
+.login-dialog__fields {
+	@apply space-y-3;
+}
+
+.login-dialog__field {
+	@apply relative;
+}
+
+.login-dialog__field-icon {
+	@apply absolute left-4 top-1/2 z-10 -translate-y-1/2 text-lg text-slate-400 dark:text-slate-500;
+}
+
+.login-dialog__input {
+	@apply w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-slate-800 placeholder-slate-400 transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:placeholder-slate-500 dark:focus:border-primary dark:focus:ring-primary/20;
+}
+
+.login-dialog__error {
+	@apply rounded-xl bg-red-50 px-4 py-2.5 text-center text-xs font-medium text-red-600 dark:bg-red-900/30 dark:text-red-400;
+}
+
+.login-dialog__submit {
+	@apply flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-primary bg-white py-4 text-sm font-semibold text-slate-900 transition-all active:scale-[0.98] dark:border-primary dark:bg-transparent dark:text-slate-100 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.login-dialog__submit-icon {
+	@apply text-lg text-primary;
 }

@@ -24,7 +24,7 @@ public class RlsAspect {
         this.currentUserProvider = currentUserProvider;
     }
 
-    @Before("execution(* made.simple.replog.service..*(..)) && !execution(* made.simple.replog.service.AuthService.*(..))")
+    @Before("execution(* made.simple.replog.service..*(..)) && !execution(* made.simple.replog.service.AuthService.*(..)) && !execution(* made.simple.replog.service.MigrationService.*(..))")
     public void setRlsContext() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || !(auth instanceof UsernamePasswordAuthenticationToken)) {

@@ -5,10 +5,12 @@ import made.simple.replog.config.AppHealthProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @SpringBootApplication
 @EnableTransactionManagement(order = 0)
+@EnableScheduling
 @EnableConfigurationProperties({AppHealthProperties.class, AppCorsProperties.class})
 public class ReplogApplication {
 
