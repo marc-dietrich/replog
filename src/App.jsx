@@ -4,6 +4,7 @@ import { AddGroupForm } from "./components/AddGroupForm";
 import { AddPanel } from "./components/AddPanel";
 import { EXERCISE_VIEW_MODES, SETS_DISPLAY_MODES } from "./components/ExerciseTrendChart";
 import { ExerciseList } from "./components/ExerciseList";
+import { MigrationPopup } from "./components/MigrationPopup";
 import { useExercises } from "./hooks/useExercises";
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./styles/app.css";
@@ -383,6 +384,12 @@ function App() {
         accept="application/json"
         className="app-hidden-input"
         onChange={handleImport}
+      />
+
+      <MigrationPopup
+        exercises={exercises}
+        groups={groups}
+        settings={settings}
       />
     </div>
   );

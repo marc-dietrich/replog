@@ -1,0 +1,150 @@
+/* src/components/MigrationPopup.css */
+
+.migration-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  padding: 24px;
+  animation: migrationFadeIn 0.25s ease-out;
+}
+
+.migration-popup {
+  background: #fff;
+  border-radius: 24px;
+  padding: 32px 28px 24px;
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+  animation: migrationScaleIn 0.3s ease-out;
+}
+
+@media (prefers-color-scheme: dark) {
+  .migration-overlay {
+    background: rgba(0, 0, 0, 0.7);
+  }
+  .migration-popup {
+    background: #1e1e1e;
+    color: #e0e0e0;
+  }
+  .migration-popup__body {
+    color: #aaa;
+  }
+  .migration-popup__hint a {
+    color: #aaa;
+  }
+  .migration-popup__btn--secondary {
+    background: #2a2a2a;
+    color: #ccc;
+  }
+}
+
+.migration-popup__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.migration-popup__icon .material-icons-round {
+  font-size: 28px;
+  color: #fff;
+}
+
+.migration-popup__title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 12px;
+  color: inherit;
+}
+
+.migration-popup__body {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: #555;
+  margin: 0 0 10px;
+}
+
+.migration-popup__error {
+  font-size: 0.8rem;
+  color: #ef4444;
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #fef2f2;
+}
+
+@media (prefers-color-scheme: dark) {
+  .migration-popup__error {
+    background: #3b1a1a;
+  }
+}
+
+.migration-popup__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.migration-popup__btn {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  font-family: inherit;
+}
+
+.migration-popup__btn:active {
+  transform: scale(0.97);
+}
+
+.migration-popup__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.migration-popup__btn--primary {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+}
+
+.migration-popup__btn--secondary {
+  background: #f3f4f6;
+  color: #555;
+}
+
+.migration-popup__hint {
+  margin-top: 16px;
+  font-size: 0.8rem;
+}
+
+.migration-popup__hint a {
+  color: #888;
+  text-decoration: underline;
+}
+
+@keyframes migrationFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes migrationScaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
