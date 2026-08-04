@@ -93,6 +93,27 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  const claim = useCallback(async (token, username, password) => {
+    setError(null);
+    const res = await fetch(`${apiBase}/migrate/claim`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      credentials: "include",
+      body: JSON.stringify({ username, password }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => null);
+      const message = extractErrorMessage(text) || "Claim failed";
+      throw new Error(message);
+    }
+    const data = await res.json();
+    setAuthenticated(true);
+    setUser({ id: data.id, username: data.username });
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -102,6 +123,7 @@ export function AuthProvider({ children }) {
         error,
         login,
         register,
+        claim,
         logout,
       }}
     >

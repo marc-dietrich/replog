@@ -8,6 +8,7 @@ import { LoginButton } from "./components/LoginButton";
 import { useExercises, useSettings } from "./hooks";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { LoginDialog } from "./components/LoginDialog";
+import { ClaimDialog } from "./components/ClaimDialog";
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./styles/app.css";
 
@@ -51,6 +52,13 @@ function AppInner() {
   const [addPanelType, setAddPanelType] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
+
+  // Migration claim flow: check for #token=... in URL
+  const [showClaim, setShowClaim] = useState(() => {
+    const hash = window.location.hash;
+    const m = hash.match(/token=([a-f0-9-]+)/);
+    return m ? m[1] : null;
+  });
   const fileInputRef = useRef(null);
   const impressumButtonRef = useRef(null);
   const impressumTooltipRef = useRef(null);
@@ -357,6 +365,11 @@ function AppInner() {
       <main className="app-main">
         {!ready ? (
           <div className="app-status-msg">Loading…</div>
+        ) : showClaim ? (
+          <ClaimDialog
+            token={showClaim}
+            onSwitchToLogin={() => setShowClaim(null)}
+          />
         ) : !authenticated ? (
           <LoginDialog />
         ) : (
