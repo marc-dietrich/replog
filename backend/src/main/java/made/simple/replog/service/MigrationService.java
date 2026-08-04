@@ -24,7 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -49,7 +51,8 @@ public class MigrationService {
 
     /**
      * Creates a new migration user with all provided data.
-     * Returns a redirect URL with the migration token in the fragment.
+     * Exercises and groups come as flat lists — exercises reference groups
+     * via a string {@code groupId} that maps to a group's old string {@code id}.
      */
     @Transactional
     public MigrateResponse migrate(MigrateRequest request) {
@@ -57,36 +60,35 @@ public class MigrationService {
         User user = User.createMigrationUser(migrationToken);
         user = userRepository.save(user);
 
-        // Set RLS context for the new user so we can insert related data
         setRlsContext(user.getId());
 
-        // Ungrouped exercises first
-        for (MigrateExerciseDto exerciseDto : safeList(request.exercises())) {
-            Exercise exercise = new Exercise();
-            exercise.setUserId(user.getId());
-            exercise.setName(exerciseDto.name());
-            exercise.setOrder(exerciseDto.order());
-            // group stays null — this is an ungrouped exercise
-            entityManager.persist(exercise);
-            persistEntries(user.getId(), exercise, safeList(exerciseDto.entries()));
-        }
-
+        // Step 1: create groups, mapping old string IDs → new Group entities
+        Map<String, Group> groupByOldId = new HashMap<>();
         for (MigrateGroupDto groupDto : safeList(request.groups())) {
             Group group = new Group();
             group.setUserId(user.getId());
             group.setName(groupDto.name());
             group.setOrder(groupDto.order());
             entityManager.persist(group);
-
-            for (MigrateExerciseDto exerciseDto : safeList(groupDto.exercises())) {
-                Exercise exercise = new Exercise();
-                exercise.setUserId(user.getId());
-                exercise.setName(exerciseDto.name());
-                exercise.setOrder(exerciseDto.order());
-                exercise.setGroup(group);
-                entityManager.persist(exercise);
-                persistEntries(user.getId(), exercise, safeList(exerciseDto.entries()));
+            if (groupDto.id() != null && !groupDto.id().isBlank()) {
+                groupByOldId.put(groupDto.id(), group);
             }
+        }
+
+        // Step 2: create exercises, assigning to groups by old groupId
+        for (MigrateExerciseDto exerciseDto : safeList(request.exercises())) {
+            Exercise exercise = new Exercise();
+            exercise.setUserId(user.getId());
+            exercise.setName(exerciseDto.name());
+            exercise.setOrder(exerciseDto.order());
+
+            String oldGroupId = exerciseDto.groupId();
+            if (oldGroupId != null && !oldGroupId.isBlank()) {
+                exercise.setGroup(groupByOldId.get(oldGroupId));
+            }
+
+            entityManager.persist(exercise);
+            persistEntries(user.getId(), exercise, safeList(exerciseDto.entries()));
         }
 
         entityManager.flush();

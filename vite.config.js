@@ -112,7 +112,7 @@ function appConfigPlugin(mergedConfig) {
 // ── Build config (async to load + merge before plugins are created) ─────
 
 export default defineConfig(async () => {
-  const gitTag = resolveGitTag()
+  const gitTag = process.env.VITE_APP_VERSION || resolveGitTag()
   const mergedConfig = await loadMergedConfig()
 
   return {

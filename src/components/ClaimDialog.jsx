@@ -7,7 +7,7 @@
 import { useAuth } from "../auth/AuthContext";
 import { useState } from "react";
 
-export function ClaimDialog({ token, onSwitchToLogin }) {
+export function ClaimDialog({ token, onSwitchToLogin, onClaimed }) {
   const { claim } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -32,7 +32,7 @@ export function ClaimDialog({ token, onSwitchToLogin }) {
     setBusy(true);
     try {
       await claim(token, username.trim(), password);
-      // AuthContext auto-sets authenticated → App rerenders to main view
+      onClaimed(); // close dialog and clear hash
     } catch (err) {
       setError(err.message || "Konnte Account nicht aktivieren.");
     } finally {

@@ -95,28 +95,15 @@
     <label>Payload (JSON)</label>
     <textarea id="payload">{
   "exercises": [
-    {
-      "name": "Deadlift",
-      "order": 0,
-      "entries": [
-        { "date": "2025-01-01", "weight": 100, "reps": 5 }
-      ]
-    }
+    { "name": "Deadlift", "order": 0, "groupId": null, "entries": [
+      { "date": "2025-01-01", "weight": 100, "reps": 5 }
+    ]},
+    { "name": "Bench Press", "order": 0, "groupId": "g-push", "entries": [
+      { "date": "2025-01-01", "weight": 80, "reps": 8 }
+    ]}
   ],
   "groups": [
-    {
-      "name": "Push",
-      "order": 0,
-      "exercises": [
-        {
-          "name": "Bench Press",
-          "order": 0,
-          "entries": [
-            { "date": "2025-01-01", "weight": 80, "reps": 8 }
-          ]
-        }
-      ]
-    }
+    { "id": "g-push", "name": "Push", "order": 0 }
   ]
 }</textarea>
 

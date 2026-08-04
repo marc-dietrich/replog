@@ -4,7 +4,7 @@ import java.util.List;
 
 /**
  * Payload from the old frontend for migration.
- * Contains all user data: ungrouped exercises, groups with nested exercises and entries.
+ * Exercises and groups are flat lists — exercises reference groups via {@code groupId}.
  * No validation — the endpoint is rate-limited but otherwise trusts the incoming data.
  */
 public record MigrateRequest(

@@ -133,13 +133,9 @@ class MigrationIntegrationTest {
 
     @Test
     void migrateAcceptsAnyPayloadEvenPartial() {
-        // No validation on migration DTOs — even empty/partial data is accepted.
-        // Rate limiter is the only guard.
         MigrateRequest request = new MigrateRequest(
-                List.of(),                              // no ungrouped exercises
-                List.of(new MigrateGroupDto("", 0,      // empty name, zero order
-                        List.of(new MigrateExerciseDto("Squat", 0, List.of())))
-                )
+                List.of(new MigrateExerciseDto("Squat", 0, null, List.of())),
+                List.of(new MigrateGroupDto("g1", "", 0))
         );
 
         MigrateResponse response = migrationService.migrate(request);
@@ -344,17 +340,17 @@ class MigrationIntegrationTest {
         MigrateEntryDto entry1 = new MigrateEntryDto(LocalDate.of(2025, 1, 1), new BigDecimal("100.00"), 10, "Felt good");
         MigrateEntryDto entry2 = new MigrateEntryDto(LocalDate.of(2025, 1, 3), new BigDecimal("105.00"), 8, null);
 
-        MigrateExerciseDto exercise1 = new MigrateExerciseDto("Bench Press", 0, List.of(entry1, entry2));
-        MigrateExerciseDto exercise2 = new MigrateExerciseDto("Squat", 1, List.of());
-
-        // Ungrouped exercise (no group)
-        MigrateExerciseDto ungrouped = new MigrateExerciseDto("Deadlift", 0, List.of(
+        // Flat exercises with groupId referencing old group IDs
+        MigrateExerciseDto bench = new MigrateExerciseDto("Bench Press", 0, "old-push", List.of(entry1, entry2));
+        MigrateExerciseDto squat = new MigrateExerciseDto("Squat", 1, "old-legs", List.of());
+        MigrateExerciseDto deadlift = new MigrateExerciseDto("Deadlift", 0, null, List.of( // ungrouped
             new MigrateEntryDto(LocalDate.of(2025, 2, 1), new BigDecimal("150.00"), 5, "PR")
         ));
 
-        MigrateGroupDto group1 = new MigrateGroupDto("Push", 0, List.of(exercise1));
-        MigrateGroupDto group2 = new MigrateGroupDto("Legs", 1, List.of(exercise2));
+        // Flat groups with old string IDs
+        MigrateGroupDto push = new MigrateGroupDto("old-push", "Push", 0);
+        MigrateGroupDto legs = new MigrateGroupDto("old-legs", "Legs", 1);
 
-        return new MigrateRequest(List.of(ungrouped), List.of(group1, group2));
+        return new MigrateRequest(List.of(bench, squat, deadlift), List.of(push, legs));
     }
 }

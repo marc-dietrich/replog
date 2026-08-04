@@ -368,7 +368,14 @@ function AppInner() {
         ) : showClaim ? (
           <ClaimDialog
             token={showClaim}
-            onSwitchToLogin={() => setShowClaim(null)}
+            onSwitchToLogin={() => {
+              setShowClaim(null);
+              window.location.hash = "";
+            }}
+            onClaimed={() => {
+              setShowClaim(null);
+              window.location.hash = "";
+            }}
           />
         ) : !authenticated ? (
           <LoginDialog />
