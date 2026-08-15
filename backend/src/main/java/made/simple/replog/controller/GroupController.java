@@ -3,6 +3,7 @@ package made.simple.replog.controller;
 import made.simple.replog.dto.CreateGroupRequest;
 import made.simple.replog.dto.GroupDto;
 import made.simple.replog.dto.ReorderGroupsRequest;
+import made.simple.replog.dto.UpdateGroupRequest;
 import made.simple.replog.service.GroupService;
 
 import org.springframework.http.ResponseEntity;
@@ -36,6 +37,11 @@ public class GroupController {
     @PostMapping
     public GroupDto create(@RequestBody CreateGroupRequest request) {
         return groupService.create(request);
+    }
+
+    @PutMapping("/{id}")
+    public GroupDto update(@PathVariable java.util.UUID id, @RequestBody UpdateGroupRequest request) {
+        return groupService.update(id, request);
     }
 
     @DeleteMapping("/{id}")

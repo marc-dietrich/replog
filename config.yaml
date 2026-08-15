@@ -9,10 +9,8 @@
 
 # ── Sync queue ─────────────────────────────────────────────────────────
 # sync:
-#   maxRetries: 10
-#   baseDelayMs: 2000
-#   maxDelayMs: 300000
-#   retryIntervalMs: 30000
+#   maxRetries: 100
+#   logoutPushTimeoutMs: 2500
 
 # ── Health check ───────────────────────────────────────────────────────
 # health:
@@ -23,6 +21,7 @@
 # ── Entries ────────────────────────────────────────────────────────────
 # entries:
 #   defaultLimit: 10
+#   capLimit: 10
 #   loadMoreLimit: 200
 
 # ── Storage keys ───────────────────────────────────────────────────────

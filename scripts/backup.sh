@@ -29,6 +29,10 @@ REMOTE_PATH="${REMOTE_PATH:-}"
 DATE=$(date +%Y-%m-%d)
 FILE="replog_${DATE}_${RETENTION_LABEL}.sql.gz"
 
+# Each retention label lives in its own subfolder, locally and on the remote.
+SUB_DIR="${BACKUP_DIR}/${RETENTION_LABEL}"
+mkdir -p "${SUB_DIR}"
+
 echo "[backup] $(date -Iseconds) Starting ${RETENTION_LABEL} backup..."
 
 export PGPASSWORD="${DB_PASSWORD}"
@@ -41,17 +45,17 @@ pg_dump \
   -d "${DB_NAME}" \
   --no-owner \
   --no-acl \
-  | gzip > "${BACKUP_DIR}/${FILE}"
+  | gzip > "${SUB_DIR}/${FILE}"
 
-echo "[backup] $(date -Iseconds) Saved: ${FILE} ($(du -h "${BACKUP_DIR}/${FILE}" | cut -f1))"
+echo "[backup] $(date -Iseconds) Saved: ${SUB_DIR}/${FILE} ($(du -h "${SUB_DIR}/${FILE}" | cut -f1))"
 
 # ── Rsync to remote ───────────────────────────────────────────────────
 if [ -n "${REMOTE_USER}" ] && [ -n "${REMOTE_HOST}" ] && [ -n "${REMOTE_PATH}" ]; then
-  echo "[backup] Syncing to ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH} ..."
+  echo "[backup] Syncing to ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}/${RETENTION_LABEL} ..."
   rsync -avz -e "ssh -o StrictHostKeyChecking=accept-new" \
-    "${BACKUP_DIR}/" \
-    "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}/" \
-    || echo "[backup] WARNING: rsync failed — local backup is still safe at ${BACKUP_DIR}/${FILE}"
+    "${SUB_DIR}/" \
+    "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}/${RETENTION_LABEL}/" \
+    || echo "[backup] WARNING: rsync failed — local backup is still safe at ${SUB_DIR}/${FILE}"
 
   echo "[backup] $(date -Iseconds) Rsync done."
 else
@@ -66,7 +70,7 @@ case "${RETENTION_LABEL}" in
   *)       KEEP=7 ;;
 esac
 
-ls -1t "${BACKUP_DIR}"/replog_*_${RETENTION_LABEL}.sql.gz 2>/dev/null \
+ls -1t "${SUB_DIR}"/replog_*_${RETENTION_LABEL}.sql.gz 2>/dev/null \
   | tail -n +$((KEEP + 1)) \
   | while read -r old; do
     echo "[backup] Removing old backup: $(basename "${old}")"

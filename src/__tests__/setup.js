@@ -7,15 +7,23 @@
 import "@testing-library/jest-dom/vitest";
 import { vi } from "vitest";
 
+// IndexedDB is not available in jsdom — Dexie needs the in-memory shim.
+import "fake-indexeddb/auto";
+
+// Reset the Dexie DB between test files so data never leaks across suites.
+import { db } from "../db/db";
+beforeEach(async () => {
+  await db.delete();
+  await db.open();
+});
+
 // Mock the Vite virtual module so all hooks can import config
 vi.mock("virtual:app-config", () => ({
   default: {
     apiBase: "/api",
     sync: {
-      maxRetries: 10,
-      baseDelayMs: 2000,
-      maxDelayMs: 300_000,
-      retryIntervalMs: 30_000,
+      maxRetries: 100,
+      logoutPushTimeoutMs: 2500,
     },
     health: {
       cacheMs: 5000,
@@ -24,6 +32,7 @@ vi.mock("virtual:app-config", () => ({
     },
     entries: {
       defaultLimit: 10,
+      capLimit: 10,
       loadMoreLimit: 200,
     },
     storage: {

@@ -3,11 +3,10 @@ package made.simple.replog.model;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -16,8 +15,8 @@ import java.util.UUID;
 @Table(name = "exercise_group")
 public class Group {
 
+    // Client-generated UUID — assigned explicitly, never generated server-side.
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(name = "user_id", nullable = false)
@@ -27,6 +26,13 @@ public class Group {
 
     @Column(name = "sort_order")
     private Integer order;
+
+    // Client timestamps, taken over 1:1 by the server (no override).
+    @Column(name = "created_at")
+    private Instant createdAt;
+
+    @Column(name = "updated_at")
+    private Instant updatedAt;
 
     @OneToMany(mappedBy = "group")
     private List<Exercise> exercises = new ArrayList<>();
@@ -38,6 +44,22 @@ public class Group {
 
     public void setId(UUID id) {
         this.id = id;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
     public String getName() {

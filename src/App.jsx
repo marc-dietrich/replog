@@ -4,10 +4,10 @@ import { AddGroupForm } from "./components/AddGroupForm";
 import { AddPanel } from "./components/AddPanel";
 import { EXERCISE_VIEW_MODES, SETS_DISPLAY_MODES } from "./components/ExerciseTrendChart";
 import { ExerciseList } from "./components/ExerciseList";
-import { LoginButton } from "./components/LoginButton";
-import { useExercises, useSettings } from "./hooks";
-import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { LoginDialog } from "./components/LoginDialog";
+import { LogoutConfirmDialog } from "./components/LogoutConfirmDialog";
+import { useExercises, useSettings, useSyncStatus } from "./hooks";
+import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { ClaimDialog } from "./components/ClaimDialog";
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./styles/app.css";
@@ -22,6 +22,11 @@ const VIEW_MODE_OPTIONS = [
   { id: EXERCISE_VIEW_MODES.VOLUME, label: "Volume" },
   { id: EXERCISE_VIEW_MODES.SETS, label: "Sets" },
 ];
+
+// Login FAB appears ~5s after the page is entered, only when logged out —
+// so an instant session restore (see AuthContext mount effect) stays
+// visually uninterrupted.
+const LOGIN_FAB_DELAY_MS = 5000;
 
 function App() {
   return (
@@ -47,11 +52,35 @@ function AppInner() {
     importData,
   } = useExercises();
 
-  const { ready, authenticated } = useAuth();
+  const { ready, authenticated, user, logout } = useAuth();
   const { settings, setExerciseViewMode, setSetsDisplayMode } = useSettings();
+  const { pendingCount } = useSyncStatus();
   const [addPanelType, setAddPanelType] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
+
+  // Auth dialog — opened from the settings section.
+  const [authOpen, setAuthOpen] = useState(false);
+  const [logoutWarning, setLogoutWarning] = useState(null);
+
+  // Login FAB: delayed so it doesn't flash during session restore.
+  const [showLoginFab, setShowLoginFab] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setShowLoginFab(true), LOGIN_FAB_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleSignOut = async () => {
+    const result = await logout();
+    if (result?.blocked) {
+      setLogoutWarning({ pendingCount: result.pendingCount });
+    }
+  };
+
+  const confirmSignOut = async () => {
+    setLogoutWarning(null);
+    await logout({ force: true });
+  };
 
   // Migration claim flow: check for #token=... in URL
   const [showClaim, setShowClaim] = useState(() => {
@@ -196,7 +225,8 @@ function AppInner() {
               </div>
             </div>
           </div>
-          {/* <LoginButton /> */}
+          {/* Login / account lives in the settings section — the header
+              stays minimal and the app works without an account. */}
           <div className="app-add-wrap">
             <div
               className="app-add-switch"
@@ -244,8 +274,7 @@ function AppInner() {
               onClick={toggleMenu}
             >
               <span className="material-icons-round app-settings-btn__icon">settings</span>
-            </button>
-            {isMenuOpen && (
+            </button>            {isMenuOpen && (
               <>
                 <button
                   type="button"
@@ -355,6 +384,42 @@ function AppInner() {
                       Import JSON
                     </button>
                   </div>
+
+                  {authenticated && (
+                    <>
+                      <div className="app-settings-section-head">
+                        <span className="material-icons-round">person</span>
+                        <h3 className="app-settings-section-head__title">
+                          Account
+                        </h3>
+                      </div>
+                      <p className="app-settings-body">
+                        Signed in as {user?.username ?? "User"}
+                      </p>
+                      <div className="app-settings-actions">
+                        <button
+                          type="button"
+                          className="app-settings-action-btn"
+                          onClick={handleSignOut}
+                        >
+                          <span className="material-icons-round app-settings-action-btn__icon">logout</span>
+                          Sign out
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {pendingCount > 0 && (
+                    <p
+                      className="app-settings-body sync-hint"
+                      title="Einträge warten auf Synchronisierung"
+                    >
+                      <span className="material-icons-round" style={{ fontSize: 14 }}>
+                        cloud_upload
+                      </span>
+                      {pendingCount} Einträge warten auf Synchronisierung
+                    </p>
+                  )}
                 </div>
               </>
             )}
@@ -377,8 +442,6 @@ function AppInner() {
               window.location.hash = "";
             }}
           />
-        ) : !authenticated ? (
-          <LoginDialog />
         ) : (
           <section className="app-section">
             <div className="app-section-head">
@@ -420,6 +483,39 @@ function AppInner() {
           </section>
         )}
       </main>
+
+      {/* Login FAB — only when logged out, not in the claim view, and
+          only after the initial session-restore window has passed. */}
+      {showLoginFab && !authenticated && !showClaim && (
+        <button
+          type="button"
+          className="app-account-fab"
+          aria-label="Sign in"
+          title="Sign in"
+          onClick={() => setAuthOpen(true)}
+        >
+          <span className="material-icons-round app-account-fab__icon">login</span>
+        </button>
+      )}
+
+      {authOpen && (
+        <div
+          className="auth-dialog-overlay"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setAuthOpen(false);
+          }}
+        >
+          <LoginDialog onClose={() => setAuthOpen(false)} />
+        </div>
+      )}
+
+      {logoutWarning && (
+        <LogoutConfirmDialog
+          pendingCount={logoutWarning.pendingCount}
+          onCancel={() => setLogoutWarning(null)}
+          onConfirm={confirmSignOut}
+        />
+      )}
 
       <input
         ref={fileInputRef}

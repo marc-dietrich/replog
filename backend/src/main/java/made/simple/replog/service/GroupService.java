@@ -5,6 +5,7 @@ import made.simple.replog.dto.EntryDto;
 import made.simple.replog.dto.ExerciseDto;
 import made.simple.replog.dto.GroupDto;
 import made.simple.replog.dto.ReorderGroupsRequest;
+import made.simple.replog.dto.UpdateGroupRequest;
 import made.simple.replog.model.Entry;
 import made.simple.replog.model.Exercise;
 import made.simple.replog.model.Group;
@@ -43,26 +44,59 @@ public class GroupService {
             .toList();
     }
 
+    /**
+     * Idempotent create (Q2): a retried create with an already-known client
+     * UUID returns the existing entity.
+     */
     @Transactional
     public GroupDto create(CreateGroupRequest request) {
+        if (request.id() == null) {
+            throw new IllegalArgumentException("id (client UUID) is required");
+        }
+        var existing = groupRepository.findById(request.id());
+        if (existing.isPresent()) {
+            return toDto(existing.get());
+        }
+
         Group group = new Group();
+        group.setId(request.id());
         group.setUserId(currentUserProvider.getCurrentUserId());
         group.setName(request.name());
         group.setOrder(request.order());
+        group.setCreatedAt(request.createdAt());
+        group.setUpdatedAt(request.updatedAt());
 
         return toDto(groupRepository.save(group));
     }
 
+    /** Full payload replacement (F2) — also the target of offline reorders (Q4). */
     @Transactional
-    public void delete(UUID id) {
+    public GroupDto update(UUID id, UpdateGroupRequest request) {
         Group group = groupRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Group nicht gefunden: " + id));
+
+        group.setName(request.name());
+        group.setOrder(request.order());
+        if (request.createdAt() != null) {
+            group.setCreatedAt(request.createdAt());
+        }
+        group.setUpdatedAt(request.updatedAt());
+
+        return toDto(groupRepository.save(group));
+    }
+
+    /** Idempotent delete (F1): deleting an already-deleted group is a no-op. */
+    @Transactional
+    public void delete(UUID id) {
+        if (!groupRepository.existsById(id)) {
+            return; // target state already reached — no-op, not an error
+        }
 
         List<Exercise> exercises = exerciseRepository.findByGroupId(id);
         exercises.forEach(exercise -> exercise.setGroup(null));
         exerciseRepository.saveAll(exercises);
 
-        groupRepository.delete(group);
+        groupRepository.deleteById(id);
     }
 
     @Transactional
@@ -95,7 +129,8 @@ public class GroupService {
         List<ExerciseDto> exerciseDtos = group.getExercises().stream()
             .map(e -> toDto(e, entriesLimit))
             .toList();
-        return new GroupDto(group.getId(), group.getName(), group.getOrder(), exerciseDtos);
+        return new GroupDto(group.getId(), group.getName(), group.getOrder(), exerciseDtos,
+                group.getCreatedAt(), group.getUpdatedAt());
     }
 
     private ExerciseDto toDto(Exercise exercise, Integer entriesLimit) {
@@ -110,10 +145,12 @@ public class GroupService {
                 .map(this::toDto)
                 .toList();
         return new ExerciseDto(exercise.getId(), exercise.getName(), exercise.getOrder(), entryDtos,
-                exercise.getGroup() != null ? exercise.getGroup().getId() : null);
+                exercise.getGroup() != null ? exercise.getGroup().getId() : null,
+                exercise.getCreatedAt(), exercise.getUpdatedAt());
     }
 
     private EntryDto toDto(Entry entry) {
-        return new EntryDto(entry.getId(), entry.getDate(), entry.getWeight(), entry.getReps(), entry.getNote());
+        return new EntryDto(entry.getId(), entry.getDate(), entry.getWeight(), entry.getReps(), entry.getNote(),
+                entry.getCreatedAt(), entry.getUpdatedAt());
     }
 }

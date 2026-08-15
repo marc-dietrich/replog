@@ -1,5 +1,6 @@
 package made.simple.replog.dto;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -8,5 +9,7 @@ public record ExerciseDto(
     String name,
     Integer order,
     List<EntryDto> entries,
-    UUID groupId
+    UUID groupId,
+    Instant createdAt,
+    Instant updatedAt
 ) {}

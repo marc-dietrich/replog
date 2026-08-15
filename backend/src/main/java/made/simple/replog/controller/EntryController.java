@@ -4,15 +4,16 @@ import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import made.simple.replog.dto.CreateEntryRequest;
 import made.simple.replog.dto.EntryDto;
+import made.simple.replog.dto.UpdateEntryRequest;
 import made.simple.replog.service.EntryService;
 
 @RestController
@@ -28,6 +29,11 @@ public class EntryController {
     @PostMapping
     public EntryDto create(@RequestBody CreateEntryRequest request) {
         return entryService.create(request);
+    }
+
+    @PutMapping("/{id}")
+    public EntryDto update(@PathVariable UUID id, @RequestBody UpdateEntryRequest request) {
+        return entryService.update(id, request);
     }
 
     @DeleteMapping("/{id}")

@@ -4,9 +4,11 @@ import made.simple.replog.dto.CreateExerciseRequest;
 import made.simple.replog.dto.EntryDto;
 import made.simple.replog.dto.ExerciseDto;
 import made.simple.replog.dto.ReorderExerciseRequest;
+import made.simple.replog.dto.UpdateExerciseRequest;
 import made.simple.replog.model.Entry;
 import made.simple.replog.model.Exercise;
 import made.simple.replog.model.Group;
+import made.simple.replog.repository.EntryRepository;
 import made.simple.replog.repository.ExerciseRepository;
 import made.simple.replog.repository.GroupRepository;
 import made.simple.replog.security.CurrentUserProvider;
@@ -21,28 +23,75 @@ import java.util.UUID;
 public class ExerciseService {
 
     private final ExerciseRepository exerciseRepository;
+    private final EntryRepository entryRepository;
     private final GroupRepository groupRepository;
     private final CurrentUserProvider currentUserProvider;
 
-    public ExerciseService(ExerciseRepository exerciseRepository, GroupRepository groupRepository,
+    public ExerciseService(ExerciseRepository exerciseRepository, EntryRepository entryRepository,
+            GroupRepository groupRepository,
             CurrentUserProvider currentUserProvider) {
         this.exerciseRepository = exerciseRepository;
+        this.entryRepository = entryRepository;
         this.groupRepository = groupRepository;
         this.currentUserProvider = currentUserProvider;
     }
 
+    /**
+     * Idempotent create (Q2): a retried create with an already-known client
+     * UUID returns the existing entity.
+     */
     @Transactional
     public ExerciseDto create(CreateExerciseRequest request) {
+        if (request.id() == null) {
+            throw new IllegalArgumentException("id (client UUID) is required");
+        }
+        var existing = exerciseRepository.findById(request.id());
+        if (existing.isPresent()) {
+            return toDto(existing.get());
+        }
+
         Exercise exercise = new Exercise();
+        exercise.setId(request.id());
         exercise.setUserId(currentUserProvider.getCurrentUserId());
         exercise.setName(request.name());
         exercise.setOrder(request.order());
+        exercise.setCreatedAt(request.createdAt());
+        exercise.setUpdatedAt(request.updatedAt());
 
         if (request.groupId() != null) {
             Group group = groupRepository.findById(request.groupId())
                     .orElseThrow(() -> new EntityNotFoundException("Group nicht gefunden: " + request.groupId()));
             exercise.setGroup(group);
         }
+
+        return toDto(exerciseRepository.save(exercise));
+    }
+
+    /** Full payload replacement (F2) — also the target of offline reorders (Q4). */
+    @Transactional
+    public ExerciseDto update(UUID id, UpdateExerciseRequest request) {
+        Exercise exercise = exerciseRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Exercise nicht gefunden: " + id));
+
+        exercise.setName(request.name());
+        exercise.setOrder(request.order());
+
+        UUID newGroupId = request.groupId();
+        UUID currentGroupId = exercise.getGroup() != null ? exercise.getGroup().getId() : null;
+        if (!Objects.equals(newGroupId, currentGroupId)) {
+            if (newGroupId != null) {
+                Group group = groupRepository.findById(newGroupId)
+                        .orElseThrow(() -> new EntityNotFoundException("Group nicht gefunden: " + newGroupId));
+                exercise.setGroup(group);
+            } else {
+                exercise.setGroup(null);
+            }
+        }
+
+        if (request.createdAt() != null) {
+            exercise.setCreatedAt(request.createdAt());
+        }
+        exercise.setUpdatedAt(request.updatedAt());
 
         return toDto(exerciseRepository.save(exercise));
     }
@@ -59,11 +108,17 @@ public class ExerciseService {
                 .toList();
     }
 
+    /**
+     * Idempotent delete (F1) with explicit entry cascade (Q5): deleting an
+     * already-deleted exercise is a no-op; deleting an exercise removes all
+     * of its entries server-side.
+     */
     @Transactional
     public void delete(UUID id) {
         if (!exerciseRepository.existsById(id)) {
-            throw new EntityNotFoundException("Exercise nicht gefunden: " + id);
+            return; // target state already reached — no-op, not an error
         }
+        entryRepository.deleteByExerciseId(id);
         exerciseRepository.deleteById(id);
     }
 
@@ -149,9 +204,11 @@ public class ExerciseService {
                 : allEntries;
 
         List<EntryDto> entryDtos = limitedEntries.stream()
-                .map(e -> new EntryDto(e.getId(), e.getDate(), e.getWeight(), e.getReps(), e.getNote()))
+                .map(e -> new EntryDto(e.getId(), e.getDate(), e.getWeight(), e.getReps(), e.getNote(),
+                        e.getCreatedAt(), e.getUpdatedAt()))
                 .toList();
         UUID groupId = exercise.getGroup() != null ? exercise.getGroup().getId() : null;
-        return new ExerciseDto(exercise.getId(), exercise.getName(), exercise.getOrder(), entryDtos, groupId);
+        return new ExerciseDto(exercise.getId(), exercise.getName(), exercise.getOrder(), entryDtos, groupId,
+                exercise.getCreatedAt(), exercise.getUpdatedAt());
     }
 }

@@ -1,9 +1,11 @@
 // src/hooks/useSyncStatus.js
 //
-// Simplified health check + online status hook.
-// No sync queue — just tells the UI whether the backend is reachable.
+// Online/backend health status + live pending-op count from the queue.
+// The /api/health polling is a pure connectivity check — no sync trigger.
 
 import { useState, useEffect, useCallback } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db, QUEUE_STATUS } from "../db/db";
 import config from "virtual:app-config";
 
 const { health: healthCfg } = config;
@@ -12,6 +14,18 @@ export function useSyncStatus() {
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
   const [backendStatus, setBackendStatus] = useState("unknown");
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
+
+  // Live count of unsynced queue entries (pending/syncing/failed) —
+  // same data basis as the logout warning dialog (G4).
+  const pendingCount = useLiveQuery(
+    () =>
+      db.queue
+        .where("status")
+        .anyOf(QUEUE_STATUS.PENDING, QUEUE_STATUS.SYNCING, QUEUE_STATUS.FAILED)
+        .count(),
+    [],
+    0
+  );
 
   useEffect(() => {
     const onOnline = () => setIsOnline(true);
@@ -63,7 +77,7 @@ export function useSyncStatus() {
     isOnline,
     backendStatus,
     canSync: backendStatus === "up",
-    pendingCount: 0,
+    pendingCount,
     lastSyncedAt,
     forceSync,
   };

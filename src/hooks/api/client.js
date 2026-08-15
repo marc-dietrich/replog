@@ -11,16 +11,25 @@ export async function apiFetch(path, options = {}) {
   const url = `${API_BASE}${path}`;
   const headers = { "Content-Type": "application/json", ...options.headers };
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-    credentials: "include",
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+      credentials: "include",
+    });
+  } catch (err) {
+    const networkError = new Error(`Network error: ${err.message}`);
+    networkError.isNetwork = true;
+    throw networkError;
+  }
 
   if (!response.ok) {
     const body = await response.text().catch(() => "");
     const message = body || `${response.status} ${response.statusText}`;
-    throw new Error(message);
+    const httpError = new Error(message);
+    httpError.status = response.status;
+    throw httpError;
   }
 
   if (response.status === 204) return null;

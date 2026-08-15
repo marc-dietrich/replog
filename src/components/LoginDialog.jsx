@@ -6,7 +6,7 @@
 import { useAuth } from "../auth/AuthContext";
 import { useState } from "react";
 
-export function LoginDialog() {
+export function LoginDialog({ onClose }) {
   const { login, register } = useAuth();
   const [mode, setMode] = useState("login");
   const [username, setUsername] = useState("");
@@ -36,6 +36,8 @@ export function LoginDialog() {
       } else {
         await register(username.trim(), password);
       }
+      // Session established — close the dialog.
+      onClose?.();
     } catch (err) {
       setError(err.message || `${mode === "login" ? "Login" : "Registration"} failed.`);
     } finally {
@@ -51,6 +53,17 @@ export function LoginDialog() {
   return (
     <div className="login-dialog">
       <div className="login-dialog__card">
+        {onClose && (
+          <button
+            type="button"
+            className="login-dialog__close"
+            aria-label="Close"
+            onClick={onClose}
+          >
+            <span className="material-icons-round">close</span>
+          </button>
+        )}
+
         {/* Gold accent bar */}
         <div className="login-dialog__accent" aria-hidden="true" />
 

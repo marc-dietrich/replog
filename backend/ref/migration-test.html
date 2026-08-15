@@ -153,6 +153,27 @@ function showStep(n) {
   document.getElementById('step' + n).classList.add('active');
 }
 
+// R2: fresh client UUID per entity + client timestamps (server takes them 1:1).
+function assignClientUuids(payload) {
+  const now = () => new Date().toISOString();
+  for (const g of payload.groups ?? []) {
+    g.uuid = crypto.randomUUID();
+    g.createdAt = g.createdAt ?? now();
+    g.updatedAt = now();
+  }
+  for (const ex of payload.exercises ?? []) {
+    ex.uuid = crypto.randomUUID();
+    ex.createdAt = ex.createdAt ?? now();
+    ex.updatedAt = now();
+    for (const e of ex.entries ?? []) {
+      e.uuid = crypto.randomUUID();
+      e.createdAt = e.createdAt ?? now();
+      e.updatedAt = now();
+    }
+  }
+  return payload;
+}
+
 async function doMigrate() {
   const btn = document.getElementById('btnMigrate');
   btn.disabled = true;
@@ -163,6 +184,9 @@ async function doMigrate() {
 
   try {
     payload = JSON.parse(document.getElementById('payload').value);
+    // R2: the client maps every old entity to a fresh client UUID before
+    // sending — the old string IDs stay as reference/mapping.
+    assignClientUuids(payload);
   } catch (e) {
     log('log1', 'Invalid JSON: ' + e.message, 'error');
     btn.disabled = false;

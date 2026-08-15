@@ -3,15 +3,16 @@ package made.simple.replog.dto;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.UUID;
 
-public record CreateEntryRequest(
-        UUID id,
+/**
+ * Full replacement update for an entry (F2). The complete new state is
+ * carried — no patch/partial semantics.
+ */
+public record UpdateEntryRequest(
         LocalDate date,
         BigDecimal weight,
         Integer reps,
         String note,
-        UUID exerciseId,
         Instant createdAt,
         Instant updatedAt) {
 }

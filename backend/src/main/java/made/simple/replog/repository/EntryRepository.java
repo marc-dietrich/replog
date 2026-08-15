@@ -14,4 +14,7 @@ public interface EntryRepository extends JpaRepository<Entry, UUID> {
     List<Entry> findByExerciseIdOrderByDateDesc(UUID exerciseId, Pageable pageable);
 
     long countByExerciseId(UUID exerciseId);
+
+    // Explicit cascade used by ExerciseService.delete (Q5)
+    long deleteByExerciseId(UUID exerciseId);
 }

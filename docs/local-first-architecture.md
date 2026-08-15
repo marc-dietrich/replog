@@ -1,4 +1,13 @@
-# RepLog — Local-First Architecture Design
+# ⚠️ Veraltet / Deprecated (Q6)
+
+Dieses Dokument ist **veraltet** und wird vollständig durch die Spec in
+`README.md` ("Local-First Sync Engine — Spec", inkl. "Implementation
+Decisions") ersetzt. Widersprüchliche Punkte (temp-IDs, 30s-Polling,
+Server-Wins-Refresh) sind dort korrigiert. Bei Abweichungen gilt `README.md`.
+
+---
+
+# RepLog — Local-First Architecture Design (ALT)
 
 ## 1. Current State (Baseline)
 

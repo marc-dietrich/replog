@@ -2,7 +2,8 @@
 //
 // Login / Register / Logout component.
 // When not authenticated, shows a login/register form.
-// When authenticated, shows username + logout button.
+// When authenticated, shows username + logout button. Logout asks for
+// confirmation if unsynced entries would be discarded (spec 3.3/8b).
 
 import { useAuth } from "../auth/AuthContext";
 import { useState } from "react";
@@ -15,6 +16,26 @@ export function LoginButton() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [logoutWarning, setLogoutWarning] = useState(null); // { pendingCount }
+
+  const handleLogout = async () => {
+    setBusy(true);
+    try {
+      const result = await logout();
+      if (result?.blocked) {
+        setLogoutWarning({ pendingCount: result.pendingCount });
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmLogout = async () => {
+    setLogoutWarning(null);
+    await logout({ force: true });
+  };
+
+  const cancelLogout = () => setLogoutWarning(null);
 
   if (!authenticated) {
     const handleSubmit = async (e) => {
@@ -118,11 +139,42 @@ export function LoginButton() {
       <button
         type="button"
         className="auth-btn auth-btn--logout"
-        onClick={logout}
+        onClick={handleLogout}
         aria-label="Sign out"
+        disabled={busy}
       >
         Logout
       </button>
+
+      {logoutWarning && (
+        <div
+          className="logout-confirm-overlay"
+          role="alertdialog"
+          aria-label="Unsynchronized entries"
+        >
+          <div className="logout-confirm-card">
+            <p className="logout-confirm__text">
+              {logoutWarning.pendingCount} Eintr&auml;ge nicht synchronisiert, trotzdem ausloggen?
+            </p>
+            <div className="logout-confirm__actions">
+              <button
+                type="button"
+                className="auth-btn logout-confirm__cancel"
+                onClick={cancelLogout}
+              >
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                className="auth-btn auth-btn--logout logout-confirm__force"
+                onClick={confirmLogout}
+              >
+                Trotzdem ausloggen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

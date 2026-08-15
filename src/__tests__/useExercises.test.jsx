@@ -1,12 +1,17 @@
 // src/__tests__/useExercises.test.jsx
 //
-// Tests for useExercises (src/hooks/useExercises.js).
-// Covers: auth-gated data loading, all CRUD mutations, import, and
-// the guarantee that unauthenticated users see empty data.
+// Tests for useExercises (local-first). Covers:
+//   • local cache + queue writes on every mutation (anonymous included)
+//   • background sync push when authenticated (one queue op per mutation)
+//   • live-reactive reads from Dexie
+//   • loadMoreEntries returns { entries, totalCount }
+//   • importData writes cache first, then enqueues create ops (Q10)
+//   • cache cap eviction: only synced entries are removed (section 6)
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useExercises } from "../hooks/useExercises";
+import { db } from "../db/db";
 
 // ── Mock useAuth ───────────────────────────────────────────────────────
 
@@ -15,8 +20,6 @@ const mockUseAuth = vi.fn();
 vi.mock("../auth/AuthContext", () => ({
   useAuth: () => mockUseAuth(),
 }));
-
-// ── Helpers ────────────────────────────────────────────────────────────
 
 function mockAuth(overrides = {}) {
   mockUseAuth.mockReturnValue({
@@ -28,47 +31,44 @@ function mockAuth(overrides = {}) {
 }
 
 function jsonResponse(body, status = 200) {
-  // 204 No Content must not have a body
   if (status === 204) {
     return Promise.resolve(new Response(null, { status: 204 }));
   }
-  return Promise.resolve(
-    new Response(JSON.stringify(body), { status })
-  );
+  return Promise.resolve(new Response(JSON.stringify(body), { status }));
 }
 
-// ── Sample server data ─────────────────────────────────────────────────
+const okJson = () => jsonResponse({ ok: true });
 
-const sampleGroups = [
-  {
-    id: "g1",
-    name: "Push",
+// ── Seed helpers ───────────────────────────────────────────────────────
+
+async function seedExercise(overrides = {}) {
+  const id = overrides.id ?? "ex-1";
+  await db.exercises.add({
+    id,
+    name: "Bench Press",
     order: 0,
-    exercises: [
-      {
-        id: "ex1",
-        name: "Bench Press",
-        order: 0,
-        entries: [
-          { id: "e1", date: "2026-01-01", weight: 100, reps: 5, note: "" },
-        ],
-      },
-    ],
-  },
-];
+    groupId: null,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  });
+  return id;
+}
 
-const sampleUngrouped = [
-  {
-    id: "ex2",
-    name: "Squat",
-    order: 0,
-    entries: [
-      { id: "e2", date: "2026-01-02", weight: 120, reps: 8, note: "deep" },
-    ],
-  },
-];
+async function seedEntry(exerciseId, entryId, date) {
+  await db.entries.add({
+    id: entryId,
+    exerciseId,
+    date,
+    weight: 100,
+    reps: 5,
+    note: "",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  });
+}
 
-describe("useExercises", () => {
+describe("useExercises (local-first)", () => {
   let originalFetch;
 
   beforeEach(() => {
@@ -82,519 +82,306 @@ describe("useExercises", () => {
   });
 
   // ══════════════════════════════════════════════════════════════════════
-  // Auth gate
+  // Reactive local reads
   // ══════════════════════════════════════════════════════════════════════
 
-  it("does NOT fetch when user is not authenticated", async () => {
+  it("reads exercises and their entries reactively from the cache", async () => {
     mockAuth({ authenticated: false });
 
-    renderHook(() => useExercises());
+    await seedExercise({ id: "ex-1" });
+    await seedEntry("ex-1", "e1", "2026-01-02");
+    await seedEntry("ex-1", "e2", "2026-01-01");
 
-    // Let any effects settle
-    await vi.waitFor(() => {}, { timeout: 100 });
+    const { result } = renderHook(() => useExercises());
 
+    await waitFor(() => {
+      expect(result.current.exercises).toHaveLength(1);
+    });
+
+    expect(result.current.exercises[0].id).toBe("ex-1");
+    // entries sorted ascending by date
+    expect(result.current.exercises[0].entries.map((e) => e.id)).toEqual(["e2", "e1"]);
+  });
+
+  it("maps group data to { id, name, order }", async () => {
+    mockAuth({ authenticated: false });
+    await db.groups.add({
+      id: "g1",
+      name: "Push",
+      order: 0,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+
+    const { result } = renderHook(() => useExercises());
+
+    await waitFor(() => {
+      expect(result.current.groups).toHaveLength(1);
+    });
+    expect(result.current.groups[0]).toEqual({ id: "g1", name: "Push", order: 0 });
+  });
+
+  // ══════════════════════════════════════════════════════════════════════
+  // Anonymous usage (section 3.1): cache + queue, no sync attempt
+  // ══════════════════════════════════════════════════════════════════════
+
+  it("anonymous addExercise writes cache + queue but never syncs", async () => {
+    mockAuth({ authenticated: false });
+    const { result } = renderHook(() => useExercises());
+
+    await act(async () => {
+      await result.current.addExercise("Squat");
+    });
+
+    const stored = await db.exercises.toArray();
+    expect(stored).toHaveLength(1);
+    expect(stored[0].name).toBe("Squat");
+    expect(stored[0].id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(stored[0].createdAt).toBeDefined();
+    expect(stored[0].updatedAt).toBeDefined();
+
+    const queue = await db.queue.toArray();
+    expect(queue).toHaveLength(1);
+    expect(queue[0].entityType).toBe("exercise");
+    expect(queue[0].op).toBe("create");
+    expect(queue[0].status).toBe("pending");
+
+    // No session → no sync attempt at all
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
-  it("returns empty arrays when not authenticated", () => {
-    mockAuth({ authenticated: false });
-
-    const { result } = renderHook(() => useExercises());
-
-    expect(result.current.exercises).toEqual([]);
-    expect(result.current.groups).toEqual([]);
-  });
-
-  it("fetches data on mount when authenticated", async () => {
-    mockAuth({ authenticated: true });
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse(sampleGroups))
-      .mockResolvedValueOnce(jsonResponse(sampleUngrouped));
-
-    const { result } = renderHook(() => useExercises());
-
-    await waitFor(() => {
-      expect(result.current.exercises.length).toBeGreaterThan(0);
-    });
-
-    expect(result.current.groups).toHaveLength(1);
-    expect(result.current.groups[0].name).toBe("Push");
-    expect(result.current.exercises).toHaveLength(2);
-  });
-
-  it("clears data when user logs out", async () => {
-    // Start authenticated
-    mockAuth({ authenticated: true });
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse(sampleGroups))
-      .mockResolvedValueOnce(jsonResponse(sampleUngrouped));
-
-    const { result, rerender } = renderHook(() => useExercises());
-
-    await waitFor(() => {
-      expect(result.current.exercises.length).toBe(2);
-    });
-
-    // Simulate logout
-    mockAuth({ authenticated: false });
-    rerender();
-
-    await waitFor(() => {
-      expect(result.current.exercises).toEqual([]);
-    });
-    expect(result.current.groups).toEqual([]);
-  });
-
-  it("fetches data when auth state changes from false to true", async () => {
-    mockAuth({ authenticated: false });
-    const { result, rerender } = renderHook(() => useExercises());
-
-    expect(result.current.exercises).toEqual([]);
-
-    // Simulate login
-    mockAuth({ authenticated: true });
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse(sampleGroups))
-      .mockResolvedValueOnce(jsonResponse(sampleUngrouped));
-    rerender();
-
-    await waitFor(() => {
-      expect(result.current.exercises.length).toBe(2);
-    });
-  });
-
   // ══════════════════════════════════════════════════════════════════════
-  // Data flattening
+  // Authenticated mutations: cache + queue + background push
   // ══════════════════════════════════════════════════════════════════════
 
-  it("flattens grouped exercises with correct groupId", async () => {
+  it("authenticated addExercise pushes the create op to the backend", async () => {
     mockAuth({ authenticated: true });
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse(sampleGroups))
-      .mockResolvedValueOnce(jsonResponse([]));
+    globalThis.fetch.mockResolvedValue(okJson());
 
     const { result } = renderHook(() => useExercises());
-
-    await waitFor(() => {
-      expect(result.current.exercises.length).toBe(1);
-    });
-
-    expect(result.current.exercises[0].groupId).toBe("g1");
-    expect(result.current.exercises[0].name).toBe("Bench Press");
-  });
-
-  it("sets groupId to null for ungrouped exercises", async () => {
-    mockAuth({ authenticated: true });
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse(sampleUngrouped));
-
-    const { result } = renderHook(() => useExercises());
-
-    await waitFor(() => {
-      expect(result.current.exercises.length).toBe(1);
-    });
-
-    expect(result.current.exercises[0].groupId).toBeNull();
-  });
-
-  it("normalises entries: converts weight to Number and defaults note", async () => {
-    mockAuth({ authenticated: true });
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse(sampleGroups))
-      .mockResolvedValueOnce(jsonResponse([]));
-
-    const { result } = renderHook(() => useExercises());
-
-    await waitFor(() => {
-      expect(result.current.exercises.length).toBe(1);
-    });
-
-    const entry = result.current.exercises[0].entries[0];
-    expect(typeof entry.weight).toBe("number");
-    expect(entry.weight).toBe(100);
-    expect(entry.note).toBe("");
-  });
-
-  // ══════════════════════════════════════════════════════════════════════
-  // addExercise
-  // ══════════════════════════════════════════════════════════════════════
-
-  it("addExercise posts and refreshes", async () => {
-    mockAuth({ authenticated: true });
-    // Initial load
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse([]))
-      // POST exercise
-      .mockResolvedValueOnce(jsonResponse({ id: "new-ex" }))
-      // After refresh
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(
-        jsonResponse([
-          { id: "new-ex", name: "Deadlift", order: 0, entries: [] },
-        ])
-      );
-
-    const { result } = renderHook(() => useExercises());
-
-    await waitFor(() => {
-      expect(result.current.exercises.length).toBe(0); // initial empty
-    });
 
     await act(async () => {
       await result.current.addExercise("Deadlift");
     });
 
     await waitFor(() => {
-      expect(result.current.exercises.length).toBe(1);
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        "/api/exercises",
+        expect.objectContaining({ method: "POST" })
+      );
     });
-    expect(result.current.exercises[0].name).toBe("Deadlift");
+
+    const queue = await db.queue.toArray();
+    expect(queue[0].status).toBe("synced"); // ack-based
+    expect(queue[0].payload.name).toBe("Deadlift");
+    expect(queue[0].payload.id).toMatch(/^[0-9a-f-]{36}$/);
   });
 
-  it("addExercise does nothing for empty name", async () => {
+  it("addEntry writes locally and pushes a create op with client uuid + timestamps", async () => {
     mockAuth({ authenticated: true });
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse([]));
+    globalThis.fetch.mockResolvedValue(okJson());
+    await seedExercise({ id: "ex-1" });
 
     const { result } = renderHook(() => useExercises());
 
-    await waitFor(() => {
-      expect(result.current.exercises).toBeDefined();
-    });
-
-    const callCount = globalThis.fetch.mock.calls.length;
     await act(async () => {
-      await result.current.addExercise("   ");
-    });
-
-    // No additional fetch calls
-    expect(globalThis.fetch.mock.calls.length).toBe(callCount);
-  });
-
-  // ══════════════════════════════════════════════════════════════════════
-  // addGroup
-  // ══════════════════════════════════════════════════════════════════════
-
-  it("addGroup posts and refreshes", async () => {
-    mockAuth({ authenticated: true });
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse({ id: "g-new" }))
-      .mockResolvedValueOnce(
-        jsonResponse([{ id: "g-new", name: "Legs", order: 0, exercises: [] }])
-      )
-      .mockResolvedValueOnce(jsonResponse([]));
-
-    const { result } = renderHook(() => useExercises());
-
-    await waitFor(() => {
-      expect(result.current.groups).toBeDefined();
-    });
-
-    await act(async () => {
-      await result.current.addGroup("Legs");
+      await result.current.addEntry("ex-1", "2026-07-29", 85.5, 10, "felt good");
     });
 
     await waitFor(() => {
-      expect(result.current.groups.length).toBe(1);
-    });
-  });
-
-  it("addGroup does nothing for empty name", async () => {
-    mockAuth({ authenticated: true });
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse([]));
-
-    const { result } = renderHook(() => useExercises());
-
-    await waitFor(() => {
-      expect(result.current.groups).toBeDefined();
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        "/api/entries",
+        expect.objectContaining({ method: "POST" })
+      );
     });
 
-    const callCount = globalThis.fetch.mock.calls.length;
-    await act(async () => {
-      await result.current.addGroup("  ");
-    });
+    const entries = await db.entries.toArray();
+    expect(entries).toHaveLength(1);
+    expect(entries[0].exerciseId).toBe("ex-1");
+    expect(entries[0].weight).toBe(85.5);
 
-    expect(globalThis.fetch.mock.calls.length).toBe(callCount);
-  });
-
-  // ══════════════════════════════════════════════════════════════════════
-  // addEntry
-  // ══════════════════════════════════════════════════════════════════════
-
-  it("addEntry posts correct payload and refreshes", async () => {
-    mockAuth({ authenticated: true });
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse({ id: "entry-new" }))
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse([]));
-
-    const { result } = renderHook(() => useExercises());
-
-    await waitFor(() => {
-      expect(result.current.exercises).toBeDefined();
-    });
-
-    await act(async () => {
-      await result.current.addEntry("ex1", "2026-07-29", 85.5, 10, "felt good");
-    });
-
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      "/api/entries",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          date: "2026-07-29",
-          weight: 85.5,
-          reps: 10,
-          note: "felt good",
-          exerciseId: "ex1",
-        }),
-      })
-    );
+    const queue = await db.queue.toArray();
+    const payload = queue[0].payload;
+    expect(payload.id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(payload.createdAt).toBeDefined();
+    expect(payload.updatedAt).toBeDefined();
+    expect(payload.exerciseId).toBe("ex-1");
   });
 
   it("addEntry does nothing when date is missing", async () => {
     mockAuth({ authenticated: true });
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse([]));
-
     const { result } = renderHook(() => useExercises());
-
-    await waitFor(() => {
-      expect(result.current.exercises).toBeDefined();
-    });
-
-    const callCount = globalThis.fetch.mock.calls.length;
-    await act(async () => {
-      await result.current.addEntry("ex1", null, 100, 5);
-    });
-
-    expect(globalThis.fetch.mock.calls.length).toBe(callCount);
-  });
-
-  // ══════════════════════════════════════════════════════════════════════
-  // deleteExercise
-  // ══════════════════════════════════════════════════════════════════════
-
-  it("deleteExercise sends DELETE and refreshes", async () => {
-    mockAuth({ authenticated: true });
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse(sampleGroups))
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse(null, 204))
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse([]));
-
-    const { result } = renderHook(() => useExercises());
-
-    await waitFor(() => {
-      expect(result.current.exercises.length).toBe(1);
-    });
 
     await act(async () => {
-      await result.current.deleteExercise("ex1");
+      await result.current.addEntry("ex-1", null, 100, 5);
     });
 
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      "/api/exercises/ex1",
-      expect.objectContaining({ method: "DELETE" })
-    );
+    expect(await db.entries.count()).toBe(0);
+    expect(await db.queue.count()).toBe(0);
   });
 
-  // ══════════════════════════════════════════════════════════════════════
-  // deleteEntry
-  // ══════════════════════════════════════════════════════════════════════
-
-  it("deleteEntry sends DELETE for the entry", async () => {
+  it("deleteEntry removes locally and enqueues a delete op", async () => {
     mockAuth({ authenticated: true });
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse(sampleGroups))
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse(null, 204))
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse([]));
+    globalThis.fetch.mockResolvedValue(jsonResponse(null, 204));
+    await seedExercise({ id: "ex-1" });
+    await seedEntry("ex-1", "e1", "2026-01-02");
 
     const { result } = renderHook(() => useExercises());
-
-    await waitFor(() => {
-      expect(result.current.exercises.length).toBe(1);
-    });
 
     await act(async () => {
-      await result.current.deleteEntry("ex1", { id: "e1" });
+      await result.current.deleteEntry("ex-1", { id: "e1" });
     });
 
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      "/api/entries/e1",
-      expect.objectContaining({ method: "DELETE" })
-    );
+    expect(await db.entries.count()).toBe(0);
+
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        "/api/entries/e1",
+        expect.objectContaining({ method: "DELETE" })
+      );
+    });
+
+    const queue = await db.queue.toArray();
+    expect(queue[0]).toMatchObject({ entityUuid: "e1", op: "delete" });
   });
 
-  it("deleteEntry does nothing when entry has no id", async () => {
+  it("deleteExercise removes exercise + entries locally and enqueues one delete op", async () => {
     mockAuth({ authenticated: true });
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse([]));
+    globalThis.fetch.mockResolvedValue(jsonResponse(null, 204));
+    await seedExercise({ id: "ex-1" });
+    await seedEntry("ex-1", "e1", "2026-01-02");
 
     const { result } = renderHook(() => useExercises());
 
-    await waitFor(() => {
-      expect(result.current.exercises).toBeDefined();
-    });
-
-    const callCount = globalThis.fetch.mock.calls.length;
     await act(async () => {
-      await result.current.deleteEntry("ex1", null);
+      await result.current.deleteExercise("ex-1");
     });
 
-    expect(globalThis.fetch.mock.calls.length).toBe(callCount);
+    expect(await db.exercises.count()).toBe(0);
+    expect(await db.entries.count()).toBe(0);
+
+    // Q5: ONE delete op for the exercise — no per-entry ops
+    const queue = await db.queue.toArray();
+    expect(queue).toHaveLength(1);
+    expect(queue[0]).toMatchObject({ entityUuid: "ex-1", op: "delete", entityType: "exercise" });
   });
 
-  // ══════════════════════════════════════════════════════════════════════
-  // deleteGroup
-  // ══════════════════════════════════════════════════════════════════════
-
-  it("deleteGroup sends DELETE and refreshes", async () => {
+  it("deleteGroup ungroups its exercises locally and enqueues a delete op", async () => {
     mockAuth({ authenticated: true });
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse(sampleGroups))
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse(null, 204))
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse([]));
+    globalThis.fetch.mockResolvedValue(jsonResponse(null, 204));
+    await db.groups.add({
+      id: "g1",
+      name: "Push",
+      order: 0,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    await seedExercise({ id: "ex-1", groupId: "g1" });
 
     const { result } = renderHook(() => useExercises());
-
-    await waitFor(() => {
-      expect(result.current.groups.length).toBe(1);
-    });
 
     await act(async () => {
       await result.current.deleteGroup("g1");
     });
 
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      "/api/groups/g1",
-      expect.objectContaining({ method: "DELETE" })
-    );
+    const exercises = await db.exercises.toArray();
+    expect(exercises[0].groupId).toBeNull();
+
+    const queue = await db.queue.toArray();
+    expect(queue).toHaveLength(1);
+    expect(queue[0]).toMatchObject({ entityUuid: "g1", op: "delete", entityType: "group" });
   });
 
   // ══════════════════════════════════════════════════════════════════════
-  // moveExercise
+  // Reorder → update ops with full new state (Q4)
   // ══════════════════════════════════════════════════════════════════════
 
-  it("moveExercise sends PUT to reorder endpoint", async () => {
+  it("reorderGroups enqueues update ops for groups whose order changed", async () => {
     mockAuth({ authenticated: true });
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse(sampleUngrouped))
-      .mockResolvedValueOnce(jsonResponse({ ok: true }))
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse([]));
+    globalThis.fetch.mockResolvedValue(okJson());
+    await db.groups.bulkAdd([
+      { id: "g1", name: "Push", order: 0, createdAt: "", updatedAt: "" },
+      { id: "g2", name: "Pull", order: 1, createdAt: "", updatedAt: "" },
+    ]);
 
     const { result } = renderHook(() => useExercises());
 
-    await waitFor(() => {
-      expect(result.current.exercises).toBeDefined();
-    });
-
-    await act(async () => {
-      await result.current.moveExercise("ex2", "g1", 0);
-    });
-
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      "/api/exercises/reorder",
-      expect.objectContaining({
-        method: "PUT",
-        body: JSON.stringify({
-          exerciseId: "ex2",
-          targetGroupId: "g1",
-          newOrder: 0,
-        }),
-      })
-    );
-  });
-
-  // ══════════════════════════════════════════════════════════════════════
-  // reorderGroups
-  // ══════════════════════════════════════════════════════════════════════
-
-  it("reorderGroups sends PUT for each group whose order changed", async () => {
-    mockAuth({ authenticated: true });
-    const twoGroups = [
-      { id: "g1", name: "Push", order: 0, exercises: [] },
-      { id: "g2", name: "Pull", order: 1, exercises: [] },
-    ];
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse(twoGroups))
-      .mockResolvedValueOnce(jsonResponse([]))
-      // Two reorder PUTs
-      .mockResolvedValueOnce(jsonResponse({ ok: true }))
-      .mockResolvedValueOnce(jsonResponse({ ok: true }))
-      // Refresh
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse([]));
-
-    const { result } = renderHook(() => useExercises());
-
-    await waitFor(() => {
-      expect(result.current.groups.length).toBe(2);
-    });
-
-    // Swap: g2 first, g1 second
     await act(async () => {
       await result.current.reorderGroups(["g2", "g1"]);
     });
 
-    // g2 moved from index 1 to index 0
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      "/api/groups/reorder",
-      expect.objectContaining({
-        body: JSON.stringify({ groupId: "g2", newOrder: 0 }),
-      })
-    );
-    // g1 moved from index 0 to index 1
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      "/api/groups/reorder",
-      expect.objectContaining({
-        body: JSON.stringify({ groupId: "g1", newOrder: 1 }),
-      })
-    );
+    const groups = await db.groups.toArray();
+    const g1 = groups.find((g) => g.id === "g1");
+    const g2 = groups.find((g) => g.id === "g2");
+    expect(g1.order).toBe(1);
+    expect(g2.order).toBe(0);
+
+    const ops = await db.queue.toArray();
+    expect(ops.map((o) => o.op)).toEqual(["update", "update"]);
+    expect(ops.every((o) => o.entityType === "group")).toBe(true);
+    expect(ops[0].payload).toMatchObject({ id: "g2", order: 0 });
   });
 
-  // ══════════════════════════════════════════════════════════════════════
-  // importData
-  // ══════════════════════════════════════════════════════════════════════
-
-  it("importData creates groups and exercises with entries", async () => {
+  it("moveExercise updates orders locally and enqueues update ops", async () => {
     mockAuth({ authenticated: true });
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse([]))
-      // Create group
-      .mockResolvedValueOnce(jsonResponse({ id: "g-imported" }))
-      // Create exercise
-      .mockResolvedValueOnce(jsonResponse({ id: "ex-imported" }))
-      // Create entry
-      .mockResolvedValueOnce(jsonResponse({ id: "entry-imported" }))
-      // Refresh
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse([]));
+    globalThis.fetch.mockResolvedValue(okJson());
+    await seedExercise({ id: "ex-1", order: 0 });
+    await seedExercise({ id: "ex-2", order: 1 });
+    await seedExercise({ id: "ex-3", order: 2 });
 
     const { result } = renderHook(() => useExercises());
 
-    await waitFor(() => {
-      expect(result.current.exercises).toBeDefined();
+    await act(async () => {
+      await result.current.moveExercise("ex-3", null, 0);
     });
+
+    const exercises = await db.exercises.toArray();
+    const byId = Object.fromEntries(exercises.map((e) => [e.id, e.order]));
+    expect(byId).toEqual({ "ex-1": 1, "ex-2": 2, "ex-3": 0 });
+
+    const ops = await db.queue.toArray();
+    expect(ops.length).toBeGreaterThan(0);
+    expect(ops.every((o) => o.op === "update" && o.entityType === "exercise")).toBe(true);
+  });
+
+  // ══════════════════════════════════════════════════════════════════════
+  // loadMoreEntries (R3): transient server data, not written to cache
+  // ══════════════════════════════════════════════════════════════════════
+
+  it("loadMoreEntries returns { entries, totalCount } without touching the cache", async () => {
+    mockAuth({ authenticated: true });
+    globalThis.fetch.mockResolvedValue(
+      jsonResponse({
+        entries: [{ id: "e-old", date: "2025-01-01", weight: 50, reps: 5, note: "" }],
+        totalCount: 42,
+        offset: 0,
+        limit: 200,
+      })
+    );
+
+    const { result } = renderHook(() => useExercises());
+
+    let page;
+    await act(async () => {
+      page = await result.current.loadMoreEntries("ex-1");
+    });
+
+    expect(page.totalCount).toBe(42);
+    expect(page.entries).toHaveLength(1);
+
+    // R3: must NOT be persisted into the capped cache
+    expect(await db.entries.count()).toBe(0);
+  });
+
+  // ══════════════════════════════════════════════════════════════════════
+  // importData (Q10): cache first, then one create op per entity
+  // ══════════════════════════════════════════════════════════════════════
+
+  it("importData writes cache first, then enqueues one create op per entity", async () => {
+    mockAuth({ authenticated: true });
+    globalThis.fetch.mockResolvedValue(okJson());
+
+    const { result } = renderHook(() => useExercises());
 
     const importPayload = {
       groups: [{ id: "old-g1", name: "Imported Group", order: 0 }],
@@ -604,9 +391,7 @@ describe("useExercises", () => {
           name: "Imported Exercise",
           order: 0,
           groupId: "old-g1",
-          entries: [
-            { date: "2026-07-01", weight: 60, reps: 12, note: "import" },
-          ],
+          entries: [{ date: "2026-07-01", weight: 60, reps: 12, note: "import" }],
         },
       ],
     };
@@ -615,132 +400,95 @@ describe("useExercises", () => {
       await result.current.importData(importPayload);
     });
 
-    // Verify group creation
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      "/api/groups",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({ name: "Imported Group", order: 0 }),
-      })
-    );
+    expect(await db.groups.count()).toBe(1);
+    expect(await db.exercises.count()).toBe(1);
+    expect(await db.entries.count()).toBe(1);
 
-    // Verify exercise creation with remapped groupId
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      "/api/exercises",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          name: "Imported Exercise",
-          order: 0,
-          groupId: "g-imported",
-        }),
-      })
-    );
+    const storedExercise = (await db.exercises.toArray())[0];
+    const storedGroup = (await db.groups.toArray())[0];
+    expect(storedExercise.groupId).toBe(storedGroup.id);
 
-    // Verify entry creation
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      "/api/entries",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          date: "2026-07-01",
-          weight: 60,
-          reps: 12,
-          note: "import",
-          exerciseId: "ex-imported",
-        }),
-      })
-    );
+    const ops = await db.queue.toArray();
+    expect(ops).toHaveLength(3);
+    expect(ops.filter((o) => o.op === "create" && o.entityType === "group")).toHaveLength(1);
+    expect(ops.filter((o) => o.op === "create" && o.entityType === "exercise")).toHaveLength(1);
+    expect(ops.filter((o) => o.op === "create" && o.entityType === "entry")).toHaveLength(1);
   });
 
   it("importData throws for invalid payload format", async () => {
     mockAuth({ authenticated: true });
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse([]));
-
     const { result } = renderHook(() => useExercises());
-
-    await waitFor(() => {
-      expect(result.current.exercises).toBeDefined();
-    });
 
     await act(async () => {
-      await expect(result.current.importData({})).rejects.toThrow(
-        "Invalid import format"
-      );
+      await expect(result.current.importData({})).rejects.toThrow("Invalid import format");
     });
   });
 
   // ══════════════════════════════════════════════════════════════════════
-  // loadMoreEntries
+  // Cache cap eviction (section 6)
   // ══════════════════════════════════════════════════════════════════════
 
-  it("loadMoreEntries returns totalCount", async () => {
-    mockAuth({ authenticated: true });
-    globalThis.fetch
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(
-        jsonResponse({
-          entries: [],
-          totalCount: 42,
-          offset: 0,
-          limit: 200,
-        })
-      );
+  it("evicts oldest synced entries when an exercise exceeds the cap", async () => {
+    mockAuth({ authenticated: false });
+    await seedExercise({ id: "ex-1" });
+    for (let i = 0; i < 12; i++) {
+      await seedEntry("ex-1", `e-${i}`, `2026-01-${String(i + 1).padStart(2, "0")}`);
+    }
 
-    const { result } = renderHook(() => useExercises());
+    renderHook(() => useExercises());
 
-    await waitFor(() => {
-      expect(result.current.exercises).toBeDefined();
+    // cap = 10: the two oldest (e-0, e-1) must be evicted
+    await waitFor(async () => {
+      expect(await db.entries.count()).toBe(10);
     });
 
-    let totalCount;
+    const remaining = await db.entries.toArray();
+    expect(remaining.some((e) => e.id === "e-0")).toBe(false);
+    expect(remaining.some((e) => e.id === "e-1")).toBe(false);
+    expect(remaining.some((e) => e.id === "e-11")).toBe(true);
+  });
+
+  it("never evicts entries with open queue ops, regardless of age", async () => {
+    mockAuth({ authenticated: false });
+    await seedExercise({ id: "ex-1" });
+    for (let i = 0; i < 12; i++) {
+      await seedEntry("ex-1", `e-${i}`, `2026-01-${String(i + 1).padStart(2, "0")}`);
+    }
+    // e-0 is the oldest and has a pending op → untouchable
+    await db.queue.add({
+      entityUuid: "e-0",
+      entityType: "entry",
+      op: "create",
+      payload: {},
+      status: "pending",
+      retryCount: 0,
+      createdAt: Date.now(),
+    });
+
+    renderHook(() => useExercises());
+
+    await waitFor(async () => {
+      expect(await db.entries.count()).toBe(10); // e-1 and e-2 evicted, e-0 protected
+    });
+
+    const remaining = await db.entries.toArray();
+    expect(remaining.some((e) => e.id === "e-0")).toBe(true);
+    expect(remaining.some((e) => e.id === "e-1")).toBe(false);
+    expect(remaining.some((e) => e.id === "e-2")).toBe(false);
+  });
+
+  // ══════════════════════════════════════════════════════════════════════
+  // refresh(): local re-read only, no server call (G3)
+  // ══════════════════════════════════════════════════════════════════════
+
+  it("refresh never calls the server", async () => {
+    mockAuth({ authenticated: true });
+    const { result } = renderHook(() => useExercises());
+
     await act(async () => {
-      totalCount = await result.current.loadMoreEntries("ex1");
+      await result.current.refresh();
     });
 
-    expect(totalCount).toBe(42);
-  });
-
-  // ══════════════════════════════════════════════════════════════════════
-  // Error handling
-  // ══════════════════════════════════════════════════════════════════════
-
-  it("sets error state when initial fetch fails", async () => {
-    mockAuth({ authenticated: true });
-    globalThis.fetch.mockRejectedValueOnce(new Error("Network down"));
-
-    const { result } = renderHook(() => useExercises());
-
-    await waitFor(() => {
-      expect(result.current.error).toBe("Network down");
-    });
-  });
-
-  it("sets loading=true during fetch", async () => {
-    mockAuth({ authenticated: true });
-    // Delay the response
-    globalThis.fetch.mockImplementation(
-      () =>
-        new Promise((resolve) =>
-          setTimeout(
-            () => resolve(new Response(JSON.stringify([]), { status: 200 })),
-            100
-          )
-        )
-    );
-
-    const { result } = renderHook(() => useExercises());
-
-    // loading should be true while fetch is pending
-    await waitFor(() => {
-      expect(result.current.syncing).toBe(true);
-    });
-
-    await waitFor(() => {
-      expect(result.current.syncing).toBe(false);
-    });
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 });

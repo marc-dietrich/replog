@@ -4,6 +4,7 @@ import made.simple.replog.dto.CreateExerciseRequest;
 import made.simple.replog.dto.ExerciseDto;
 import made.simple.replog.dto.PagedEntriesDto;
 import made.simple.replog.dto.ReorderExerciseRequest;
+import made.simple.replog.dto.UpdateExerciseRequest;
 import made.simple.replog.service.EntryService;
 import made.simple.replog.service.ExerciseService;
 
@@ -36,6 +37,11 @@ public class ExerciseController {
     @PostMapping
     public ExerciseDto create(@RequestBody CreateExerciseRequest request) {
         return exerciseService.create(request);
+    }
+
+    @PutMapping("/{id}")
+    public ExerciseDto update(@PathVariable UUID id, @RequestBody UpdateExerciseRequest request) {
+        return exerciseService.update(id, request);
     }
 
     @GetMapping("/ungrouped")

@@ -10,11 +10,10 @@ const config = {
   apiBase: "/api",
 
   // ── Sync queue ─────────────────────────────────────────────────────────
+  // Event-driven triggers only (new entity, login, logout) — no polling.
   sync: {
-    maxRetries: 10,
-    baseDelayMs: 2000,
-    maxDelayMs: 300_000,
-    retryIntervalMs: 30_000,
+    maxRetries: 100,
+    logoutPushTimeoutMs: 2500,
   },
 
   // ── Health check ───────────────────────────────────────────────────────
@@ -27,6 +26,7 @@ const config = {
   // ── Entries ────────────────────────────────────────────────────────────
   entries: {
     defaultLimit: 10,
+    capLimit: 10,
     loadMoreLimit: 200,
   },
 

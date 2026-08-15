@@ -39,12 +39,12 @@ test.describe("App smoke tests", () => {
     await expect(page.getByRole("button", { name: "Group" })).toBeVisible();
   });
 
-  test("renders sign-in button when not authenticated", async ({ page }) => {
+  test("renders login fab when not authenticated", async ({ page }) => {
     await page.goto("/");
 
-    const signInBtn = page.locator(".auth-btn--login");
-    await expect(signInBtn).toBeVisible();
-    await expect(signInBtn).toHaveText("Sign in");
+    // FAB appears ~5s after page load
+    const accountBtn = page.getByRole("button", { name: "Sign in" });
+    await expect(accountBtn).toBeVisible({ timeout: 10_000 });
   });
 
   test("renders exercise list (empty state when no data)", async ({ page }) => {

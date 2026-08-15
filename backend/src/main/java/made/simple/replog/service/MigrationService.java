@@ -53,6 +53,8 @@ public class MigrationService {
      * Creates a new migration user with all provided data.
      * Exercises and groups come as flat lists — exercises reference groups
      * via a string {@code groupId} that maps to a group's old string {@code id}.
+     * All entities carry client-generated UUIDs (R2) that become their PKs,
+     * and client timestamps taken over 1:1.
      */
     @Transactional
     public MigrateResponse migrate(MigrateRequest request) {
@@ -66,9 +68,12 @@ public class MigrationService {
         Map<String, Group> groupByOldId = new HashMap<>();
         for (MigrateGroupDto groupDto : safeList(request.groups())) {
             Group group = new Group();
+            group.setId(groupDto.uuid());
             group.setUserId(user.getId());
             group.setName(groupDto.name());
             group.setOrder(groupDto.order());
+            group.setCreatedAt(groupDto.createdAt());
+            group.setUpdatedAt(groupDto.updatedAt());
             entityManager.persist(group);
             if (groupDto.id() != null && !groupDto.id().isBlank()) {
                 groupByOldId.put(groupDto.id(), group);
@@ -78,9 +83,12 @@ public class MigrationService {
         // Step 2: create exercises, assigning to groups by old groupId
         for (MigrateExerciseDto exerciseDto : safeList(request.exercises())) {
             Exercise exercise = new Exercise();
+            exercise.setId(exerciseDto.uuid());
             exercise.setUserId(user.getId());
             exercise.setName(exerciseDto.name());
             exercise.setOrder(exerciseDto.order());
+            exercise.setCreatedAt(exerciseDto.createdAt());
+            exercise.setUpdatedAt(exerciseDto.updatedAt());
 
             String oldGroupId = exerciseDto.groupId();
             if (oldGroupId != null && !oldGroupId.isBlank()) {
@@ -140,11 +148,14 @@ public class MigrationService {
     private void persistEntries(UUID userId, Exercise exercise, List<MigrateEntryDto> entryDtos) {
         for (MigrateEntryDto entryDto : entryDtos) {
             Entry entry = new Entry();
+            entry.setId(entryDto.uuid());
             entry.setUserId(userId);
             entry.setDate(entryDto.date());
             entry.setWeight(entryDto.weight());
             entry.setReps(entryDto.reps());
             entry.setNote(entryDto.note());
+            entry.setCreatedAt(entryDto.createdAt());
+            entry.setUpdatedAt(entryDto.updatedAt());
             entry.setExercise(exercise);
             entityManager.persist(entry);
         }

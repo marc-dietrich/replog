@@ -4,6 +4,7 @@ import made.simple.replog.dto.CreateExerciseRequest;
 import made.simple.replog.model.Entry;
 import made.simple.replog.model.Exercise;
 import made.simple.replog.model.Group;
+import made.simple.replog.repository.EntryRepository;
 import made.simple.replog.repository.ExerciseRepository;
 import made.simple.replog.repository.GroupRepository;
 import made.simple.replog.security.CurrentUserProvider;
@@ -15,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -32,6 +34,9 @@ class ExerciseServiceUnitTest {
     private ExerciseRepository exerciseRepository;
 
     @Mock
+    private EntryRepository entryRepository;
+
+    @Mock
     private GroupRepository groupRepository;
 
     @Mock
@@ -41,13 +46,15 @@ class ExerciseServiceUnitTest {
 
     @BeforeEach
     void setUp() {
-        exerciseService = new ExerciseService(exerciseRepository, groupRepository, currentUserProvider);
+        exerciseService = new ExerciseService(exerciseRepository, entryRepository, groupRepository, currentUserProvider);
     }
 
     @Test
     void create_throwsWhenGroupNotFound() {
         UUID unknownGroupId = UUID.randomUUID();
-        CreateExerciseRequest request = new CreateExerciseRequest("Bankdrücken", 0, unknownGroupId);
+        UUID exerciseId = UUID.randomUUID();
+        CreateExerciseRequest request = new CreateExerciseRequest(exerciseId, "Bankdrücken", 0, unknownGroupId,
+                Instant.now(), Instant.now());
 
         when(currentUserProvider.getCurrentUserId()).thenReturn(UUID.randomUUID());
         when(groupRepository.findById(unknownGroupId)).thenReturn(Optional.empty());
@@ -63,7 +70,9 @@ class ExerciseServiceUnitTest {
     @Test
     void create_succeedsWithoutGroup_whenGroupIdIsNull() {
         UUID currentUser = UUID.randomUUID();
-        CreateExerciseRequest request = new CreateExerciseRequest("Bankdrücken", 0, null);
+        UUID exerciseId = UUID.randomUUID();
+        CreateExerciseRequest request = new CreateExerciseRequest(exerciseId, "Bankdrücken", 0, null,
+                Instant.now(), Instant.now());
 
         when(currentUserProvider.getCurrentUserId()).thenReturn(currentUser);
         when(exerciseRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -80,10 +89,12 @@ class ExerciseServiceUnitTest {
     void create_assignsGroup_whenGroupExists() {
         UUID currentUser = UUID.randomUUID();
         UUID groupId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
         Group group = new Group();
         group.setId(groupId);
 
-        CreateExerciseRequest request = new CreateExerciseRequest("Beinpresse", 0, groupId);
+        CreateExerciseRequest request = new CreateExerciseRequest(exerciseId, "Beinpresse", 0, groupId,
+                Instant.now(), Instant.now());
 
         when(currentUserProvider.getCurrentUserId()).thenReturn(currentUser);
         when(groupRepository.findById(groupId)).thenReturn(Optional.of(group));
@@ -92,6 +103,49 @@ class ExerciseServiceUnitTest {
         var result = exerciseService.create(request);
 
         assertThat(result.groupId()).isEqualTo(groupId);
+    }
+
+    @Test
+    void create_isIdempotent_forKnownClientUuid() {
+        UUID exerciseId = UUID.randomUUID();
+        Exercise existing = new Exercise();
+        existing.setId(exerciseId);
+        existing.setName("Bankdrücken");
+        existing.setOrder(0);
+
+        CreateExerciseRequest request = new CreateExerciseRequest(exerciseId, "Bankdrücken", 0, null,
+                Instant.now(), Instant.now());
+
+        when(exerciseRepository.findById(exerciseId)).thenReturn(Optional.of(existing));
+
+        var result = exerciseService.create(request);
+
+        assertThat(result.id()).isEqualTo(exerciseId);
+        // no new entity saved, no current-user lookup
+        verify(exerciseRepository, never()).save(any());
+    }
+
+    @Test
+    void delete_isNoOp_whenExerciseDoesNotExist() {
+        UUID unknownId = UUID.randomUUID();
+        when(exerciseRepository.existsById(unknownId)).thenReturn(false);
+
+        // F1: no exception — deleting an already-deleted exercise is a no-op
+        exerciseService.delete(unknownId);
+
+        verify(exerciseRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void delete_cascadesEntries() {
+        UUID exerciseId = UUID.randomUUID();
+        when(exerciseRepository.existsById(exerciseId)).thenReturn(true);
+
+        exerciseService.delete(exerciseId);
+
+        // Q5: entries must be removed explicitly alongside the exercise
+        verify(entryRepository).deleteByExerciseId(exerciseId);
+        verify(exerciseRepository).deleteById(exerciseId);
     }
 
     // ── entriesLimit tests ──────────────────────────────────────────────

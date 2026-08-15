@@ -134,8 +134,10 @@ class MigrationIntegrationTest {
     @Test
     void migrateAcceptsAnyPayloadEvenPartial() {
         MigrateRequest request = new MigrateRequest(
-                List.of(new MigrateExerciseDto("Squat", 0, null, List.of())),
-                List.of(new MigrateGroupDto("g1", "", 0))
+                List.of(new MigrateExerciseDto("Squat", 0, null, UUID.randomUUID(),
+                        Instant.now(), Instant.now(), List.of())),
+                List.of(new MigrateGroupDto("g1", UUID.randomUUID(), "", 0,
+                        Instant.now(), Instant.now()))
         );
 
         MigrateResponse response = migrationService.migrate(request);
@@ -337,19 +339,27 @@ class MigrationIntegrationTest {
     // ─── Helpers ─────────────────────────────────────────────────────────
 
     private MigrateRequest createValidMigrateRequest() {
-        MigrateEntryDto entry1 = new MigrateEntryDto(LocalDate.of(2025, 1, 1), new BigDecimal("100.00"), 10, "Felt good");
-        MigrateEntryDto entry2 = new MigrateEntryDto(LocalDate.of(2025, 1, 3), new BigDecimal("105.00"), 8, null);
+        Instant now = Instant.now();
+        MigrateEntryDto entry1 = new MigrateEntryDto(UUID.randomUUID(), LocalDate.of(2025, 1, 1),
+                new BigDecimal("100.00"), 10, "Felt good", now, now);
+        MigrateEntryDto entry2 = new MigrateEntryDto(UUID.randomUUID(), LocalDate.of(2025, 1, 3),
+                new BigDecimal("105.00"), 8, null, now, now);
 
-        // Flat exercises with groupId referencing old group IDs
-        MigrateExerciseDto bench = new MigrateExerciseDto("Bench Press", 0, "old-push", List.of(entry1, entry2));
-        MigrateExerciseDto squat = new MigrateExerciseDto("Squat", 1, "old-legs", List.of());
-        MigrateExerciseDto deadlift = new MigrateExerciseDto("Deadlift", 0, null, List.of( // ungrouped
-            new MigrateEntryDto(LocalDate.of(2025, 2, 1), new BigDecimal("150.00"), 5, "PR")
+        // Flat exercises with groupId referencing old group IDs; each carries a
+        // fresh client-generated UUID (R2) that becomes its PK.
+        MigrateExerciseDto bench = new MigrateExerciseDto("Bench Press", 0, "old-push", UUID.randomUUID(),
+                now, now, List.of(entry1, entry2));
+        MigrateExerciseDto squat = new MigrateExerciseDto("Squat", 1, "old-legs", UUID.randomUUID(),
+                now, now, List.of());
+        MigrateExerciseDto deadlift = new MigrateExerciseDto("Deadlift", 0, null, UUID.randomUUID(),
+                now, now, List.of( // ungrouped
+                new MigrateEntryDto(UUID.randomUUID(), LocalDate.of(2025, 2, 1), new BigDecimal("150.00"), 5,
+                        "PR", now, now)
         ));
 
-        // Flat groups with old string IDs
-        MigrateGroupDto push = new MigrateGroupDto("old-push", "Push", 0);
-        MigrateGroupDto legs = new MigrateGroupDto("old-legs", "Legs", 1);
+        // Flat groups with old string IDs + client UUIDs
+        MigrateGroupDto push = new MigrateGroupDto("old-push", UUID.randomUUID(), "Push", 0, now, now);
+        MigrateGroupDto legs = new MigrateGroupDto("old-legs", UUID.randomUUID(), "Legs", 1, now, now);
 
         return new MigrateRequest(List.of(bench, squat, deadlift), List.of(push, legs));
     }

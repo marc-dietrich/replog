@@ -20,25 +20,56 @@ const PASSWORD = process.env.E2E_PASSWORD || "e2e-testpass";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+async function openSettings(page) {
+  await page.locator(".app-settings-btn").click();
+  await page.waitForSelector(".app-settings-menu", { timeout: 5_000 });
+}
+
+async function closeSettings(page) {
+  await page.locator(".app-settings-overlay").click({ position: { x: 5, y: 5 } });
+  await expect(page.locator(".app-settings-menu")).not.toBeVisible({ timeout: 5_000 });
+}
+
+async function openAuthDialog(page) {
+  // FAB appears ~5s after page load when logged out
+  await page.waitForSelector(".app-account-fab", { timeout: 10_000 });
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.waitForSelector(".login-dialog", { timeout: 10_000 });
+}
+
 async function register(page, username, password) {
-  await page.locator(".auth-form__tab").filter({ hasText: "Register" }).click();
-  await page.locator(".auth-form__input").nth(0).fill(username);
-  await page.locator(".auth-form__input").nth(1).fill(password);
-  await page.locator(".auth-form__input").nth(2).fill(password);
-  await page.locator(".auth-btn--login").click();
-  await page.waitForSelector(".auth-user__name", { timeout: 15_000 });
+  await openAuthDialog(page);
+  await page.locator(".login-dialog__tab").filter({ hasText: "Register" }).click();
+  await page.locator(".login-dialog__input").nth(0).fill(username);
+  await page.locator(".login-dialog__input").nth(1).fill(password);
+  await page.locator(".login-dialog__input").nth(2).fill(password);
+  await page.locator(".login-dialog__submit").click();
+  await page.waitForSelector(".login-dialog", { state: "detached", timeout: 15_000 });
 }
 
 async function login(page, username, password) {
-  await page.locator(".auth-form__input").nth(0).fill(username);
-  await page.locator(".auth-form__input").nth(1).fill(password);
-  await page.locator(".auth-btn--login").click();
-  await page.waitForSelector(".auth-user__name", { timeout: 15_000 });
+  await openAuthDialog(page);
+  await page.locator(".login-dialog__input").nth(0).fill(username);
+  await page.locator(".login-dialog__input").nth(1).fill(password);
+  await page.locator(".login-dialog__submit").click();
+  await page.waitForSelector(".login-dialog", { state: "detached", timeout: 15_000 });
 }
 
 async function logout(page) {
-  await page.locator(".auth-btn--logout").click();
-  await page.waitForSelector(".auth-form", { timeout: 10_000 });
+  await openSettings(page);
+  await page.locator(".app-settings-action-btn", { hasText: "Sign out" }).click();
+  // fully synced queue → logout runs without confirmation dialog;
+  // the login FAB reappears once signed out
+  await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible({ timeout: 10_000 });
+  await closeSettings(page);
+}
+
+async function expectSignedIn(page) {
+  await openSettings(page);
+  await expect(
+    page.locator(".app-settings-action-btn", { hasText: "Sign out" })
+  ).toBeVisible({ timeout: 10_000 });
+  await closeSettings(page);
 }
 
 async function openAddPanel(page, type) {
@@ -91,11 +122,9 @@ test.describe("Simple auth + server-first CRUD lifecycle", () => {
       await context.clearCookies();
       await page.goto("/");
       await waitForApp(page);
-      await expect(page.locator(".auth-form")).toBeVisible();
 
       await register(page, uniqueUser, PASSWORD);
-      await expect(page.locator(".auth-user__name")).toBeVisible();
-      await expect(page.locator(".auth-user__name")).toContainText(uniqueUser);
+      await expectSignedIn(page);
     });
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -122,7 +151,7 @@ test.describe("Simple auth + server-first CRUD lifecycle", () => {
     await test.step("Phase 3: refresh — data loads from server", async () => {
       await page.reload();
       await waitForApp(page);
-      await expect(page.locator(".auth-user__name")).toBeVisible({ timeout: 15_000 });
+      await expectSignedIn(page);
 
       await assertExerciseVisible(page, "Squat");
       await assertExerciseVisible(page, "Bench Press");
@@ -145,10 +174,9 @@ test.describe("Simple auth + server-first CRUD lifecycle", () => {
     // ═══════════════════════════════════════════════════════════════════════
     await test.step("Phase 5: logout and re-login — data persists", async () => {
       await logout(page);
-      await expect(page.locator(".auth-form")).toBeVisible();
 
       await login(page, uniqueUser, PASSWORD);
-      await expect(page.locator(".auth-user__name")).toBeVisible({ timeout: 15_000 });
+      await expectSignedIn(page);
 
       await assertExerciseVisible(page, "Squat");
     });
@@ -159,7 +187,7 @@ test.describe("Simple auth + server-first CRUD lifecycle", () => {
     await test.step("Phase 6: login with pre-existing user", async () => {
       await logout(page);
       await login(page, USERNAME, PASSWORD);
-      await expect(page.locator(".auth-user__name")).toBeVisible({ timeout: 15_000 });
+      await expectSignedIn(page);
     });
 
     if (pageErrors.length > 0) {

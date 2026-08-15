@@ -56,15 +56,14 @@ services:
       DB_USER: gym
       DB_NAME: gymdb
       DB_PASSWORD: gym
-      REMOTE_USER: ""       # fill in: your Raspi SSH user
-      REMOTE_HOST: ""        # fill in: your Raspi IP/hostname
-      REMOTE_PATH: ""        # fill in: /path/to/backups/on/raspi
+      REMOTE_USER: "admin"       
+      REMOTE_HOST: "100.94.240.125"        
+      REMOTE_PATH: "/media/usb/marc/replog-db-backups"  
     volumes:
       - ./scripts:/scripts:ro
       - replog-backups:/backups
-      - ~/.ssh/id_rsa:/root/.ssh/id_rsa:ro
+      - ~/.ssh/raspi:/root/.ssh/id_rsa:ro
       - ~/.ssh/known_hosts:/root/.ssh/known_hosts:ro
-      - ~/.ssh/config:/root/.ssh/config:ro
     depends_on:
       - database
 

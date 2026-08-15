@@ -14,7 +14,7 @@ async function globalSetup() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: TEST_USER, password: TEST_PASS }),
     });
-    if (res.ok || res.status === 400) {
+    if (res.ok || res.status === 400 || res.status === 409) {
       console.log("[global-setup] Test user ready");
     } else {
       console.warn(`[global-setup] Unexpected status: ${res.status}`);

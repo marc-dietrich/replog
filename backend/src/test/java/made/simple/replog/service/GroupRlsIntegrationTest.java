@@ -7,9 +7,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -74,8 +73,8 @@ class GroupRlsIntegrationTest {
         UUID userA = UUID.randomUUID();
         UUID userB = UUID.randomUUID();
 
-        runAs(userA, () -> groupService.create(new CreateGroupRequest("Marc's Legs", 0)));
-        runAs(userB, () -> groupService.create(new CreateGroupRequest("Anna's Push", 0)));
+        runAs(userA, () -> groupService.create(createGroupRequest("Marc's Legs", 0)));
+        runAs(userB, () -> groupService.create(createGroupRequest("Anna's Push", 0)));
 
         List<GroupDto> seenByA = runAs(userA, () -> groupService.listAll());
         List<GroupDto> seenByB = runAs(userB, () -> groupService.listAll());
@@ -92,29 +91,28 @@ class GroupRlsIntegrationTest {
         UUID userA = UUID.randomUUID();
         UUID userB = UUID.randomUUID();
 
-        GroupDto groupOfA = runAs(userA, () -> groupService.create(new CreateGroupRequest("Marc's Legs", 0)));
+        GroupDto groupOfA = runAs(userA, () -> groupService.create(createGroupRequest("Marc's Legs", 0)));
 
-        org.junit.jupiter.api.Assertions.assertThrows(
-            jakarta.persistence.EntityNotFoundException.class,
-            () -> runAs(userB, () -> {
-                groupService.delete(groupOfA.id());
-                return null;
-            })
-        );
+        // F1: RLS hides the group from user B → delete is an idempotent no-op,
+        // NOT an error (deleting an already-deleted/unknown entity is 204).
+        runAs(userB, () -> {
+            groupService.delete(groupOfA.id());
+            return null;
+        });
 
         List<GroupDto> seenByA = runAs(userA, () -> groupService.listAll());
         assertThat(seenByA).hasSize(1);
     }
 
-    private <T> T runAs(UUID userId, Supplier<T> action) {
-        Jwt jwt = Jwt.withTokenValue("test-token")
-            .header("alg", "none")
-            .claim("sub", userId.toString())
-            .issuedAt(Instant.now())
-            .expiresAt(Instant.now().plusSeconds(60))
-            .build();
+    private CreateGroupRequest createGroupRequest(String name, int order) {
+        return new CreateGroupRequest(UUID.randomUUID(), name, order, Instant.now(), Instant.now());
+    }
 
-        JwtAuthenticationToken authentication = new JwtAuthenticationToken(jwt, List.of());
+    private <T> T runAs(UUID userId, Supplier<T> action) {
+        // The app uses session auth: UsernamePasswordAuthenticationToken with
+        // the user id (UUID) as principal — mirror that instead of a JWT.
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(userId, null, List.of());
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         try {

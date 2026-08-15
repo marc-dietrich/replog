@@ -21,10 +21,40 @@ fi
 echo "Sending migration payload to ${BASE_URL}/api/migrate ..."
 echo ""
 
+# R2: the client maps every old entity to a fresh client UUID before the
+# request — the old string IDs stay in the payload as reference/mapping.
+# Client timestamps are generated here as well (server takes them 1:1).
+AUGMENTED=$(python3 - "$JSON_FILE" <<'PY'
+import json, sys, uuid
+from datetime import datetime, timezone
+
+def ts():
+    return datetime.now(timezone.utc).isoformat()
+
+with open(sys.argv[1], encoding="utf-8") as f:
+    data = json.load(f)
+
+for g in data.get("groups", []):
+    g["uuid"] = str(uuid.uuid4())
+    g.setdefault("createdAt", ts())
+    g["updatedAt"] = ts()
+for ex in data.get("exercises", []):
+    ex["uuid"] = str(uuid.uuid4())
+    ex.setdefault("createdAt", ts())
+    ex["updatedAt"] = ts()
+    for e in ex.get("entries", []):
+        e["uuid"] = str(uuid.uuid4())
+        e.setdefault("createdAt", ts())
+        e["updatedAt"] = ts()
+
+json.dump(data, sys.stdout)
+PY
+)
+
 RESPONSE=$(curl -s -w "\n%{http_code}" \
     -X POST \
     -H "Content-Type: application/json" \
-    -d @"$JSON_FILE" \
+    -d "$AUGMENTED" \
     "${BASE_URL}/api/migrate")
 
 HTTP_CODE=$(echo "$RESPONSE" | tail -1)
