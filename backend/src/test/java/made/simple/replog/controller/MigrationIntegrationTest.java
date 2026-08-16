@@ -144,6 +144,30 @@ class MigrationIntegrationTest {
         assertThat(response.redirectUrl()).contains("#token=");
     }
 
+    @Test
+    void migrateAcceptsLegacyPayloadWithoutUuids() {
+        // The old website sends its raw localStorage data: string IDs,
+        // no uuid fields at all. The server must generate UUIDs itself.
+        MigrateRequest request = new MigrateRequest(
+                List.of(new MigrateExerciseDto("Bench", 0, "g1", null, null, null,
+                        List.of(new MigrateEntryDto(null, LocalDate.of(2026, 8, 16),
+                                new BigDecimal("80.5"), 5, "", null, null)))),
+                List.of(new MigrateGroupDto("g1", null, "Push", 0, null, null))
+        );
+
+        MigrateResponse response = migrationService.migrate(request);
+        assertThat(response.redirectUrl()).contains("#token=");
+
+        // The created migration user must exist with the returned token
+        String tokenStr = response.redirectUrl().split("#token=")[1];
+        UUID token = UUID.fromString(tokenStr);
+        User user = userRepository.findAll().stream()
+                .filter(u -> token.equals(u.getMigrationToken()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(user.getId()).isNotNull();
+    }
+
     // ─── PUT /api/migrate/claim ──────────────────────────────────────────
 
     @Test

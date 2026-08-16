@@ -53,8 +53,10 @@ public class MigrationService {
      * Creates a new migration user with all provided data.
      * Exercises and groups come as flat lists — exercises reference groups
      * via a string {@code groupId} that maps to a group's old string {@code id}.
-     * All entities carry client-generated UUIDs (R2) that become their PKs,
-     * and client timestamps taken over 1:1.
+     * Newer clients send client-generated UUIDs (R2) that become the PKs;
+     * legacy payloads from the old website have only string IDs, so a UUID is
+     * generated server-side when {@code uuid} is missing. Client timestamps are
+     * taken over 1:1 when present.
      */
     @Transactional
     public MigrateResponse migrate(MigrateRequest request) {
@@ -68,7 +70,7 @@ public class MigrationService {
         Map<String, Group> groupByOldId = new HashMap<>();
         for (MigrateGroupDto groupDto : safeList(request.groups())) {
             Group group = new Group();
-            group.setId(groupDto.uuid());
+            group.setId(groupDto.uuid() != null ? groupDto.uuid() : UUID.randomUUID());
             group.setUserId(user.getId());
             group.setName(groupDto.name());
             group.setOrder(groupDto.order());
@@ -83,7 +85,7 @@ public class MigrationService {
         // Step 2: create exercises, assigning to groups by old groupId
         for (MigrateExerciseDto exerciseDto : safeList(request.exercises())) {
             Exercise exercise = new Exercise();
-            exercise.setId(exerciseDto.uuid());
+            exercise.setId(exerciseDto.uuid() != null ? exerciseDto.uuid() : UUID.randomUUID());
             exercise.setUserId(user.getId());
             exercise.setName(exerciseDto.name());
             exercise.setOrder(exerciseDto.order());
@@ -148,7 +150,7 @@ public class MigrationService {
     private void persistEntries(UUID userId, Exercise exercise, List<MigrateEntryDto> entryDtos) {
         for (MigrateEntryDto entryDto : entryDtos) {
             Entry entry = new Entry();
-            entry.setId(entryDto.uuid());
+            entry.setId(entryDto.uuid() != null ? entryDto.uuid() : UUID.randomUUID());
             entry.setUserId(userId);
             entry.setDate(entryDto.date());
             entry.setWeight(entryDto.weight());
