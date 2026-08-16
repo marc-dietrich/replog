@@ -22,7 +22,17 @@ export const SETS_DISPLAY_MODES = Object.freeze({
 const DEFAULTS = Object.freeze({
   exerciseViewMode: EXERCISE_VIEW_MODES.TOP_SET,
   setsDisplayMode: SETS_DISPLAY_MODES.CONTINUOUS,
+  entriesLimit: config.entries.defaultLimit,
 });
+
+const ENTRIES_LIMIT_MIN = 1;
+const ENTRIES_LIMIT_MAX = 100;
+
+function sanitiseEntriesLimit(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return DEFAULTS.entriesLimit;
+  return Math.min(ENTRIES_LIMIT_MAX, Math.max(ENTRIES_LIMIT_MIN, Math.floor(parsed)));
+}
 
 function readSettings() {
   try {
@@ -36,6 +46,7 @@ function readSettings() {
       setsDisplayMode: Object.values(SETS_DISPLAY_MODES).includes(parsed.setsDisplayMode)
         ? parsed.setsDisplayMode
         : DEFAULTS.setsDisplayMode,
+      entriesLimit: sanitiseEntriesLimit(parsed.entriesLimit),
     };
   } catch {
     return DEFAULTS;
@@ -59,5 +70,9 @@ export function useSettings() {
     setSettings((prev) => ({ ...prev, setsDisplayMode: mode }));
   };
 
-  return { settings, setExerciseViewMode, setSetsDisplayMode };
+  const setEntriesLimit = (limit) => {
+    setSettings((prev) => ({ ...prev, entriesLimit: sanitiseEntriesLimit(limit) }));
+  };
+
+  return { settings, setExerciseViewMode, setSetsDisplayMode, setEntriesLimit };
 }

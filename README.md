@@ -38,6 +38,7 @@ Jeder Queue-Eintrag = **eine Operation** (Trace/Op-Log), nicht nur "Entity ist d
 ```
 
 - Mehrere Ops zur selben `entityUuid` sind erlaubt und bleiben alle in der Queue (kein Kompaktieren/Zusammenfassen — bewusst weggelassen, Datenmenge ist gering genug).
+- Nach erfolgreichem Ack vom Backend wird der Queue-Eintrag **sofort entfernt** (nicht auf `synced` gesetzt und behalten). Die Queue enthält damit ausschließlich offene Ops (`pending`/`syncing`/`failed`). Entscheidung nach User-Feedback — ersetzt das ursprüngliche „kein Kompaktieren“.
 - Queue bleibt bei jedem Vorgang **unberührt**, außer bei aktivem Logout (siehe 3.3).
 
 ---
@@ -123,7 +124,7 @@ Ablauf, in dieser Reihenfolge:
 - **Storage:** Dexie.js (IndexedDB-Wrapper), ein separater Object Store für die Queue innerhalb derselben DB.
 - **IDs:** Client-generierte UUIDs für alle offline erzeugten Entities, als stabiler Idempotency-Key. Backend braucht einen Unique-Constraint auf dieser Client-UUID, damit Retries keine Duplikate erzeugen.
 - **Schema-Migrationen:** über Dexies eigenes Versionierungssystem (`db.version(n).stores({...}).upgrade(tx => {...})`), kein SQL. Bestehende User-Daten bleiben bei App-Updates erhalten, sofern Upgrade-Funktionen sauber definiert sind.
-- **Kein Kompaktieren der Queue:** Auch wenn eine Entity offline mehrfach erstellt/geändert/gelöscht wird, bevor überhaupt synced wurde, bleiben alle Ops als einzelne Trace-Einträge in der Queue. Bewusste Vereinfachung, da Datenlast gering genug ist.
+- **Synced-Ops werden gelöscht:** Erfolgreich bestätigte Ops werden sofort aus der Queue entfernt. Offene Ops derselben UUID bleiben dagegen unkompaktiert erhalten (create/update/delete-Reihenfolge bleibt als Trace), bis sie acked sind.
 - **Kein Multi-Tab-Schutz (`navigator.locks`/`BroadcastChannel`):** bewusst weggelassen, da PWA im Gym-Kontext praktisch immer nur ein aktiver Tab/eine Instanz hat.
 - **Kein Online-Check vor Sync-Versuch:** `navigator.onLine` ist unzuverlässig, einfach Request versuchen und Fehler/Timeout regulär behandeln.
 - **Kein Monitoring/Grafana:** Fehlerzustände (`failed` nach Max-Retry) werden nur lokal sichtbar gemacht (dezenter UI-Hinweis), kein externes Observability-Tooling.
@@ -153,7 +154,7 @@ Ablauf, in dieser Reihenfolge:
 
 - Kein Gerät-Sharing-Szenario (ein Nutzer pro Gerät angenommen).
 - Kein Merge-UI bei Login-Konflikten (da 3.5 nicht relevant).
-- Keine Kompaktierung der Queue.
+- Keine Kompaktierung *offener* Ops (synced Ops werden sofort entfernt).
 - Kein Multi-Tab-Locking.
 - Kein Monitoring/externes Tooling für `failed`-Einträge.
 

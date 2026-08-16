@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, QUEUE_STATUS } from "../db/db";
+import { retryFailedOps } from "../db/sync";
 import config from "virtual:app-config";
 
 const { health: healthCfg } = config;
@@ -26,6 +27,18 @@ export function useSyncStatus() {
     [],
     0
   );
+
+  // Entries that gave up after max retries (manual recovery only).
+  const failedCount = useLiveQuery(
+    () => db.queue.where("status").equals(QUEUE_STATUS.FAILED).count(),
+    [],
+    0
+  );
+
+  // Manual recovery: reset failed ops and push the queue again.
+  const retryFailed = useCallback(async () => {
+    await retryFailedOps();
+  }, []);
 
   useEffect(() => {
     const onOnline = () => setIsOnline(true);
@@ -78,6 +91,8 @@ export function useSyncStatus() {
     backendStatus,
     canSync: backendStatus === "up",
     pendingCount,
+    failedCount,
+    retryFailed,
     lastSyncedAt,
     forceSync,
   };

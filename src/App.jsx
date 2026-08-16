@@ -6,13 +6,22 @@ import { EXERCISE_VIEW_MODES, SETS_DISPLAY_MODES } from "./components/ExerciseTr
 import { ExerciseList } from "./components/ExerciseList";
 import { LoginDialog } from "./components/LoginDialog";
 import { LogoutConfirmDialog } from "./components/LogoutConfirmDialog";
-import { useExercises, useSettings, useSyncStatus } from "./hooks";
+import { useExercises, useSettings } from "./hooks";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { ClaimDialog } from "./components/ClaimDialog";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "./db/db";
 import "./styles/app.css";
 
 const VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
+
+function formatBytes(bytes) {
+  if (bytes == null || !Number.isFinite(bytes)) return "unknown size";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
 const IMPRESSUM_TEXT = `Marc Dietrich
 c/o DE Office Solutions
 Erfweiler Straße 12
@@ -46,15 +55,14 @@ function AppInner() {
     addEntry,
     deleteEntry,
     deleteExercise,
+    renameExercise,
     deleteGroup,
     moveExercise,
     reorderGroups,
-    importData,
   } = useExercises();
 
   const { ready, authenticated, user, logout } = useAuth();
-  const { settings, setExerciseViewMode, setSetsDisplayMode } = useSettings();
-  const { pendingCount } = useSyncStatus();
+  const { settings, setExerciseViewMode, setSetsDisplayMode, setEntriesLimit } = useSettings();
   const [addPanelType, setAddPanelType] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
@@ -62,6 +70,46 @@ function AppInner() {
   // Auth dialog — opened from the settings section.
   const [authOpen, setAuthOpen] = useState(false);
   const [logoutWarning, setLogoutWarning] = useState(null);
+
+  // Dexie storage info: live store counts + origin usage estimate.
+  // Re-measured when the menu opens and shortly after data changes
+  // (IndexedDB frees space asynchronously).
+  const liveCounts = useLiveQuery(
+    async () => ({
+      groups: await db.groups.count(),
+      exercises: await db.exercises.count(),
+      entries: await db.entries.count(),
+      queue: await db.queue.count(),
+    }),
+    [],
+    { groups: 0, exercises: 0, entries: 0, queue: 0 }
+  );
+
+  const [storageEstimate, setStorageEstimate] = useState(null);
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    let cancelled = false;
+    const measure = () => {
+      if (!navigator.storage?.estimate) {
+        setStorageEstimate(null);
+        return;
+      }
+      navigator.storage
+        .estimate()
+        .then((est) => {
+          if (!cancelled) setStorageEstimate(est);
+        })
+        .catch(() => {
+          if (!cancelled) setStorageEstimate(null);
+        });
+    };
+    measure();
+    const delayed = setTimeout(measure, 1200); // after IDB reclaims space
+    return () => {
+      cancelled = true;
+      clearTimeout(delayed);
+    };
+  }, [isMenuOpen, liveCounts]);
 
   // Login FAB: delayed so it doesn't flash during session restore.
   const [showLoginFab, setShowLoginFab] = useState(false);
@@ -88,52 +136,9 @@ function AppInner() {
     const m = hash.match(/token=([a-f0-9-]+)/);
     return m ? m[1] : null;
   });
-  const fileInputRef = useRef(null);
   const impressumButtonRef = useRef(null);
   const impressumTooltipRef = useRef(null);
 
-  const handleExport = () => {
-    const payload = { exercises, groups, settings };
-    const json = JSON.stringify(payload, null, 2);
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "replog-data.json";
-    a.click();
-
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImport = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const imported = JSON.parse(e.target.result);
-
-        const nextState = Array.isArray(imported)
-          ? { exercises: imported, groups: [] }
-          : imported;
-
-        if (!nextState || !Array.isArray(nextState.exercises) || !Array.isArray(nextState.groups)) {
-          alert("Invalid JSON format.");
-          return;
-        }
-
-        await importData(nextState);
-        alert("Data imported successfully!");
-      } catch {
-        alert("Failed to parse JSON file.");
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const triggerImport = () => fileInputRef.current?.click();
   const closeAddPanel = () => setAddPanelType(null);
   const closeImpressum = () => setIsImpressumOpen(false);
   const closeMenu = () => setIsMenuOpen(false);
@@ -283,56 +288,32 @@ function AppInner() {
                   onClick={closeMenu}
                 ></button>
                 <div className="app-settings-menu">
-                  <div className="app-settings-block">
-                    <div className="app-settings-block__header">
-                      <span className="material-icons-round app-settings-block__header-icon">insights</span>
-                      <h3 className="app-settings-block__title">
-                        Exercise View
-                      </h3>
+                  {/* Header */}
+                  <div className="app-settings-menu__header">
+                    <div className="app-settings-menu__title-row">
+                      <span className="material-icons-round app-settings-menu__title-icon">settings</span>
+                      <h2 className="app-settings-menu__title">Settings</h2>
                     </div>
-                    <p className="app-settings-block__hint">Applies to all exercise cards.</p>
-                    <div className="app-settings-grid app-settings-grid--3" role="group" aria-label="Exercise view mode">
-                      {VIEW_MODE_OPTIONS.map((option) => {
-                        const isActive = option.id === settings.exerciseViewMode;
-                        const isDisabled = option.disabled;
-                        return (
-                          <button
-                            key={option.id}
-                            type="button"
-                            className={`app-settings-option ${
-                              isActive
-                                ? "app-settings-option--active"
-                                : "app-settings-option--inactive"
-                            } ${isDisabled ? "app-settings-option--disabled" : ""}`}
-                            disabled={isDisabled}
-                            aria-disabled={isDisabled || undefined}
-                            onClick={() => {
-                              if (isDisabled) return;
-                              setExerciseViewMode(option.id);
-                            }}
-                          >
-                            {option.label}
-                            {isDisabled && <span className="app-settings-option__disabled-dot" aria-hidden="true"></span>}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <button
+                      type="button"
+                      className="app-settings-menu__close"
+                      aria-label="Close settings"
+                      onClick={closeMenu}
+                    >
+                      <span className="material-icons-round">close</span>
+                    </button>
                   </div>
-                  {settings.exerciseViewMode === EXERCISE_VIEW_MODES.SETS && (
-                    <div className="app-settings-block">
-                      <div className="app-settings-block__header">
-                        <span className="material-icons-round app-settings-block__header-icon">stacked_line_chart</span>
-                        <h3 className="app-settings-block__title">
-                          Sets Display
-                        </h3>
-                      </div>
-                      <p className="app-settings-block__hint">Continuous lines or stacked bars.</p>
-                      <div className="app-settings-grid app-settings-grid--2" role="group" aria-label="Sets display mode">
-                        {[
-                          { id: SETS_DISPLAY_MODES.CONTINUOUS, label: "Continuous" },
-                          { id: SETS_DISPLAY_MODES.DISCRETE, label: "Discrete" },
-                        ].map((option) => {
-                          const isActive = option.id === (settings.setsDisplayMode ?? SETS_DISPLAY_MODES.CONTINUOUS);
+
+                  {/* Scrollable content */}
+                  <div className="app-settings-menu__content">
+                    {/* ── Workout View ── */}
+                    <section className="app-settings-section">
+                      <h3 className="app-settings-section-label">Workout View</h3>
+                      <p className="app-settings-body">Applies to all exercise cards.</p>
+                      <div className="app-settings-grid app-settings-grid--3" role="group" aria-label="Exercise view mode">
+                        {VIEW_MODE_OPTIONS.map((option) => {
+                          const isActive = option.id === settings.exerciseViewMode;
+                          const isDisabled = option.disabled;
                           return (
                             <button
                               key={option.id}
@@ -341,85 +322,127 @@ function AppInner() {
                                 isActive
                                   ? "app-settings-option--active"
                                   : "app-settings-option--inactive"
-                              }`}
-                              onClick={() => setSetsDisplayMode(option.id)}
+                              } ${isDisabled ? "app-settings-option--disabled" : ""}`}
+                              disabled={isDisabled}
+                              aria-disabled={isDisabled || undefined}
+                              onClick={() => {
+                                if (isDisabled) return;
+                                setExerciseViewMode(option.id);
+                              }}
                             >
                               {option.label}
+                              {isDisabled && <span className="app-settings-option__disabled-dot" aria-hidden="true"></span>}
                             </button>
                           );
                         })}
                       </div>
-                    </div>
-                  )}
-                  <div className="app-settings-section-head">
-                    <span className="material-icons-round">cloud_done</span>
-                    <h3 className="app-settings-section-head__title">
-                      Backup & Data
-                    </h3>
-                  </div>
-                  <p className="app-settings-body">
-                    Your added data is saved in the browsers cache. If you want to clean you cache anytime, export your progress to keep it safe. You can re-import the file later to restore your data.
-                  </p>
-                  <div className="app-settings-actions">
-                    <button
-                      type="button"
-                      className="app-settings-action-btn"
-                      onClick={() => {
-                        handleExport();
-                        closeMenu();
-                      }}
-                    >
-                      <span className="material-icons-round app-settings-action-btn__icon">download</span>
-                      Export JSON
-                    </button>
-                    <button
-                      type="button"
-                      className="app-settings-action-btn"
-                      onClick={() => {
-                        triggerImport();
-                        closeMenu();
-                      }}
-                    >
-                      <span className="material-icons-round app-settings-action-btn__icon">upload</span>
-                      Import JSON
-                    </button>
-                  </div>
 
-                  {authenticated && (
-                    <>
-                      <div className="app-settings-section-head">
-                        <span className="material-icons-round">person</span>
-                        <h3 className="app-settings-section-head__title">
+                      {settings.exerciseViewMode === EXERCISE_VIEW_MODES.SETS && (
+                        <div>
+                          <p className="app-settings-body">Continuous lines or stacked bars.</p>
+                          <div className="app-settings-grid app-settings-grid--2" role="group" aria-label="Sets display mode">
+                            {[
+                              { id: SETS_DISPLAY_MODES.CONTINUOUS, label: "Continuous" },
+                              { id: SETS_DISPLAY_MODES.DISCRETE, label: "Discrete" },
+                            ].map((option) => {
+                              const isActive = option.id === (settings.setsDisplayMode ?? SETS_DISPLAY_MODES.CONTINUOUS);
+                              return (
+                                <button
+                                  key={option.id}
+                                  type="button"
+                                  className={`app-settings-option ${
+                                    isActive
+                                      ? "app-settings-option--active"
+                                      : "app-settings-option--inactive"
+                                  }`}
+                                  onClick={() => setSetsDisplayMode(option.id)}
+                                >
+                                  {option.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="app-settings-divider" />
+
+                      <div className="app-settings-entries">
+                        <div>
+                          <h4 className="app-settings-entries__title">Entries per exercise</h4>
+                          <p className="app-settings-entries__hint">
+                            How many workout entries are kept and loaded.
+                          </p>
+                        </div>
+                        <div className="app-settings-entries-stepper-group" role="group" aria-label="Entries per exercise">
+                          <button
+                            type="button"
+                            className="app-settings-entries-stepper"
+                            aria-label="Decrease entries limit"
+                            disabled={settings.entriesLimit <= 1}
+                            onClick={() => setEntriesLimit(settings.entriesLimit - 1)}
+                          >
+                            <span className="material-icons-round">remove</span>
+                          </button>
+                          <span className="app-settings-entries-value" aria-live="polite">
+                            {settings.entriesLimit}
+                          </span>
+                          <button
+                            type="button"
+                            className="app-settings-entries-stepper"
+                            aria-label="Increase entries limit"
+                            disabled={settings.entriesLimit >= 100}
+                            onClick={() => setEntriesLimit(settings.entriesLimit + 1)}
+                          >
+                            <span className="material-icons-round">add</span>
+                          </button>
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* ── Data ── */}
+                    <section className="app-settings-section">
+                      <h3 className="app-settings-section-label app-settings-section-label--icon">
+                        <span className="material-icons-round">cloud_done</span>
+                        Data
+                      </h3>
+
+                      <div className="app-settings-storage-card">
+                        <p className="app-settings-storage-card__text">
+                          {liveCounts.exercises} exercises ·{" "}
+                          {liveCounts.entries} entries ·{" "}
+                          {liveCounts.queue} sync-ops
+                          ({formatBytes(storageEstimate?.usage)})
+                        </p>
+                      </div>
+                    </section>
+
+                    {/* ── Account ── */}
+                    {authenticated && (
+                      <section className="app-settings-section">
+                        <h3 className="app-settings-section-label app-settings-section-label--icon">
+                          <span className="material-icons-round">person</span>
                           Account
                         </h3>
-                      </div>
-                      <p className="app-settings-body">
-                        Signed in as {user?.username ?? "User"}
-                      </p>
-                      <div className="app-settings-actions">
-                        <button
-                          type="button"
-                          className="app-settings-action-btn"
-                          onClick={handleSignOut}
-                        >
-                          <span className="material-icons-round app-settings-action-btn__icon">logout</span>
-                          Sign out
-                        </button>
-                      </div>
-                    </>
-                  )}
-
-                  {pendingCount > 0 && (
-                    <p
-                      className="app-settings-body sync-hint"
-                      title="Einträge warten auf Synchronisierung"
-                    >
-                      <span className="material-icons-round" style={{ fontSize: 14 }}>
-                        cloud_upload
-                      </span>
-                      {pendingCount} Einträge warten auf Synchronisierung
-                    </p>
-                  )}
+                        <div className="app-settings-account-card">
+                          <div>
+                            <p className="app-settings-account-card__label">Signed in as</p>
+                            <p className="app-settings-account-card__name">
+                              {user?.username ?? "User"}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            className="app-settings-signout-btn"
+                            onClick={handleSignOut}
+                          >
+                            <span className="material-icons-round">logout</span>
+                            Sign Out
+                          </button>
+                        </div>
+                      </section>
+                    )}
+                  </div>
                 </div>
               </>
             )}
@@ -476,6 +499,7 @@ function AppInner() {
                 onAddEntry={addEntry}
                 onDeleteEntry={deleteEntry}
                 onDeleteExercise={deleteExercise}
+                onRenameExercise={renameExercise}
                 onDeleteGroup={deleteGroup}
                 onMoveExercise={moveExercise}
                 onReorderGroups={reorderGroups}
@@ -516,14 +540,6 @@ function AppInner() {
           onConfirm={confirmSignOut}
         />
       )}
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="application/json"
-        className="app-hidden-input"
-        onChange={handleImport}
-      />
     </div>
   );
 }

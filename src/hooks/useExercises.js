@@ -5,16 +5,19 @@
 // The sync engine pushes in the background whenever a session exists.
 // `useLiveQuery` makes the hook reactive — no manual refetch needed.
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, newUuid, nowIso } from "../db/db";
 import {
   applyCapEviction,
+  cleanupSyncedOps,
   enqueueOp,
   processQueue,
+  pull,
 } from "../db/sync";
 import { api } from "./api/client";
 import { useAuth } from "../auth/AuthContext";
+import { useSettings } from "./useSettings";
 import config from "virtual:app-config";
 
 const { entries: entriesCfg } = config;
@@ -40,17 +43,37 @@ function triggerSync(authenticated) {
 
 export function useExercises() {
   const { authenticated } = useAuth();
+  const { settings } = useSettings();
+  const entriesLimit = settings.entriesLimit ?? entriesCfg.defaultLimit;
 
   const groupsRaw = useLiveQuery(() => db.groups.toArray(), []);
   const exercisesRaw = useLiveQuery(() => db.exercises.toArray(), []);
   const entriesRaw = useLiveQuery(() => db.entries.toArray(), []);
 
-  // Enforce the per-exercise cache cap once on app start (section 6).
+  // Enforce the per-exercise cache cap (section 6) — on app start and
+  // whenever the user changes the limit in the settings. Also drop any
+  // leftover synced queue ops from older versions.
   useEffect(() => {
-    applyCapEviction().catch((err) =>
+    applyCapEviction(entriesLimit).catch((err) =>
       console.error("[cap] eviction failed:", err)
     );
-  }, []);
+    cleanupSyncedOps().catch((err) =>
+      console.error("[sync] queue cleanup failed:", err)
+    );
+  }, [entriesLimit]);
+
+  // When the limit is increased while logged in, pull the additional
+  // entries from the server (explicit user action — R3).
+  const prevEntriesLimit = useRef(entriesLimit);
+  useEffect(() => {
+    const previous = prevEntriesLimit.current;
+    prevEntriesLimit.current = entriesLimit;
+    if (authenticated && entriesLimit > previous) {
+      pull(entriesLimit).catch((err) =>
+        console.error("[sync] pull after limit change failed:", err)
+      );
+    }
+  }, [entriesLimit, authenticated]);
 
   const groups = useMemo(
     () =>
@@ -124,6 +147,19 @@ export function useExercises() {
       await db.entries.where("exerciseId").equals(exerciseId).delete();
     });
     await enqueueOp("exercise", exerciseId, "delete", null);
+    triggerSync(authenticated);
+  }, [authenticated]);
+
+  const renameExercise = useCallback(async (exerciseId, name) => {
+    const trimmed = name.trim();
+    if (!exerciseId || !trimmed) return;
+
+    const existing = await db.exercises.get(exerciseId);
+    if (!existing || existing.name === trimmed) return;
+
+    const entity = { ...existing, name: trimmed, updatedAt: nowIso() };
+    await db.exercises.put(entity);
+    await enqueueOp("exercise", exerciseId, "update", entity);
     triggerSync(authenticated);
   }, [authenticated]);
 
@@ -367,6 +403,7 @@ export function useExercises() {
     addEntry,
     deleteEntry,
     deleteExercise,
+    renameExercise,
     deleteGroup,
     moveExercise,
     reorderGroups,

@@ -135,27 +135,51 @@
 }
 
 .app-settings-menu {
-	@apply absolute right-0 top-12 z-50 w-72 rounded-3xl border border-slate-200 bg-white/95 p-5 text-left shadow-2xl backdrop-blur-md dark:border-slate-800 dark:bg-slate-900;
+	@apply absolute right-0 top-12 z-50 flex max-h-[85vh] w-[22rem] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white/95 text-left shadow-2xl backdrop-blur-md dark:border-slate-800 dark:bg-slate-900;
 }
 
-.app-settings-block {
-	@apply mb-5;
+.app-settings-menu__header {
+	@apply flex shrink-0 items-center justify-between border-b border-slate-200/70 px-5 py-4 dark:border-slate-800;
 }
 
-.app-settings-block__header {
-	@apply mb-2 flex items-center gap-2 text-slate-400;
+.app-settings-menu__title-row {
+	@apply flex items-center gap-2;
 }
 
-.app-settings-block__header-icon {
-	@apply text-base;
+.app-settings-menu__title-icon {
+	@apply text-xl text-primary;
 }
 
-.app-settings-block__title {
-	@apply font-display text-[10px] font-bold uppercase tracking-[0.4em] text-slate-900 dark:text-slate-100;
+.app-settings-menu__title {
+	@apply font-display text-lg font-semibold text-slate-900 dark:text-slate-100;
 }
 
-.app-settings-block__hint {
-	@apply mb-3 text-[11px] text-slate-500;
+.app-settings-menu__close {
+	@apply flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200;
+}
+
+.app-settings-menu__close .material-icons-round {
+	@apply text-lg;
+}
+
+.app-settings-menu__content {
+	@apply flex-1 space-y-7 overflow-y-auto px-5 py-5;
+}
+
+.app-settings-section {
+	@apply space-y-3;
+}
+
+.app-settings-section-label {
+	@apply flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500;
+}
+
+.app-settings-section-label--icon .material-icons-round {
+	font-size: 15px;
+}
+
+.app-settings-divider {
+	@apply border-t border-slate-200/70 dark:border-slate-800;
 }
 
 .app-settings-grid {
@@ -190,16 +214,46 @@
 	@apply absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-amber-400;
 }
 
-.app-settings-section-head {
-	@apply mb-4 flex items-center gap-2 text-slate-400;
+.app-settings-entries {
+	@apply flex items-center justify-between gap-3;
 }
 
-.app-settings-section-head__title {
-	@apply font-display text-xs font-bold uppercase tracking-[0.4em] text-slate-900 dark:text-slate-100;
+.app-settings-entries__title {
+	@apply text-sm font-semibold text-slate-900 dark:text-slate-100;
+}
+
+.app-settings-entries__hint {
+	@apply mt-0.5 max-w-[190px] text-xs text-slate-500 dark:text-slate-400;
+}
+
+.app-settings-entries-stepper-group {
+	@apply flex shrink-0 items-center gap-1.5 rounded-full bg-slate-100 px-1.5 py-1 dark:bg-slate-800;
+}
+
+.app-settings-entries-stepper {
+	@apply flex h-8 w-8 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-white hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100;
+}
+
+.app-settings-entries-stepper .material-icons-round {
+	font-size: 18px;
+}
+
+.app-settings-entries-value {
+	@apply min-w-[2ch] text-center text-lg font-bold text-slate-900 dark:text-slate-100;
 }
 
 .app-settings-body {
 	@apply mb-4 text-xs text-justify text-slate-500;
+}
+
+.app-settings-storage-card {
+	@apply flex items-start gap-2 rounded-xl bg-slate-100/80 p-2 dark:bg-slate-800/60;
+}
+
+.app-settings-storage-card__text {
+	@apply text-xs leading-relaxed text-slate-500 dark:text-slate-400;
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
 }
 
 .app-settings-actions {
@@ -207,11 +261,31 @@
 }
 
 .app-settings-action-btn {
-	@apply flex flex-col items-center gap-2 rounded-2xl border border-transparent bg-slate-50 p-4 text-[11px] font-semibold uppercase tracking-tight text-slate-700 transition hover:border-slate-200 hover:bg-white dark:bg-slate-800/50 dark:text-slate-100;
+	@apply flex flex-col items-center gap-2 rounded-xl border border-transparent bg-slate-50 p-4 text-[11px] font-semibold uppercase tracking-tight text-slate-700 transition hover:border-slate-200 hover:bg-white dark:bg-slate-800/50 dark:text-slate-100 dark:hover:bg-slate-800;
 }
 
 .app-settings-action-btn__icon {
 	@apply text-primary;
+}
+
+.app-settings-account-card {
+	@apply flex items-center justify-between gap-3 rounded-xl bg-slate-100/80 p-3.5 dark:bg-slate-800/60;
+}
+
+.app-settings-account-card__label {
+	@apply text-xs text-slate-500 dark:text-slate-400;
+}
+
+.app-settings-account-card__name {
+	@apply text-sm font-semibold text-slate-900 dark:text-slate-100;
+}
+
+.app-settings-signout-btn {
+	@apply flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold uppercase tracking-tight text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800;
+}
+
+.app-settings-signout-btn .material-icons-round {
+	@apply text-base text-primary;
 }
 
 .app-main {
@@ -296,11 +370,6 @@
 	@apply bg-red-600 text-white hover:bg-red-700;
 }
 
-/* ── Sync hint ───────────────────────────────────────────────────────── */
-
-.sync-hint {
-	@apply flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400;
-}
 
 /* ── Login Dialog ─────────────────────────────────────────────────────── */
 

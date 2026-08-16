@@ -171,10 +171,12 @@ describe("useExercises (local-first)", () => {
       );
     });
 
-    const queue = await db.queue.toArray();
-    expect(queue[0].status).toBe("synced"); // ack-based
-    expect(queue[0].payload.name).toBe("Deadlift");
-    expect(queue[0].payload.id).toMatch(/^[0-9a-f-]{36}$/);
+    // ack-based: the op is removed from the queue once synced
+    expect(await db.queue.count()).toBe(0);
+    expect(globalThis.fetch.mock.calls[0][1].method).toBe("POST");
+    const body = JSON.parse(globalThis.fetch.mock.calls[0][1].body);
+    expect(body.name).toBe("Deadlift");
+    expect(body.id).toMatch(/^[0-9a-f-]{36}$/);
   });
 
   it("addEntry writes locally and pushes a create op with client uuid + timestamps", async () => {
@@ -200,8 +202,11 @@ describe("useExercises (local-first)", () => {
     expect(entries[0].exerciseId).toBe("ex-1");
     expect(entries[0].weight).toBe(85.5);
 
-    const queue = await db.queue.toArray();
-    const payload = queue[0].payload;
+    // payload from the push request (op is deleted after ack)
+    const postCall = globalThis.fetch.mock.calls.find((c) =>
+      String(c[0]).endsWith("/api/entries")
+    );
+    const payload = JSON.parse(postCall[1].body);
     expect(payload.id).toMatch(/^[0-9a-f-]{36}$/);
     expect(payload.createdAt).toBeDefined();
     expect(payload.updatedAt).toBeDefined();
@@ -241,8 +246,10 @@ describe("useExercises (local-first)", () => {
       );
     });
 
-    const queue = await db.queue.toArray();
-    expect(queue[0]).toMatchObject({ entityUuid: "e1", op: "delete" });
+    // acked → removed from the queue
+    await waitFor(async () => {
+      expect(await db.queue.count()).toBe(0);
+    });
   });
 
   it("deleteExercise removes exercise + entries locally and enqueues one delete op", async () => {
@@ -261,9 +268,59 @@ describe("useExercises (local-first)", () => {
     expect(await db.entries.count()).toBe(0);
 
     // Q5: ONE delete op for the exercise — no per-entry ops
-    const queue = await db.queue.toArray();
-    expect(queue).toHaveLength(1);
-    expect(queue[0]).toMatchObject({ entityUuid: "ex-1", op: "delete", entityType: "exercise" });
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        "/api/exercises/ex-1",
+        expect.objectContaining({ method: "DELETE" })
+      );
+    });
+    const deleteCalls = globalThis.fetch.mock.calls.filter(
+      (c) => c[1]?.method === "DELETE"
+    );
+    expect(deleteCalls).toHaveLength(1);
+    expect(deleteCalls[0][0]).toBe("/api/exercises/ex-1");
+  });
+
+  it("renameExercise updates locally and enqueues an update op", async () => {
+    mockAuth({ authenticated: true });
+    globalThis.fetch.mockResolvedValue(okJson());
+    await seedExercise({ id: "ex-1", name: "Old Name" });
+
+    const { result } = renderHook(() => useExercises());
+
+    await act(async () => {
+      await result.current.renameExercise("ex-1", "  New Name  ");
+    });
+
+    const stored = await db.exercises.get("ex-1");
+    expect(stored.name).toBe("New Name");
+    expect(stored.id).toBe("ex-1");
+
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        "/api/exercises/ex-1",
+        expect.objectContaining({ method: "PUT" })
+      );
+    });
+    const putCall = globalThis.fetch.mock.calls.find(
+      (c) => String(c[0]).endsWith("/api/exercises/ex-1") && c[1]?.method === "PUT"
+    );
+    const payload = JSON.parse(putCall[1].body);
+    expect(payload.name).toBe("New Name");
+  });
+
+  it("renameExercise does nothing for empty or unchanged names", async () => {
+    mockAuth({ authenticated: true });
+    await seedExercise({ id: "ex-1", name: "Same" });
+
+    const { result } = renderHook(() => useExercises());
+
+    await act(async () => {
+      await result.current.renameExercise("ex-1", "   ");
+      await result.current.renameExercise("ex-1", "Same");
+    });
+
+    expect(await db.queue.count()).toBe(0);
   });
 
   it("deleteGroup ungroups its exercises locally and enqueues a delete op", async () => {
@@ -287,9 +344,12 @@ describe("useExercises (local-first)", () => {
     const exercises = await db.exercises.toArray();
     expect(exercises[0].groupId).toBeNull();
 
-    const queue = await db.queue.toArray();
-    expect(queue).toHaveLength(1);
-    expect(queue[0]).toMatchObject({ entityUuid: "g1", op: "delete", entityType: "group" });
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        "/api/groups/g1",
+        expect.objectContaining({ method: "DELETE" })
+      );
+    });
   });
 
   // ══════════════════════════════════════════════════════════════════════
@@ -297,8 +357,8 @@ describe("useExercises (local-first)", () => {
   // ══════════════════════════════════════════════════════════════════════
 
   it("reorderGroups enqueues update ops for groups whose order changed", async () => {
-    mockAuth({ authenticated: true });
-    globalThis.fetch.mockResolvedValue(okJson());
+    // anonymous: ops stay pending → deterministic queue assertions
+    mockAuth({ authenticated: false });
     await db.groups.bulkAdd([
       { id: "g1", name: "Push", order: 0, createdAt: "", updatedAt: "" },
       { id: "g2", name: "Pull", order: 1, createdAt: "", updatedAt: "" },
@@ -323,8 +383,8 @@ describe("useExercises (local-first)", () => {
   });
 
   it("moveExercise updates orders locally and enqueues update ops", async () => {
-    mockAuth({ authenticated: true });
-    globalThis.fetch.mockResolvedValue(okJson());
+    // anonymous: ops stay pending → deterministic queue assertions
+    mockAuth({ authenticated: false });
     await seedExercise({ id: "ex-1", order: 0 });
     await seedExercise({ id: "ex-2", order: 1 });
     await seedExercise({ id: "ex-3", order: 2 });
@@ -378,8 +438,8 @@ describe("useExercises (local-first)", () => {
   // ══════════════════════════════════════════════════════════════════════
 
   it("importData writes cache first, then enqueues one create op per entity", async () => {
-    mockAuth({ authenticated: true });
-    globalThis.fetch.mockResolvedValue(okJson());
+    // anonymous: ops stay pending → deterministic queue assertions
+    mockAuth({ authenticated: false });
 
     const { result } = renderHook(() => useExercises());
 

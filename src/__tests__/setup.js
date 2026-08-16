@@ -24,6 +24,7 @@ vi.mock("virtual:app-config", () => ({
     sync: {
       maxRetries: 100,
       logoutPushTimeoutMs: 2500,
+      requestTimeoutMs: 20000,
     },
     health: {
       cacheMs: 5000,

@@ -57,7 +57,7 @@ async function login(page, username, password) {
 
 async function logout(page) {
   await openSettings(page);
-  await page.locator(".app-settings-action-btn", { hasText: "Sign out" }).click();
+  await page.locator(".app-settings-signout-btn").click();
   // fully synced queue → logout runs without confirmation dialog;
   // the login FAB reappears once signed out
   await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible({ timeout: 10_000 });
@@ -66,9 +66,7 @@ async function logout(page) {
 
 async function expectSignedIn(page) {
   await openSettings(page);
-  await expect(
-    page.locator(".app-settings-action-btn", { hasText: "Sign out" })
-  ).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator(".app-settings-signout-btn")).toBeVisible({ timeout: 10_000 });
   await closeSettings(page);
 }
 

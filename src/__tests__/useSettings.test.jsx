@@ -132,6 +132,51 @@ describe("useSettings", () => {
     );
   });
 
+  // ── Entries limit ────────────────────────────────────────────────────
+
+  it("defaults entriesLimit to the configured default (10)", () => {
+    const { result } = renderHook(() => useSettings());
+
+    expect(result.current.settings.entriesLimit).toBe(10);
+  });
+
+  it("setEntriesLimit updates and persists the value", () => {
+    const { result } = renderHook(() => useSettings());
+
+    act(() => {
+      result.current.setEntriesLimit(25);
+    });
+
+    expect(result.current.settings.entriesLimit).toBe(25);
+    const stored = JSON.parse(localStorage.getItem("replog-ui-settings"));
+    expect(stored.entriesLimit).toBe(25);
+  });
+
+  it("clamps entriesLimit to the 1..100 range", () => {
+    const { result } = renderHook(() => useSettings());
+
+    act(() => {
+      result.current.setEntriesLimit(0);
+    });
+    expect(result.current.settings.entriesLimit).toBe(1);
+
+    act(() => {
+      result.current.setEntriesLimit(500);
+    });
+    expect(result.current.settings.entriesLimit).toBe(100);
+  });
+
+  it("falls back to the default when stored entriesLimit is invalid", () => {
+    localStorage.setItem(
+      "replog-ui-settings",
+      JSON.stringify({ entriesLimit: "not-a-number" })
+    );
+
+    const { result } = renderHook(() => useSettings());
+
+    expect(result.current.settings.entriesLimit).toBe(10);
+  });
+
   // ── Multiple settings ────────────────────────────────────────────────
 
   it("preserves other settings when changing one", () => {

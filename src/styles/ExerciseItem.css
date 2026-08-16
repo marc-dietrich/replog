@@ -91,7 +91,11 @@
 }
 
 .exercise-item__title {
-  @apply font-display font-semibold;
+  @apply select-none font-display font-semibold;
+}
+
+.exercise-item__rename-input {
+  @apply w-full rounded-lg border border-primary bg-white/70 px-2 py-0.5 font-display font-semibold text-slate-900 outline-none dark:bg-slate-800/70 dark:text-slate-100;
 }
 
 .exercise-item__title--open {
@@ -131,7 +135,15 @@
 }
 
 .exercise-item__chart-wrap {
-  @apply mt-4;
+  @apply relative mt-4;
+}
+
+.exercise-item__chart-expand {
+  @apply absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full border border-amber-200/70 bg-white/90 text-slate-500 shadow-sm transition hover:text-amber-600 hover:shadow dark:border-amber-500/30 dark:bg-slate-800/90 dark:text-slate-300 dark:hover:text-amber-400;
+}
+
+.exercise-item__chart-expand .material-icons-round {
+  font-size: 16px;
 }
 
 .exercise-item__quick-entry {

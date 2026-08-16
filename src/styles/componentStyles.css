@@ -45,3 +45,41 @@
 .exercise-trend-chart__inner {
   @apply px-2 py-4;
 }
+
+/* ── Full-chart dialog ──────────────────────────────────────────────── */
+
+.chart-dialog-overlay {
+  @apply fixed inset-0 z-[70] flex items-center justify-center bg-black/50 px-4 py-8 backdrop-blur-sm;
+}
+
+.chart-dialog-card {
+  @apply flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900;
+}
+
+.chart-dialog__head {
+  @apply flex items-start justify-between gap-4 px-6 pb-3 pt-5;
+}
+
+.chart-dialog__title {
+  @apply font-display text-xl font-bold text-slate-900 dark:text-slate-100;
+}
+
+.chart-dialog__subtitle {
+  @apply mt-0.5 text-xs text-slate-500 dark:text-slate-400;
+}
+
+.chart-dialog__close {
+  @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200;
+}
+
+.chart-dialog__close .material-icons-round {
+  @apply text-lg;
+}
+
+.chart-dialog__body {
+  @apply flex-1 overflow-y-auto px-3 pb-6 pt-2;
+}
+
+.chart-dialog__empty {
+  @apply py-16 text-center text-sm text-slate-400;
+}

@@ -18,6 +18,7 @@ const { sync: syncCfg, entries: entriesCfg } = config;
 const MAX_RETRIES = syncCfg.maxRetries ?? 100;
 const PULL_LIMIT = entriesCfg.defaultLimit ?? 10;
 const CAP_LIMIT = entriesCfg.capLimit ?? 10;
+const REQUEST_TIMEOUT_MS = syncCfg.requestTimeoutMs ?? 20000;
 
 // ── Error classification ───────────────────────────────────────────────────
 
@@ -37,7 +38,8 @@ async function sendRequest(path, method, body, timeoutMs) {
       headers: body !== undefined ? { "Content-Type": "application/json" } : {},
       body: body !== undefined ? JSON.stringify(body) : undefined,
       credentials: "include",
-      signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined,
+      // Always bound the request — a hung fetch must never block the queue.
+      signal: AbortSignal.timeout(timeoutMs ?? REQUEST_TIMEOUT_MS),
     });
   } catch (err) {
     // Network failure / timeout — regular, expected case (stays pending)
@@ -109,6 +111,26 @@ async function resetInterruptedSyncs() {
   }
 }
 
+/**
+ * Manual recovery (Q8 follow-up): reset failed entries back to pending
+ * and push the queue again. Failed entries are never retried automatically.
+ */
+export async function retryFailedOps() {
+  await db.queue
+    .where("status")
+    .equals(QUEUE_STATUS.FAILED)
+    .modify({ status: QUEUE_STATUS.PENDING, retryCount: 0 });
+  await processQueue();
+}
+
+/**
+ * Synced ops are removed from the queue as soon as they are acked.
+ * This cleans up any leftovers from older versions that kept them.
+ */
+export async function cleanupSyncedOps() {
+  await db.queue.where("status").equals(QUEUE_STATUS.SYNCED).delete();
+}
+
 // ── Push ───────────────────────────────────────────────────────────────────
 
 /**
@@ -162,8 +184,8 @@ async function processQueueLocked(options) {
         throw new Error(`Unknown op: ${op.op}`);
       }
 
-      // Ack received — only now is the entry considered synced
-      await db.queue.update(op.id, { status: QUEUE_STATUS.SYNCED });
+      // Ack received — the op is done; remove it from the queue.
+      await db.queue.delete(op.id);
     } catch {
       // Network errors and server errors (4xx) share the same retry-count
       // mechanism — neither aborts the remaining queue entries.
@@ -179,27 +201,48 @@ async function processQueueLocked(options) {
 
 // ── Pull ───────────────────────────────────────────────────────────────────
 
+// Incremented on every clearAll (logout). An in-flight pull checks this
+// before writing — otherwise a pull started during a login flow would
+// resurrect data right after the logout wiped the cache.
+let clearGeneration = 0;
+
 /**
  * Pull the paginated server state into the cache.
  * Entities with open queue ops (pending/syncing) are skipped —
  * the local version stays, the server must not resurrect local deletes.
  */
-export async function pull() {
+export async function pull(entriesLimit = PULL_LIMIT) {
+  const generationAtStart = clearGeneration;
+
   const [groupsData, ungroupedData] = await Promise.all([
-    fetchPull("/groups/all"),
-    fetchPull("/exercises/ungrouped"),
+    fetchPull("/groups/all", entriesLimit),
+    fetchPull("/exercises/ungrouped", entriesLimit),
   ]);
+
+  if (generationAtStart !== clearGeneration) {
+    // The cache was cleared (logout) while we were fetching — abort.
+    console.warn("[sync] pull aborted: cache was cleared during fetch");
+    return;
+  }
 
   await db.transaction("rw", db.groups, db.exercises, db.entries, db.queue, async () => {
     for (const g of groupsData || []) {
       if (await hasOpenOp(g.id)) continue;
-      await db.groups.put({
+      const nextGroup = {
         id: g.id,
         name: g.name,
         order: g.order,
         createdAt: g.createdAt,
         updatedAt: g.updatedAt,
-      });
+      };
+      const currentGroup = await db.groups.get(g.id);
+      if (
+        !currentGroup ||
+        currentGroup.name !== nextGroup.name ||
+        (currentGroup.order ?? 0) !== nextGroup.order
+      ) {
+        await db.groups.put(nextGroup);
+      }
       for (const ex of g.exercises || []) {
         if (await hasOpenOp(ex.id)) continue;
         await putExercise(ex, g.id);
@@ -213,9 +256,9 @@ export async function pull() {
   });
 }
 
-async function fetchPull(path) {
+async function fetchPull(path, entriesLimit) {
   try {
-    return await sendRequest(`${path}?entriesLimit=${PULL_LIMIT}`, "GET");
+    return await sendRequest(`${path}?entriesLimit=${entriesLimit}`, "GET");
   } catch (err) {
     // Pull failure must never break the app — data stays local.
     console.error(`[sync] pull failed for ${path}:`, err.message);
@@ -224,17 +267,26 @@ async function fetchPull(path) {
 }
 
 async function putExercise(ex, groupId) {
-  await db.exercises.put({
+  const next = {
     id: ex.id,
     name: ex.name,
     order: ex.order ?? 0,
     groupId: groupId ?? null,
     createdAt: ex.createdAt,
     updatedAt: ex.updatedAt,
-  });
+  };
+  const existing = await db.exercises.get(ex.id);
+  const changed =
+    !existing ||
+    existing.name !== next.name ||
+    (existing.order ?? 0) !== next.order ||
+    (existing.groupId ?? null) !== next.groupId;
+  if (changed) {
+    await db.exercises.put(next);
+  }
   for (const entry of ex.entries || []) {
     if (await hasOpenOp(entry.id)) continue;
-    await db.entries.put({
+    const entryNext = {
       id: entry.id,
       exerciseId: ex.id,
       date: entry.date,
@@ -243,7 +295,18 @@ async function putExercise(ex, groupId) {
       note: entry.note ?? "",
       createdAt: entry.createdAt,
       updatedAt: entry.updatedAt,
-    });
+    };
+    const current = await db.entries.get(entry.id);
+    const entryChanged =
+      !current ||
+      current.date !== entryNext.date ||
+      Number(current.weight) !== entryNext.weight ||
+      current.reps !== entryNext.reps ||
+      (current.note ?? "") !== entryNext.note;
+    // Skip unchanged rows — avoid IndexedDB churn on every reload.
+    if (entryChanged) {
+      await db.entries.put(entryNext);
+    }
   }
 }
 
@@ -252,9 +315,9 @@ async function putExercise(ex, groupId) {
  * then pull — in this strict order, so local deletes/changes can never
  * be resurrected by the pull.
  */
-export async function loginFlow() {
+export async function loginFlow(entriesLimit = PULL_LIMIT) {
   await processQueue();
-  await pull();
+  await pull(entriesLimit);
 }
 
 // ── Cache cap eviction (section 6) ─────────────────────────────────────────
@@ -294,9 +357,10 @@ export async function applyCapEviction(limit = CAP_LIMIT) {
 /**
  * Wipe the entity cache AND the queue completely. Called after a
  * confirmed logout — everything not synced by then is deliberately
- * discarded.
+ * discarded. Bumps the generation so in-flight pulls abort.
  */
 export async function clearAll() {
+  clearGeneration += 1;
   await db.transaction("rw", db.groups, db.exercises, db.entries, db.queue, async () => {
     await Promise.all([
       db.groups.clear(),

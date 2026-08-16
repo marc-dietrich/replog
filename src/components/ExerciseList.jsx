@@ -70,6 +70,7 @@ export function ExerciseList({
   onAddEntry,
   onDeleteEntry,
   onDeleteExercise,
+  onRenameExercise,
   onDeleteGroup,
   onMoveExercise,
   onReorderGroups,
@@ -328,6 +329,7 @@ export function ExerciseList({
                 onAddEntry={onAddEntry}
                 onDeleteEntry={onDeleteEntry}
                 onDeleteExercise={onDeleteExercise}
+                onRenameExercise={onRenameExercise}
                 canMoveUp={!isFirstInGroup || orderedGroups.length > 0}
                 canMoveDown={!isLastInGroup || orderedGroups.length > 0}
                 onMoveUp={() => moveExercise(exercise.id, -1)}

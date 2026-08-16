@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EXERCISE_VIEW_MODES, ExerciseTrendChart, SETS_DISPLAY_MODES } from "./ExerciseTrendChart";
+import { ExerciseChartDialog } from "./ExerciseChartDialog";
 import { buildWorkoutTimeline } from "../utils/workoutMetrics";
 import "../styles/ExerciseItem.css";
 
@@ -22,6 +23,7 @@ export function ExerciseItem({
   onAddEntry,
   onDeleteEntry,
   onDeleteExercise,
+  onRenameExercise,
   canMoveUp = false,
   canMoveDown = false,
   onMoveUp,
@@ -38,12 +40,31 @@ export function ExerciseItem({
   const [expandedWorkouts, setExpandedWorkouts] = useState(() => new Set());
   const cardRef = useRef(null);
 
+  // Hold-to-rename state
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState("");
+  const renameHoldTimer = useRef(null);
+  const renameHoldTriggered = useRef(false);
+  const renameCommitted = useRef(false);
+  const renameInputRef = useRef(null);
+
+  // Full-chart dialog
+  const [chartDialogOpen, setChartDialogOpen] = useState(false);
+
   const viewModeLabel =
     viewMode === EXERCISE_VIEW_MODES.VOLUME
       ? "Volume"
       : viewMode === EXERCISE_VIEW_MODES.SETS
         ? "Sets"
         : "Top-Set";
+
+  const titleSizeClass = isOpen
+    ? compact
+      ? "exercise-item__title--open-compact"
+      : "exercise-item__title--open"
+    : compact
+      ? "exercise-item__title--closed-compact"
+      : "exercise-item__title--closed";
 
   const sortedEntries = useMemo(
     () => [...exercise.entries].sort((a, b) => new Date(a.date) - new Date(b.date)),
@@ -128,6 +149,57 @@ export function ExerciseItem({
     centerCard();
   };
 
+  // ── Hold-to-rename on the exercise title ─────────────────────────────
+
+  const startRenameHold = (event) => {
+    // Rename only makes sense on the expanded (selected) card.
+    if (!isOpen || isRenaming) return;
+    if (event.button !== undefined && event.button !== 0) return;
+    renameHoldTriggered.current = false;
+    renameHoldTimer.current = setTimeout(() => {
+      renameHoldTriggered.current = true;
+      renameCommitted.current = false;
+      setRenameValue(exercise.name);
+      setIsRenaming(true);
+    }, 600);
+  };
+
+  const cancelRenameHold = () => {
+    if (renameHoldTimer.current) {
+      clearTimeout(renameHoldTimer.current);
+      renameHoldTimer.current = null;
+    }
+  };
+
+  const commitRename = useCallback(async () => {
+    if (renameCommitted.current) return;
+    renameCommitted.current = true;
+    setIsRenaming(false);
+    const newName = renameValue.trim();
+    if (!newName || newName === exercise.name) return;
+    await onRenameExercise?.(exercise.id, newName);
+  }, [renameValue, exercise.id, exercise.name, onRenameExercise]);
+
+  const cancelRename = () => {
+    renameCommitted.current = true;
+    setIsRenaming(false);
+  };
+
+  useEffect(() => {
+    if (!isRenaming) return;
+    const frame = requestAnimationFrame(() => {
+      renameInputRef.current?.focus();
+      renameInputRef.current?.select();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isRenaming]);
+
+  useEffect(() => {
+    return () => {
+      if (renameHoldTimer.current) clearTimeout(renameHoldTimer.current);
+    };
+  }, []);
+
   const handleAddEntry = (event) => {
     event.stopPropagation();
     if (!weight.trim() || !reps.trim()) return;
@@ -157,16 +229,6 @@ export function ExerciseItem({
   const formatWeight = (value) => `${NUMBER_FORMATTER.format(value)} kg`;
   const formatVolume = (value) => `${NUMBER_FORMATTER.format(value)} kg`;
 
-  const getWorkoutSummaryText = (workout) => {
-    if (viewMode === EXERCISE_VIEW_MODES.VOLUME) {
-      return `Volume · ${formatVolume(workout.volume)}`;
-    }
-    if (!workout.bestSet) {
-      return "No sets yet";
-    }
-    return `Top set · ${formatWeight(workout.bestSet.weight)} × ${workout.bestSet.reps}`;
-  };
-
   const toggleQuickEntry = (event) => {
     event.stopPropagation();
     if (showQuickEntry) {
@@ -175,8 +237,6 @@ export function ExerciseItem({
       setShowQuickEntry(true);
     }
   };
-
-  const stopPropagation = (event) => event.stopPropagation();
 
   const isInteractiveElement = (node) => {
     if (!node || node.nodeType !== Node.ELEMENT_NODE) return false;
@@ -285,9 +345,56 @@ export function ExerciseItem({
             </svg>
           </div>
           <div className="exercise-item__title-wrap">
-            <h3 className={`exercise-item__title ${isOpen ? (compact ? "exercise-item__title--open-compact" : "exercise-item__title--open") : (compact ? "exercise-item__title--closed-compact" : "exercise-item__title--closed")}`}>
-              {exercise.name}
-            </h3>
+            {isRenaming ? (
+              <input
+                ref={renameInputRef}
+                type="text"
+                data-no-toggle="true"
+                data-dndkit-disable-dnd="true"
+                aria-label={`Rename ${exercise.name}`}
+                className={`exercise-item__rename-input ${titleSizeClass}`}
+                value={renameValue}
+                onChange={(event) => setRenameValue(event.target.value)}
+                onBlur={commitRename}
+                onKeyDown={(event) => {
+                  event.stopPropagation();
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    commitRename();
+                  } else if (event.key === "Escape") {
+                    cancelRename();
+                  }
+                }}
+                onPointerDown={(event) => event.stopPropagation()}
+              />
+            ) : (
+              <h3
+                className={`exercise-item__title ${titleSizeClass}`}
+                title={isOpen ? "Hold to rename" : undefined}
+                data-dndkit-disable-dnd={isOpen ? "true" : undefined}
+                onContextMenu={(event) => event.preventDefault()}
+                onPointerDown={(event) => {
+                  // Hold = rename on the open card; when closed the title
+                  // stays a normal drag/toggle zone.
+                  if (!isOpen) return;
+                  event.stopPropagation();
+                  startRenameHold(event);
+                }}
+                onPointerMove={cancelRenameHold}
+                onPointerUp={cancelRenameHold}
+                onPointerLeave={cancelRenameHold}
+                onPointerCancel={cancelRenameHold}
+                onClick={(event) => {
+                  if (renameHoldTriggered.current) {
+                    renameHoldTriggered.current = false;
+                    event.stopPropagation();
+                    event.preventDefault();
+                  }
+                }}
+              >
+                {exercise.name}
+              </h3>
+            )}
             {!isOpen && (
               <p className={`${compact ? "exercise-item__last-entry exercise-item__last-entry--compact" : "exercise-item__last-entry"}`}>
                 {lastEntry ? `Last: ${lastEntry.weight} kg × ${lastEntry.reps} • ${lastEntry.date}` : "No entries yet."}
@@ -316,6 +423,19 @@ export function ExerciseItem({
             viewMode={viewMode}
             setsDisplayMode={setsDisplayMode}
           />
+          <button
+            type="button"
+            className="exercise-item__chart-expand"
+            aria-label={`Open full chart for ${exercise.name}`}
+            title="Open full chart"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              setChartDialogOpen(true);
+            }}
+          >
+            <span className="material-icons-round">open_in_full</span>
+          </button>
         </div>
       )}
 
@@ -504,6 +624,16 @@ export function ExerciseItem({
             </button>
           </div>
         </div>
+      )}
+
+      {chartDialogOpen && (
+        <ExerciseChartDialog
+          exerciseId={exercise.id}
+          exerciseName={exercise.name}
+          viewMode={viewMode}
+          setsDisplayMode={setsDisplayMode}
+          onClose={() => setChartDialogOpen(false)}
+        />
       )}
     </article>
   );

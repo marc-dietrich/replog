@@ -19,6 +19,7 @@ import {
   openOpCount,
   processQueue,
   pull,
+  retryFailedOps,
 } from "../db/sync";
 
 const jsonOk = () =>
@@ -96,8 +97,8 @@ describe("sync engine", () => {
     const calls = globalThis.fetch.mock.calls.map((c) => c[1].method);
     expect(calls).toEqual(["POST", "PUT", "DELETE"]);
 
-    const queue = await db.queue.toArray();
-    expect(queue.every((q) => q.status === QUEUE_STATUS.SYNCED)).toBe(true);
+    // Ack-based: every op was removed from the queue once synced.
+    expect(await db.queue.count()).toBe(0);
   });
 
   // ══════════════════════════════════════════════════════════════════════
@@ -116,17 +117,16 @@ describe("sync engine", () => {
 
     const queue = await db.queue.toArray();
     const op1 = queue.find((q) => q.entityUuid === "ex-1");
-    const op2 = queue.find((q) => q.entityUuid === "ex-2");
 
     expect(op1.status).toBe(QUEUE_STATUS.PENDING);
     expect(op1.retryCount).toBe(1);
-    expect(op2.status).toBe(QUEUE_STATUS.SYNCED);
+    // op2 synced and removed from the queue
+    expect(queue.some((q) => q.entityUuid === "ex-2")).toBe(false);
 
     // next trigger retries op1 and succeeds
     globalThis.fetch.mockResolvedValueOnce(jsonOk());
     await processQueue();
-    const retried = (await db.queue.toArray()).find((q) => q.entityUuid === "ex-1");
-    expect(retried.status).toBe(QUEUE_STATUS.SYNCED);
+    expect(await db.queue.count()).toBe(0);
   });
 
   it("4xx failure retries like a network error and blocks nothing", async () => {
@@ -140,11 +140,12 @@ describe("sync engine", () => {
     await processQueue();
 
     const queue = await db.queue.toArray();
-    expect(queue.find((q) => q.entityUuid === "g-1")).toMatchObject({
+    expect(queue).toHaveLength(1);
+    expect(queue[0]).toMatchObject({
+      entityUuid: "g-1",
       status: QUEUE_STATUS.PENDING,
       retryCount: 1,
     });
-    expect(queue.find((q) => q.entityUuid === "g-2").status).toBe(QUEUE_STATUS.SYNCED);
   });
 
   // ══════════════════════════════════════════════════════════════════════
@@ -167,6 +168,28 @@ describe("sync engine", () => {
     const callsAfter = globalThis.fetch.mock.calls.length;
     await processQueue({ maxRetries: 3 });
     expect(globalThis.fetch.mock.calls.length).toBe(callsAfter);
+  });
+
+  it("retryFailedOps resets failed entries to pending and pushes them", async () => {
+    globalThis.fetch.mockResolvedValueOnce(jsonOk());
+    await db.queue.add({
+      entityUuid: "e-1",
+      entityType: "entry",
+      op: "create",
+      payload: { id: "e-1" },
+      status: QUEUE_STATUS.FAILED,
+      retryCount: 100,
+      createdAt: 0,
+    });
+
+    await retryFailedOps();
+
+    // acked → removed from the queue
+    expect(await db.queue.count()).toBe(0);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "/api/entries",
+      expect.objectContaining({ method: "POST" })
+    );
   });
 
   // ══════════════════════════════════════════════════════════════════════
@@ -269,6 +292,33 @@ describe("sync engine", () => {
     expect(await db.groups.count()).toBe(0);
     expect(await db.exercises.count()).toBe(0);
     expect(await db.queue.count()).toBe(0);
+  });
+
+  it("pull is aborted when the cache is cleared mid-fetch (logout race)", async () => {
+    let resolveGroupsFetch;
+    globalThis.fetch.mockImplementation((url) => {
+      if (String(url).includes("/groups/all")) {
+        return new Promise((resolve) => {
+          resolveGroupsFetch = () =>
+            resolve(
+              new Response(
+                JSON.stringify([{ id: "g1", name: "Push", order: 0, exercises: [] }]),
+                { status: 200 }
+              )
+            );
+        });
+      }
+      return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
+    });
+
+    const pullPromise = pull();
+    await clearAll(); // logout wipes while the pull is still fetching
+    resolveGroupsFetch();
+    await pullPromise;
+
+    // the in-flight pull must NOT resurrect data after the clear
+    expect(await db.groups.count()).toBe(0);
+    expect(await db.exercises.count()).toBe(0);
   });
 
   // ══════════════════════════════════════════════════════════════════════

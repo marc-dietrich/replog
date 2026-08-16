@@ -8,8 +8,9 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import config from "virtual:app-config";
 import { clearAll, loginFlow, openOpCount, processQueue } from "../db/sync";
+import { getEntriesLimit } from "../settings/settingsStore";
 
-const { apiBase, sync: syncCfg } = config;
+const { apiBase, sync: syncCfg, entries: entriesCfg } = config;
 
 const AuthContext = createContext(null);
 
@@ -43,7 +44,7 @@ export function AuthProvider({ children }) {
       .then((data) => {
         setAuthenticated(true);
         setUser({ id: data.id, username: data.username });
-        loginFlow().catch((err) => console.error("[sync] login flow failed:", err));
+        loginFlow(getEntriesLimit(entriesCfg.defaultLimit)).catch((err) => console.error("[sync] login flow failed:", err));
       })
       .catch(() => {
         setAuthenticated(false);
@@ -69,7 +70,7 @@ export function AuthProvider({ children }) {
     setAuthenticated(true);
     setUser({ id: data.id, username: data.username });
     // 3.2: push the queue first, then pull — async, must not block the UI.
-    loginFlow().catch((err) => console.error("[sync] login flow failed:", err));
+    loginFlow(getEntriesLimit(entriesCfg.defaultLimit)).catch((err) => console.error("[sync] login flow failed:", err));
   }, []);
 
   const register = useCallback(async (username, password) => {
@@ -89,7 +90,7 @@ export function AuthProvider({ children }) {
     setAuthenticated(true);
     setUser({ id: data.id, username: data.username });
     // 3.4: existing queue is pushed to the new account, then pull.
-    loginFlow().catch((err) => console.error("[sync] login flow failed:", err));
+    loginFlow(getEntriesLimit(entriesCfg.defaultLimit)).catch((err) => console.error("[sync] login flow failed:", err));
   }, []);
 
   const claim = useCallback(async (token, username, password) => {
@@ -112,7 +113,7 @@ export function AuthProvider({ children }) {
     setAuthenticated(true);
     setUser({ id: data.id, username: data.username });
     // Claimed migrated account: push any local queue, then pull.
-    loginFlow().catch((err) => console.error("[sync] login flow failed:", err));
+    loginFlow(getEntriesLimit(entriesCfg.defaultLimit)).catch((err) => console.error("[sync] login flow failed:", err));
   }, []);
 
   /**
